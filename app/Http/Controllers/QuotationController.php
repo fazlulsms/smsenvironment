@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Models\Setting;
 use App\Services\AmountInWords;
 use App\Services\DocumentContentService;
+use App\Services\DocumentFilenameService;
 use App\Services\DocumentNumberService;
 use App\Services\QuotationVerificationService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -195,7 +196,12 @@ class QuotationController extends Controller
         return redirect()->route('quotations.edit', $copy)->with('status', 'Quotation duplicated with a new number.');
     }
 
-    public function pdf(Quotation $quotation, AmountInWords $words, QuotationVerificationService $verification)
+    public function pdf(
+        Quotation $quotation,
+        AmountInWords $words,
+        QuotationVerificationService $verification,
+        DocumentFilenameService $filenames
+    )
     {
         $quotation->load('client', 'bankAccount', 'items.service', 'creator');
         $settings = $quotation->settings_snapshot ?: Setting::current()->toArray();
@@ -218,7 +224,7 @@ class QuotationController extends Controller
                 $settings['currency_major_name'] ?? 'Taka',
                 $settings['currency_minor_name'] ?? 'Paisa'
             ),
-        ])->setPaper('a4')->download(str_replace(['/', '\\'], '-', $quotation->number).'.pdf');
+        ])->setPaper('a4')->download($filenames->quotationFilename($quotation));
     }
 
     private function formData(array $extra): array

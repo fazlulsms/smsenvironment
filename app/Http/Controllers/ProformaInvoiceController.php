@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Models\Setting;
 use App\Services\AmountInWords;
 use App\Services\DocumentContentService;
+use App\Services\DocumentFilenameService;
 use App\Services\DocumentNumberService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -161,9 +162,9 @@ class ProformaInvoiceController extends Controller
         return redirect()->route('proforma-invoices.edit', $copy)->with('status', 'Invoice duplicated with a new number.');
     }
 
-    public function pdf(ProformaInvoice $proformaInvoice, AmountInWords $words)
+    public function pdf(ProformaInvoice $proformaInvoice, AmountInWords $words, DocumentFilenameService $filenames)
     {
-        $proformaInvoice->load('client', 'bankAccount', 'items', 'creator');
+        $proformaInvoice->load('client', 'bankAccount', 'items.service', 'creator');
         $settings = $proformaInvoice->settings_snapshot ?: Setting::current()->toArray();
         $bank = $proformaInvoice->bank_snapshot ?: $this->bankSnapshot($proformaInvoice->bankAccount);
 
@@ -183,7 +184,7 @@ class ProformaInvoiceController extends Controller
                 $settings['currency_major_name'] ?? 'Taka',
                 $settings['currency_minor_name'] ?? 'Paisa'
             ),
-        ])->setPaper('a4')->download(str_replace(['/', '\\'], '-', $proformaInvoice->number).'.pdf');
+        ])->setPaper('a4')->download($filenames->proformaInvoiceFilename($proformaInvoice));
     }
 
     private function formData(array $extra): array
