@@ -68,18 +68,68 @@
     $responsibilityLines = collect(preg_split('/\r\n|\r|\n/', trim((string) $quotation->client_responsibilities)))->map(fn ($line) => trim($line))->filter()->values();
     $approachText = $methodologyLines->implode(' ');
     $clientResponsibilitiesText = $responsibilityLines->implode(' ') ?: 'The client shall provide reasonable access to relevant premises, personnel, records, documents, operational information, utilities, sampling/monitoring locations and other resources reasonably required to complete the agreed assignment.';
-    $terms = collect(preg_split('/\n\s*\n/', trim((string) $quotation->terms_conditions)))
+    $rawTerms = collect(preg_split('/\n\s*\n/', trim((string) $quotation->terms_conditions)))
         ->map(fn ($term) => trim($term))
         ->filter()
         ->values();
-    if ($clientResponsibilitiesText !== '' && ! $terms->contains(fn ($term) => str_contains(strtolower($term), 'client responsibilit'))) {
-        $terms = $terms->take(1)
-            ->concat(['Client Responsibilities: '.$clientResponsibilitiesText])
-            ->concat($terms->slice(1))
-            ->values();
+    $termMap = collect();
+    $putTerm = function (string $heading, string $body) use (&$termMap) {
+        $body = trim($body);
+        if ($body !== '' && ! $termMap->has($heading)) {
+            $termMap->put($heading, $body);
+        }
+    };
+    foreach ($rawTerms as $term) {
+        $parts = str_contains($term, ':') ? explode(':', $term, 2) : [$term, ''];
+        $heading = trim($parts[0]);
+        $body = trim($parts[1] ?? '');
+        $lower = strtolower($heading);
+
+        if (str_contains($lower, 'scope')) {
+            $putTerm('Scope of Service', $body);
+        } elseif (str_contains($lower, 'client')) {
+            $putTerm('Client Responsibilities', $body);
+        } elseif (str_contains($lower, 'scheduling')) {
+            $putTerm('Scheduling and Site Readiness', $body);
+        } elseif (str_contains($lower, 'change') || str_contains($lower, 'additional')) {
+            $putTerm('Changes and Additional Work', $body);
+        } elseif (str_contains($lower, 'reporting')) {
+            $putTerm('Reporting', $body);
+            if (str_contains($lower, 'confidential')) {
+                $putTerm('Confidentiality', $body);
+            }
+        } elseif (str_contains($lower, 'confidential')) {
+            $putTerm('Confidentiality', $body);
+        } elseif (str_contains($lower, 'payment') || str_contains($lower, 'fees')) {
+            $putTerm('Fees and Payment', $body);
+            if (str_contains($lower, 'validity')) {
+                $putTerm('Proposal Validity', $body);
+            }
+        } elseif (str_contains($lower, 'vat') || str_contains($lower, 'ait') || str_contains($lower, 'statutory')) {
+            $putTerm('VAT, AIT and Statutory Treatment', $body);
+        } elseif (str_contains($lower, 'validity')) {
+            $putTerm('Proposal Validity', $body);
+        } elseif (str_contains($lower, 'cancel') || str_contains($lower, 'reschedul')) {
+            $putTerm('Cancellation / Rescheduling', $body);
+        }
     }
+    $termMap->put('Client Responsibilities', $clientResponsibilitiesText);
+    $fallbackTerms = [
+        'Scope of Service' => 'Services shall be performed according to the scope stated in this quotation. Additional activity outside the agreed scope may require written confirmation and additional fees.',
+        'Client Responsibilities' => $clientResponsibilitiesText,
+        'Scheduling and Site Readiness' => 'Assessment or testing dates will be mutually agreed based on scope, site readiness and technical team availability.',
+        'Changes and Additional Work' => 'Additional locations, testing points, parameters or material scope changes may require revision of the fee, timeline or quotation.',
+        'Reporting' => 'Reports will be prepared based on observations, measurements, records and information available within the agreed service scope.',
+        'Confidentiality' => 'Assignment information will be treated confidentially and used for the intended service, subject to applicable legal or regulatory obligations.',
+        'Fees and Payment' => 'Fees and payment shall follow the commercial and payment terms stated in this quotation.',
+        'VAT, AIT and Statutory Treatment' => trim(collect([$taxNote, $quotation->ait_note])->filter()->implode(' ')) ?: 'VAT, AIT or withholding tax and other statutory deductions shall be treated according to the stated tax treatment and applicable requirements.',
+        'Proposal Validity' => $quotation->validity_text ?: 'This quotation remains valid for the stated validity period unless otherwise agreed in writing.',
+        'Cancellation / Rescheduling' => 'Confirmed schedules may be revised subject to operational availability, site readiness and any cost already incurred.',
+    ];
+    $terms = collect(array_keys($fallbackTerms))
+        ->map(fn ($heading) => $heading.': '.($termMap->get($heading) ?: $fallbackTerms[$heading]))
+        ->values();
     $termRows = $terms->chunk(2);
-    $paymentLines = collect(preg_split('/\r\n|\r|\n/', trim((string) $quotation->payment_terms)))->map(fn ($line) => trim($line))->filter()->values();
 @endphp
 
 <div class="running-header">
@@ -246,29 +296,6 @@
 <section class="proposal-page terms-page">
     <h2>Commercial Terms & Conditions</h2>
 
-    <div class="commercial-grid">
-        <div class="commercial-block avoid-break">
-            <h3>Tax Treatment</h3>
-            @if ($taxNote)<p>{{ $taxNote }}</p>@endif
-            @if ($quotation->ait_note)<p>{{ $quotation->ait_note }}</p>@endif
-        </div>
-
-        @if($paymentLines->isNotEmpty() || $quotation->validity_text || $quotation->notes)
-            <div class="commercial-block avoid-break">
-                <h3>Payment Terms</h3>
-                @if($paymentLines->isNotEmpty())
-                    <ol class="compact-ordered">
-                        @foreach($paymentLines as $line)<li>{{ preg_replace('/^[A-Za-z ]+:\s*/', '', $line) }}</li>@endforeach
-                    </ol>
-                @endif
-                @if ($quotation->validity_text)<p><strong>Proposal Validity:</strong> {{ $quotation->validity_text }}</p>@endif
-                @if ($quotation->notes)<p>{!! nl2br(e($quotation->notes)) !!}</p>@endif
-            </div>
-        @endif
-    </div>
-
-    @include('documents.pdf_bank', ['bank' => $bank])
-
     @if($terms->isNotEmpty())
         <div class="terms-section">
             <table class="terms-table">
@@ -291,6 +318,8 @@
             </table>
         </div>
     @endif
+
+    @include('documents.pdf_bank', ['bank' => $bank])
 
     @if($quotation->include_acceptance)
         <div class="acceptance-block">
