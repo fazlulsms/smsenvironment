@@ -1,5 +1,5 @@
 <style>
-    @page { margin: 60px 34px 38px; }
+    @page { margin: 32mm 19mm 23mm; }
     body { font-family: DejaVu Sans, sans-serif; color: #1f2933; font-size: 10.5px; line-height: 1.42; }
     .header { border-bottom: 3px solid #1f6f4a; padding-bottom: 10px; margin-bottom: 18px; }
     .brand-line { display: table; width: 100%; }
@@ -27,22 +27,26 @@
     .scope-list { margin: 3px 0 0 13px; padding: 0; }
     .scope-list li { margin: 1px 0; }
     .signature { margin-top: 14px; page-break-inside: avoid; }
-    .footer { position: fixed; left: 0; right: 0; bottom: -16px; border-top: 1px solid #d8e2dc; padding-top: 6px; color: #667085; font-size: 8.7px; }
-    .quotation-proposal { font-size: 10.2px; line-height: 1.48; }
-    .quotation-proposal .running-header { position: fixed; top: -45px; left: 0; right: 0; height: 38px; border-bottom: 2px solid #1f6f4a; padding-bottom: 5px; }
-    .quotation-proposal .rh-left { float: left; width: 67%; }
-    .quotation-proposal .rh-logo { float: left; width: 30px; max-height: 30px; margin-right: 8px; }
-    .quotation-proposal .rh-brand { color: #1f6f4a; font-size: 14px; font-weight: 700; }
-    .quotation-proposal .rh-tagline { color: #667085; font-size: 8px; }
-    .quotation-proposal .rh-meta { float: right; width: 30%; text-align: right; color: #4f5f58; font-size: 8px; line-height: 1.3; }
+    .footer { position: fixed; left: 0; right: 0; bottom: -17mm; height: 13mm; border-top: 1px solid #d8e2dc; padding-top: 3mm; color: #667085; font-size: 7.5px; }
+    .quotation-proposal { font-size: 10.2px; line-height: 1.52; }
+    .quotation-proposal .running-header { position: fixed; top: -24mm; left: 0; right: 0; height: 18mm; border-bottom: 2px solid #1f6f4a; padding-bottom: 2mm; }
+    .quotation-proposal .rh-table { width: 100%; margin: 0; border-collapse: collapse; }
+    .quotation-proposal .rh-table td { border: 0; padding: 0; vertical-align: middle; }
+    .quotation-proposal .rh-logo-cell { width: 18mm; }
+    .quotation-proposal .rh-logo { width: 16mm; height: auto; max-height: 16mm; }
+    .quotation-proposal .rh-brand-cell { padding-left: 3mm; }
+    .quotation-proposal .rh-brand { color: #1f6f4a; font-size: 18px; font-weight: 700; line-height: 1.05; }
+    .quotation-proposal .rh-tagline { color: #667085; font-size: 8.6px; margin-top: 2px; }
+    .footer-table { width: 100%; margin: 0; border-collapse: collapse; }
+    .footer-table td { border: 0; padding: 0 0 2px; font-size: 7.5px; }
+    .footer-contact { text-align: center; color: #78847e; font-size: 7.1px; }
     .quotation-proposal .proposal-page { page-break-after: always; }
     .quotation-proposal .proposal-page:last-child { page-break-after: auto; }
-    .quotation-proposal .letter-page { min-height: 890px; }
-    .quotation-proposal .content-page { page-break-after: auto; }
+    .quotation-proposal .letter-page { min-height: 221mm; }
     .quotation-proposal .document-kicker { color: #667085; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 7px; }
     .quotation-proposal h1 { color: #1f2933; font-size: 25px; margin: 0 0 14px; }
-    .quotation-proposal h2 { color: #1f2933; font-size: 15px; margin: 0 0 10px; text-transform: uppercase; }
-    .quotation-proposal h3 { color: #1f2933; font-size: 12px; margin: 0 0 6px; }
+    .quotation-proposal h2 { color: #1f2933; font-size: 16px; margin: 0 0 12px; text-transform: uppercase; }
+    .quotation-proposal h3 { color: #1f4f38; font-size: 11.5px; margin: 0 0 7px; text-transform: uppercase; }
     .quotation-proposal p { margin: 7px 0; }
     .quotation-proposal .letter-meta { margin: 0 0 18px; border-collapse: collapse; }
     .quotation-proposal .letter-meta td { border: 0; padding: 0; }
@@ -50,23 +54,34 @@
     .quotation-proposal .subject-box { background: #eef6f1; border-left: 4px solid #1f6f4a; padding: 9px 11px; margin: 14px 0 18px; page-break-inside: avoid; }
     .quotation-proposal .compact-list { margin: 5px 0 0 15px; padding: 0; }
     .quotation-proposal .compact-list li { margin: 2px 0; }
-    .quotation-proposal .signature-block { margin-top: 22px; page-break-inside: avoid; }
+    .quotation-proposal .signature-block { margin-top: 24px; page-break-inside: avoid; }
     .quotation-proposal .signature-space { height: 34px; }
-    .quotation-proposal .proposal-table { margin-top: 8px; page-break-inside: auto; }
+    .quotation-proposal .scope-section { margin-top: 4px; }
+    .quotation-proposal .scope-card { margin: 8px 0 13px; }
+    .quotation-proposal .service-title { color: #1f2933; font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+    .quotation-proposal .financial-section { margin-top: 15px; }
+    .quotation-proposal .proposal-table { margin-top: 7px; page-break-inside: auto; }
     .quotation-proposal .proposal-table thead { display: table-header-group; }
     .quotation-proposal .proposal-table tr { page-break-inside: avoid; }
-    .quotation-proposal .proposal-table th { font-size: 9.5px; }
-    .quotation-proposal .proposal-table td { font-size: 9.8px; }
+    .quotation-proposal .proposal-table th { font-size: 9px; padding: 6px 7px; }
+    .quotation-proposal .proposal-table td { font-size: 9.2px; padding: 6px 7px; }
+    .quotation-proposal .totals { width: 45%; margin-top: 10px; }
+    .quotation-proposal .totals td { font-size: 9px; padding: 4px 6px; }
+    .quotation-proposal .bank-table { width: 70%; margin-top: 5px; }
+    .quotation-proposal .bank-table td { border-bottom: 1px solid #e4ebe7; padding: 4px 6px; font-size: 9px; }
+    .quotation-proposal .bank-table td:first-child { width: 28%; color: #4f5f58; font-weight: 700; }
     .quotation-proposal .terms-section { page-break-before: auto; }
-    .quotation-proposal .terms-section p { page-break-inside: avoid; margin-bottom: 8px; }
+    .quotation-proposal .terms-list { margin: 0 0 0 18px; padding: 0; }
+    .quotation-proposal .terms-list li { page-break-inside: avoid; margin-bottom: 7px; padding-left: 2px; }
     .quotation-proposal .avoid-break { page-break-inside: avoid; }
-    .quotation-proposal .acceptance-block { margin-top: 8px; }
-    .quotation-proposal .acceptance-block h2 { margin-bottom: 5px; }
-    .quotation-proposal .acceptance-block p { margin: 3px 0 4px; font-size: 9px; }
-    .quotation-proposal .acceptance-table { width: 100%; margin-top: 4px; border-collapse: collapse; }
-    .quotation-proposal .acceptance-table td { border-bottom: 1px solid #cfd8d3; padding: 3px 6px; height: 11px; }
+    .quotation-proposal .acceptance-block { margin-top: 16px; border: 1px solid #cfe0d7; padding: 12px 14px; page-break-inside: avoid; }
+    .quotation-proposal .acceptance-block h2 { color: #1f4f38; margin-bottom: 7px; }
+    .quotation-proposal .acceptance-block p { margin: 3px 0 10px; font-size: 9.5px; }
+    .quotation-proposal .acceptance-table { width: 100%; margin-top: 8px; border-collapse: collapse; }
+    .quotation-proposal .acceptance-table td { border-bottom: 1px solid #cfd8d3; padding: 8px 6px; height: 21px; }
     .quotation-proposal .acceptance-table td:nth-child(1),
-    .quotation-proposal .acceptance-table td:nth-child(3) { width: 18%; font-weight: 700; color: #4f5f58; }
-    .quotation-proposal .acceptance-ref { margin-top: 4px; font-size: 8.8px; color: #4f5f58; }
+    .quotation-proposal .acceptance-table td:nth-child(3) { width: 18%; font-weight: 700; color: #4f5f58; white-space: nowrap; }
+    .quotation-proposal .acceptance-ref { margin-top: 9px; font-size: 8.8px; color: #4f5f58; }
     .quotation-proposal .page-number:before { content: counter(page); }
+    .text-center { text-align: center; }
 </style>

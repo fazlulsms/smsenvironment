@@ -1,10 +1,12 @@
 @if ($bank)
-<div class="section">
-    <div class="label">Bank Details</div>
-    <strong>Beneficiary:</strong> {{ $bank['beneficiary_name'] ?? '' }}<br>
-    <strong>Bank:</strong> {{ $bank['bank_name'] ?? '' }} @if (!empty($bank['branch'])), {{ $bank['branch'] }} @endif<br>
-    <strong>Account No:</strong> {{ $bank['account_number'] ?? '' }}
-    @if (!empty($bank['routing_number']))<br><strong>Routing No:</strong> {{ $bank['routing_number'] }}@endif
-    @if (!empty($bank['swift_code']))<br><strong>SWIFT:</strong> {{ $bank['swift_code'] }}@endif
+<div class="section bank-block avoid-break">
+    <h3>Bank Details</h3>
+    <table class="bank-table">
+        <tr><td>Beneficiary</td><td>{{ $bank['beneficiary_name'] ?? '' }}</td></tr>
+        <tr><td>Bank</td><td>{{ $bank['bank_name'] ?? '' }} @if (!empty($bank['branch'])), {{ $bank['branch'] }} @endif</td></tr>
+        <tr><td>Account No.</td><td>{{ $bank['account_number'] ?? '' }}</td></tr>
+        @if (!empty($bank['routing_number']))<tr><td>Routing No.</td><td>{{ $bank['routing_number'] }}</td></tr>@endif
+        @if (!empty($bank['swift_code']))<tr><td>SWIFT</td><td>{{ $bank['swift_code'] }}</td></tr>@endif
+    </table>
 </div>
 @endif
