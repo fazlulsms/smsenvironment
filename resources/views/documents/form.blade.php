@@ -1,8 +1,16 @@
 @php
     $isQuotation = $type === 'quotation';
     $document = $isQuotation ? $quotation : $invoice;
-    $items = old('items') ?: ($document->items?->map(fn ($item) => $item->only(['service_id', 'description', 'unit', 'quantity', 'unit_rate']))->toArray() ?: [
-        ['service_id' => '', 'description' => '', 'unit' => 'Job', 'quantity' => 1, 'unit_rate' => 0],
+    $items = old('items') ?: ($document->items?->map(fn ($item) => [
+        'service_id' => $item->service_id,
+        'pricing_mode' => $item->pricing_mode,
+        'description' => $item->description,
+        'scope_items' => implode("\n", $item->scope_items ?? []),
+        'unit' => $item->unit,
+        'quantity' => $item->quantity,
+        'unit_rate' => $item->unit_rate,
+    ])->toArray() ?: [
+        ['service_id' => '', 'pricing_mode' => 'separate', 'description' => '', 'scope_items' => '', 'unit' => 'Job', 'quantity' => 1, 'unit_rate' => 0],
     ]);
     $showQuickClient = old('new_client.company_name') || ! old('client_id', request('client_id', $document->client_id));
     $defaultBank = $bankAccounts->firstWhere('is_default', true);
@@ -99,7 +107,7 @@
     </div>
     <div class="table-responsive">
         <table class="table align-middle" id="itemsTable">
-            <thead><tr><th style="width:20%">Service</th><th>Description</th><th style="width:10%">Unit</th><th style="width:10%">Qty</th><th style="width:14%">Rate</th><th style="width:14%">Amount</th><th></th></tr></thead>
+            <thead><tr><th style="width:20%">Service</th><th>Description / Scope</th><th style="width:10%">Unit</th><th style="width:10%">Qty</th><th style="width:14%">Rate</th><th style="width:14%">Amount</th><th></th></tr></thead>
             <tbody>
             @foreach ($items as $index => $item)
                 @include('documents.item_row', ['index' => $index, 'item' => $item])
@@ -357,6 +365,12 @@ document.addEventListener('change', event => {
     if (! service) return;
     const row = event.target.closest('tr');
     row.querySelector('[data-description]').value = {{ $isQuotation ? 'service.quotation_scope || service.default_description || service.name' : 'service.invoice_description || service.default_description || service.name' }};
+    row.querySelector('[data-pricing-mode]').value = service.service_type === 'standalone' ? 'separate' : 'consolidated';
+    row.querySelector('[data-scope-items]').value = (service.components || [])
+        .filter(component => component.is_active)
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+        .map(component => component.name)
+        .join("\n");
     row.querySelector('[data-unit]').value = service.default_unit || '';
     row.querySelector('[data-rate]').value = service.default_rate || 0;
     recalc();

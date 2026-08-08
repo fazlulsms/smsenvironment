@@ -10,7 +10,9 @@ class QuotationItem extends Model
     protected $fillable = [
         'quotation_id',
         'service_id',
+        'pricing_mode',
         'description',
+        'scope_items',
         'unit',
         'quantity',
         'unit_rate',
@@ -24,6 +26,7 @@ class QuotationItem extends Model
             'quantity' => 'decimal:2',
             'unit_rate' => 'decimal:2',
             'amount' => 'decimal:2',
+            'scope_items' => 'array',
         ];
     }
 

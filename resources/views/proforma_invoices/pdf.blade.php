@@ -29,7 +29,7 @@
         @foreach($invoice->items as $item)
             <tr>
                 <td>{{ $loop->iteration }}</td>
-                <td>{{ $item->description }}</td>
+                <td>@include('documents.item_description', ['item' => $item])</td>
                 <td>{{ $item->unit }} / {{ number_format($item->quantity, 2) }}</td>
                 <td class="text-right">{{ number_format($item->unit_rate, 2) }}</td>
                 <td class="text-right">{{ number_format($item->amount, 2) }}</td>

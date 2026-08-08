@@ -23,29 +23,35 @@ class ServiceController extends Controller
 
     public function create(): View
     {
-        return view('services.create', ['service' => new Service]);
+        return view('services.create', ['service' => new Service(['service_type' => Service::TYPE_STANDALONE])]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $service = Service::query()->create($this->validated($request));
+        $this->syncComponents($service, $request->input('components', []));
 
         return redirect()->route('services.edit', $service)->with('status', 'Service saved.');
     }
 
     public function show(Service $service): View
     {
+        $service->load('components');
+
         return view('services.show', compact('service'));
     }
 
     public function edit(Service $service): View
     {
+        $service->load('components');
+
         return view('services.edit', compact('service'));
     }
 
     public function update(Request $request, Service $service): RedirectResponse
     {
         $service->update($this->validated($request));
+        $this->syncComponents($service, $request->input('components', []));
 
         return redirect()->route('services.edit', $service)->with('status', 'Service updated.');
     }
@@ -63,6 +69,7 @@ class ServiceController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'short_name' => ['nullable', 'string', 'max:255'],
             'category' => ['nullable', 'string', 'max:255'],
+            'service_type' => ['nullable', 'in:'.implode(',', array_keys(Service::TYPES))],
             'default_description' => ['nullable', 'string'],
             'default_unit' => ['nullable', 'string', 'max:255'],
             'default_rate' => ['required', 'numeric', 'min:0'],
@@ -74,7 +81,34 @@ class ServiceController extends Controller
         ]);
 
         $data['is_active'] = $request->boolean('is_active');
+        $data['service_type'] = $data['service_type'] ?? Service::TYPE_STANDALONE;
 
         return $data;
+    }
+
+    private function syncComponents(Service $service, array $components): void
+    {
+        $rows = collect($components)
+            ->map(function (array $component, int $index) {
+                $name = trim((string) ($component['name'] ?? ''));
+
+                if ($name === '') {
+                    return null;
+                }
+
+                return [
+                    'name' => $name,
+                    'description' => $component['description'] ?? null,
+                    'default_price' => filled($component['default_price'] ?? null) ? $component['default_price'] : null,
+                    'is_active' => filter_var($component['is_active'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'sort_order' => filled($component['sort_order'] ?? null) ? (int) $component['sort_order'] : $index + 1,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        $service->components()->delete();
+        $service->components()->createMany($rows);
     }
 }

@@ -191,7 +191,11 @@ class ProformaInvoiceController extends Controller
         return [
             ...$extra,
             'clients' => Client::query()->orderBy('company_name')->get(),
-            'services' => Service::query()->where('is_active', true)->orderBy('name')->get(),
+            'services' => Service::query()
+                ->with(['components' => fn ($query) => $query->orderBy('sort_order')->orderBy('id')])
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(),
             'bankAccounts' => BankAccount::query()->where('is_active', true)->orderBy('bank_name')->get(),
             'settings' => Setting::current(),
         ];
@@ -223,7 +227,9 @@ class ProformaInvoiceController extends Controller
             'after_save' => ['nullable', 'in:view,pdf'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.service_id' => ['nullable', 'exists:services,id'],
+            'items.*.pricing_mode' => ['nullable', 'in:separate,consolidated'],
             'items.*.description' => ['nullable', 'string'],
+            'items.*.scope_items' => ['nullable'],
             'items.*.unit' => ['nullable', 'string', 'max:255'],
             'items.*.quantity' => ['required', 'numeric', 'min:0'],
             'items.*.unit_rate' => ['required', 'numeric', 'min:0'],
@@ -286,6 +292,7 @@ class ProformaInvoiceController extends Controller
     private function selectedServices(array $input)
     {
         return Service::query()
+            ->with('components')
             ->whereIn('id', collect($input)->pluck('service_id')->filter()->unique())
             ->get()
             ->keyBy('id')
@@ -315,7 +322,9 @@ class ProformaInvoiceController extends Controller
             $subtotal += $amount;
             $items[] = [
                 'service_id' => $item['service_id'] ?? null,
+                'pricing_mode' => ($item['pricing_mode'] ?? null) ?: ($service?->defaultPricingMode() ?? 'separate'),
                 'description' => $item['description'] ?: $content->serviceDescription($service, $type) ?: 'Service',
+                'scope_items' => $this->scopeItems($item, $service),
                 'unit' => $item['unit'] ?: ($service?->default_unit),
                 'quantity' => $item['quantity'],
                 'unit_rate' => $item['unit_rate'],
@@ -325,6 +334,39 @@ class ProformaInvoiceController extends Controller
         }
 
         return [$items, $subtotal];
+    }
+
+    private function scopeItems(array $item, ?Service $service): array
+    {
+        $input = $item['scope_items'] ?? null;
+
+        if (is_string($input)) {
+            $items = preg_split('/\r\n|\r|\n/', $input);
+        } elseif (is_array($input)) {
+            $items = $input;
+        } else {
+            $items = [];
+        }
+
+        $items = collect($items)
+            ->map(function ($scopeItem) {
+                if (is_array($scopeItem)) {
+                    return trim((string) ($scopeItem['name'] ?? ''));
+                }
+
+                return trim((string) $scopeItem);
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($items !== []) {
+            return $items;
+        }
+
+        return $service?->activeComponents
+            ? $service->activeComponents->pluck('name')->filter()->values()->all()
+            : [];
     }
 
     private function validateBankForPdf(?BankAccount $bank, bool $isPdf): void

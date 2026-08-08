@@ -19,7 +19,17 @@
         @foreach ($document->items as $item)
             <tr>
                 <td>{{ $loop->iteration }}</td>
-                <td>{{ $item->description }}</td>
+                <td>
+                    {{ $item->description }}
+                    @if (!empty($item->scope_items))
+                        <div class="text-secondary small mt-1">Including:</div>
+                        <ul class="small mb-0">
+                            @foreach ($item->scope_items as $scopeItem)
+                                <li>{{ $scopeItem }}</li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </td>
                 <td>{{ $item->unit }}</td>
                 <td class="text-end">{{ number_format($item->quantity, 2) }}</td>
                 <td class="text-end">{{ number_format($item->unit_rate, 2) }}</td>

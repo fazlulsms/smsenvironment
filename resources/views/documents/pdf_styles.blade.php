@@ -23,6 +23,9 @@
     .totals td { border: 0; padding: 4px 7px; }
     .grand td { border-top: 2px solid #1f6f4a; font-weight: 700; font-size: 12px; }
     .section { margin-top: 12px; }
+    .scope-label { margin-top: 5px; color: #667085; font-size: 9px; font-weight: 700; }
+    .scope-list { margin: 3px 0 0 13px; padding: 0; }
+    .scope-list li { margin: 1px 0; }
     .signature { margin-top: 14px; page-break-inside: avoid; }
     .footer { position: fixed; left: 0; right: 0; bottom: -20px; border-top: 1px solid #d8e2dc; padding-top: 7px; color: #667085; font-size: 9px; }
 </style>
