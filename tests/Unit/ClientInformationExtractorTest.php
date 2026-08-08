@@ -43,16 +43,22 @@ class ClientInformationExtractorTest extends TestCase
 
         Http::fake([
             'generativelanguage.googleapis.com/*' => Http::response([
-                'output_text' => json_encode([
-                    'company_name' => 'UNI Garments Limited',
-                    'contact_person' => 'Sohel',
-                    'designation' => 'Compliance Manager',
-                    'email' => 'sohel@rdmapparels.com',
-                    'address' => '80 Bayazid Bostami Rd, Chattogram 4210',
-                    'city' => 'Chattogram',
-                    'postal_code' => '4210',
-                    'country' => 'Bangladesh',
-                ]),
+                'candidates' => [[
+                    'content' => [
+                        'parts' => [[
+                            'text' => json_encode([
+                                'company_name' => 'UNI Garments Limited',
+                                'contact_person' => 'Sohel',
+                                'designation' => 'Compliance Manager',
+                                'email' => 'sohel@rdmapparels.com',
+                                'address' => '80 Bayazid Bostami Rd, Chattogram 4210',
+                                'city' => 'Chattogram',
+                                'postal_code' => '4210',
+                                'country' => 'Bangladesh',
+                            ]),
+                        ]],
+                    ],
+                ]],
             ]),
         ]);
 
@@ -60,9 +66,10 @@ class ClientInformationExtractorTest extends TestCase
 
         $this->assertSame('UNI Garments Limited', $data['company_name']);
         $this->assertSame('Sohel', $data['contact_person']);
-        Http::assertSent(fn ($request) => $request->url() === 'https://generativelanguage.googleapis.com/v1beta/interactions'
+        Http::assertSent(fn ($request) => $request->url() === 'https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent'
             && $request->hasHeader('x-goog-api-key', 'test-key')
-            && $request['response_format']['mime_type'] === 'application/json');
+            && $request['generationConfig']['response_mime_type'] === 'application/json'
+            && $request['generationConfig']['response_schema']['properties']['company_name']['nullable'] === true);
     }
 
     public function test_ai_is_primary_over_weak_local_semantics(): void
@@ -126,7 +133,13 @@ class ClientInformationExtractorTest extends TestCase
         Config::set('services.ai.gemini.model', 'gemini-test');
         Config::set('services.ai.gemini.base_url', 'https://generativelanguage.googleapis.com');
 
-        Http::fake(['generativelanguage.googleapis.com/*' => Http::response(['output_text' => 'not-json'])]);
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [[
+                'content' => [
+                    'parts' => [['text' => 'not-json']],
+                ],
+            ]],
+        ])]);
 
         $result = (new ClientInformationExtractor(providers: [new GeminiClientInformationProvider]))
             ->extractWithMetadata('client@example.com');

@@ -33,13 +33,18 @@ class GeminiClientInformationProvider implements ClientInformationProvider
                 'Content-Type' => 'application/json',
             ])
                 ->timeout((int) config('services.ai.timeout', 20))
-                ->post(rtrim(config('services.ai.gemini.base_url'), '/').'/v1beta/interactions', [
-                    'model' => config('services.ai.gemini.model'),
-                    'input' => $this->prompt($text),
-                    'response_format' => [
-                        'type' => 'text',
-                        'mime_type' => 'application/json',
-                        'schema' => ClientInformationExtractor::schema(),
+                ->post(rtrim(config('services.ai.gemini.base_url'), '/').'/v1beta/models/'.rawurlencode(config('services.ai.gemini.model')).':generateContent', [
+                    'contents' => [
+                        [
+                            'parts' => [
+                                ['text' => $this->prompt($text)],
+                            ],
+                        ],
+                    ],
+                    'generationConfig' => [
+                        'temperature' => 0.1,
+                        'response_mime_type' => 'application/json',
+                        'response_schema' => $this->schema(),
                     ],
                 ]);
         } catch (ConnectionException $exception) {
@@ -53,9 +58,9 @@ class GeminiClientInformationProvider implements ClientInformationProvider
             throw new RuntimeException('Gemini request failed.');
         }
 
-        $content = $response->json('output_text')
+        $content = $response->json('candidates.0.content.parts.0.text')
+            ?? $response->json('output_text')
             ?? $response->json('output.0.content.0.text')
-            ?? $response->json('candidates.0.content.parts.0.text')
             ?? null;
 
         if (! is_string($content) || trim($content) === '') {
@@ -136,6 +141,25 @@ Extract this input:
 PROMPT;
 
         return $prompt."\n".$text;
+    }
+
+    private function schema(): array
+    {
+        $properties = [];
+
+        foreach (ClientInformationExtractor::FIELDS as $field) {
+            $properties[$field] = [
+                'type' => 'string',
+                'nullable' => true,
+                'description' => str_replace('_', ' ', $field),
+            ];
+        }
+
+        return [
+            'type' => 'object',
+            'properties' => $properties,
+            'required' => ClientInformationExtractor::FIELDS,
+        ];
     }
 
     private function logResult(bool $success, ?int $status, float $startedAt): void
