@@ -27,24 +27,21 @@
         $settings['email'] ?? null,
         $settings['website'] ?? null,
     ]);
-    $scopeRows = $quotation->items->map(function ($item) {
+    $serviceRows = $quotation->items->map(function ($item) {
         $description = trim((string) $item->description);
-        $title = $description ?: 'Service';
+        $service = $item->service;
+        $title = $service?->short_name ?: $service?->name ?: $description ?: 'Service';
         $activities = collect($item->scope_items ?: [])->filter()->values();
-
-        if ($activities->isEmpty() && str_contains(strtolower($description), 'environmental management plan')) {
-            $title = 'Environmental Management Plan (EMP)';
-            $activities = collect([
-                'Document review',
-                'Onsite assessment',
-                'Relevant data collection',
-                'Data analysis',
-                'Identification of environmental aspects and risks',
-                'Development of mitigation measures',
-                'Development of monitoring requirements',
-                'Final report preparation',
-            ]);
-        }
+        $commercialDescription = match (true) {
+            str_contains(strtolower($title.' '.$description), 'environmental impact assessment') => 'Assessment of environmental aspects, risks and impacts associated with the facility activities and operations, including identification of significant environmental issues and applicable compliance requirements.',
+            str_contains(strtolower($title.' '.$description), 'environmental management plan') => 'Development of a practical environmental management plan addressing identified environmental aspects, mitigation measures, monitoring requirements, responsibilities and continual improvement actions.',
+            str_contains(strtolower($title.' '.$description), 'energy audit') => 'Assessment of energy consumption, major energy-using systems and operational practices to identify efficiency opportunities and practical energy-saving recommendations.',
+            str_contains(strtolower($title.' '.$description), 'environmental and social impact') => 'Assessment of relevant environmental and social impacts, risks and mitigation requirements associated with the facility, project or operation.',
+            str_contains(strtolower($title.' '.$description), 'parameter') => 'Assessment, monitoring and reporting of selected environmental parameters included in the agreed service package.',
+            str_contains(strtolower($title.' '.$description), 'noise') => 'Measurement and assessment of applicable noise levels with reporting against relevant requirements.',
+            str_contains(strtolower($title.' '.$description), 'test') => 'Testing, measurement and reporting for the selected environmental parameter or technical service.',
+            default => $description !== '' && mb_strlen($description) <= 220 ? $description : 'Professional environmental assessment, testing, compliance or consultancy service according to the agreed scope.',
+        };
 
         if ($activities->isEmpty() && str_contains(strtolower($description), ' - inclusive of ')) {
             [$titlePart, $scopePart] = explode(' - inclusive of ', $description, 2);
@@ -57,14 +54,24 @@
 
         return [
             'title' => $title,
-            'activities' => $activities,
+            'description' => $commercialDescription,
+            'activities' => $activities->isNotEmpty()
+                && (($service?->service_type === \App\Models\Service::TYPE_BUNDLE) || str_contains(strtolower($title.' '.$description), 'parameter'))
+                    ? $activities
+                    : collect(),
             'item' => $item,
         ];
     });
+    $scopeLines = collect(preg_split('/\r\n|\r|\n/', trim((string) $quotation->scope_assessment)))->map(fn ($line) => trim($line))->filter()->values();
+    $methodologyLines = collect(preg_split('/\r\n|\r|\n/', trim((string) $quotation->methodology)))->map(fn ($line) => trim($line))->filter()->values();
+    $deliverableLines = collect(preg_split('/\r\n|\r|\n/', trim((string) $quotation->deliverables)))->map(fn ($line) => trim($line))->filter()->values();
+    $responsibilityLines = collect(preg_split('/\r\n|\r|\n/', trim((string) $quotation->client_responsibilities)))->map(fn ($line) => trim($line))->filter()->values();
     $terms = collect(preg_split('/\n\s*\n/', trim((string) $quotation->terms_conditions)))
         ->map(fn ($term) => trim($term))
         ->filter()
         ->values();
+    $termRows = $terms->chunk(2);
+    $paymentLines = collect(preg_split('/\r\n|\r|\n/', trim((string) $quotation->payment_terms)))->map(fn ($line) => trim($line))->filter()->values();
 @endphp
 
 <div class="running-header">
@@ -161,35 +168,27 @@
 </section>
 
 <section class="proposal-page content-page">
-    <h2>Scope & Financial Proposal</h2>
-
-    <div class="section scope-section">
-        <h3>Scope of Service / Scope & Deliverables</h3>
-        @foreach($scopeRows as $row)
-            <div class="scope-card avoid-break">
-                <div class="service-title">{{ $row['title'] }}</div>
-                @if($row['activities']->isNotEmpty())
-                    <div class="scope-label">Scope / Included Activities:</div>
-                    <ul class="scope-list">
-                        @foreach($row['activities'] as $activity)
-                            <li>{{ $activity }}</li>
-                        @endforeach
-                    </ul>
-                @endif
-            </div>
-        @endforeach
-    </div>
+    <h2>Service & Financial Proposal</h2>
 
     <div class="section financial-section">
-        <h3>Financial Proposal</h3>
-
         <table class="proposal-table">
-            <thead><tr><th style="width:7%">SL</th><th>Service</th><th style="width:15%">Unit / Qty</th><th style="width:16%" class="text-right">Unit Rate</th><th style="width:16%" class="text-right">Amount</th></tr></thead>
+            <thead><tr><th style="width:6%">SL</th><th>Service / Particular</th><th style="width:14%">Unit / Qty</th><th style="width:15%" class="text-right">Unit Rate</th><th style="width:15%" class="text-right">Amount</th></tr></thead>
             <tbody>
-            @foreach($scopeRows as $row)
+            @foreach($serviceRows as $row)
                 <tr>
                     <td class="text-center">{{ $loop->iteration }}</td>
-                    <td>{{ $row['title'] }}</td>
+                    <td>
+                        <div class="service-title">{{ $row['title'] }}</div>
+                        <div class="service-summary">{{ $row['description'] }}</div>
+                        @if($row['activities']->isNotEmpty())
+                            <div class="scope-label">Including:</div>
+                            <ul class="scope-list">
+                                @foreach($row['activities'] as $activity)
+                                    <li>{{ $activity }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </td>
                     <td class="text-center">{{ $row['item']->unit }} / {{ number_format($row['item']->quantity, 2) }}</td>
                     <td class="text-right">{{ number_format($row['item']->unit_rate, 2) }}</td>
                     <td class="text-right">{{ number_format($row['item']->amount, 2) }}</td>
@@ -201,41 +200,81 @@
         @include('documents.pdf_totals', ['document' => $quotation, 'amountInWords' => $amountInWords])
     </div>
 
-    <div class="section avoid-break">
-        <h3>Tax Treatment</h3>
-        @if ($taxNote)<p>{{ $taxNote }}</p>@endif
-        @if ($quotation->ait_note)<p>{{ $quotation->ait_note }}</p>@endif
-    </div>
-
-    @if ($quotation->payment_terms || $quotation->validity_text || $quotation->notes)
-        <div class="section avoid-break">
-            <h3>Payment Terms</h3>
-            @if ($quotation->payment_terms)<div>{!! nl2br(e($quotation->payment_terms)) !!}</div>@endif
-            @if ($quotation->validity_text)<p><strong>Validity:</strong> {{ $quotation->validity_text }}</p>@endif
-            @if ($quotation->notes)<p>{!! nl2br(e($quotation->notes)) !!}</p>@endif
-        </div>
-    @endif
-
-    @include('documents.pdf_bank', ['bank' => $bank])
+    <table class="proposal-info-table">
+        <tr>
+            <td>
+                <h3>Scope of Assessment</h3>
+                <p>{{ $scopeLines->implode(' ') }}</p>
+            </td>
+            <td>
+                <h3>Assessment Methodology</h3>
+                <p>{{ $methodologyLines->implode(' ') }}</p>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <h3>Deliverables</h3>
+                <p>{{ $deliverableLines->implode(' ') }}</p>
+            </td>
+            <td>
+                <h3>Client Responsibilities</h3>
+                <p>{{ $responsibilityLines->implode(' ') }}</p>
+                @if($quotation->compliance_note)
+                    <p><strong>Reference Framework:</strong>
+                        {{ collect(preg_split('/\r\n|\r|\n/', $quotation->compliance_note))->map(fn ($line) => trim($line, " \t\n\r\0\x0B-â€¢"))->filter()->implode('; ') }}
+                    </p>
+                @endif
+            </td>
+        </tr>
+    </table>
 </section>
 
 <section class="proposal-page terms-page">
+    <h2>Commercial Terms & Conditions</h2>
+
+    <div class="commercial-grid">
+        <div class="commercial-block avoid-break">
+            <h3>Tax Treatment</h3>
+            @if ($taxNote)<p>{{ $taxNote }}</p>@endif
+            @if ($quotation->ait_note)<p>{{ $quotation->ait_note }}</p>@endif
+        </div>
+
+        @if($paymentLines->isNotEmpty() || $quotation->validity_text || $quotation->notes)
+            <div class="commercial-block avoid-break">
+                <h3>Payment Terms</h3>
+                @if($paymentLines->isNotEmpty())
+                    <ol class="compact-ordered">
+                        @foreach($paymentLines as $line)<li>{{ preg_replace('/^[A-Za-z ]+:\s*/', '', $line) }}</li>@endforeach
+                    </ol>
+                @endif
+                @if ($quotation->validity_text)<p><strong>Proposal Validity:</strong> {{ $quotation->validity_text }}</p>@endif
+                @if ($quotation->notes)<p>{!! nl2br(e($quotation->notes)) !!}</p>@endif
+            </div>
+        @endif
+    </div>
+
+    @include('documents.pdf_bank', ['bank' => $bank])
+
     @if($terms->isNotEmpty())
         <div class="terms-section">
-            <h2>Terms & Conditions</h2>
-            <ol class="terms-list">
-            @foreach($terms as $term)
-                @php
-                    $parts = str_contains($term, ':') ? explode(':', $term, 2) : [$term, ''];
-                @endphp
-                <li>
-                    <strong>{{ trim($parts[0]) }}</strong>
-                    @if(!empty($parts[1]))
-                        <div>{{ trim($parts[1]) }}</div>
-                    @endif
-                </li>
+            <table class="terms-table">
+            @foreach($termRows as $termRow)
+                <tr>
+                @foreach($termRow as $term)
+                    @php
+                        $parts = str_contains($term, ':') ? explode(':', $term, 2) : [$term, ''];
+                    @endphp
+                    <td>
+                        <strong>{{ ($loop->parent->iteration - 1) * 2 + $loop->iteration }}. {{ trim($parts[0]) }}</strong>
+                        @if(!empty($parts[1]))
+                            <div>{{ trim($parts[1]) }}</div>
+                        @endif
+                    </td>
+                @endforeach
+                @if($termRow->count() === 1)<td></td>@endif
+                </tr>
             @endforeach
-            </ol>
+            </table>
         </div>
     @endif
 

@@ -38,6 +38,10 @@
         <div class="col-md-6"><label class="form-label">Quotation Closing Text</label><textarea class="form-control" name="quotation_closing_text">{{ old('quotation_closing_text', $settings->quotation_closing_text) }}</textarea></div>
         <div class="col-md-6"><label class="form-label">Quotation Validity Text</label><textarea class="form-control" name="quotation_validity_text">{{ old('quotation_validity_text', $settings->quotation_validity_text) }}</textarea></div>
         <div class="col-12"><label class="form-label">Quotation Default Notes</label><textarea class="form-control" name="quotation_default_notes">{{ old('quotation_default_notes', $settings->quotation_default_notes) }}</textarea></div>
+        <div class="col-md-6"><label class="form-label">Generic Scope of Assessment</label><textarea class="form-control" rows="5" name="quotation_scope_assessment">{{ old('quotation_scope_assessment', $settings->quotation_scope_assessment) }}</textarea></div>
+        <div class="col-md-6"><label class="form-label">Generic Assessment Methodology</label><textarea class="form-control" rows="5" name="quotation_methodology">{{ old('quotation_methodology', $settings->quotation_methodology) }}</textarea></div>
+        <div class="col-md-6"><label class="form-label">Generic Deliverables</label><textarea class="form-control" rows="5" name="quotation_deliverables">{{ old('quotation_deliverables', $settings->quotation_deliverables) }}</textarea></div>
+        <div class="col-md-6"><label class="form-label">Client Responsibilities</label><textarea class="form-control" rows="5" name="quotation_client_responsibilities">{{ old('quotation_client_responsibilities', $settings->quotation_client_responsibilities) }}</textarea></div>
         <div class="col-md-4">
             <label class="form-label">Default VAT Treatment</label>
             <select class="form-select" name="quotation_vat_treatment">

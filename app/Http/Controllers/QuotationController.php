@@ -174,7 +174,7 @@ class QuotationController extends Controller
 
     public function pdf(Quotation $quotation, AmountInWords $words)
     {
-        $quotation->load('client', 'bankAccount', 'items', 'creator');
+        $quotation->load('client', 'bankAccount', 'items.service', 'creator');
         $settings = $quotation->settings_snapshot ?: Setting::current()->toArray();
         $bank = $quotation->bank_snapshot ?: $this->bankSnapshot($quotation->bankAccount);
 
@@ -233,6 +233,10 @@ class QuotationController extends Controller
             'subject' => ['nullable', 'string', 'max:255'],
             'intro_text' => ['nullable', 'string'],
             'compliance_note' => ['nullable', 'string'],
+            'scope_assessment' => ['nullable', 'string'],
+            'methodology' => ['nullable', 'string'],
+            'deliverables' => ['nullable', 'string'],
+            'client_responsibilities' => ['nullable', 'string'],
             'closing_text' => ['nullable', 'string'],
             'validity_text' => ['nullable', 'string'],
             'payment_terms' => ['nullable', 'string'],
@@ -323,6 +327,8 @@ class QuotationController extends Controller
             'organization_name', 'logo_path', 'tagline', 'office_address', 'phone', 'email', 'website',
             'default_currency', 'currency_major_name', 'currency_minor_name',
             'prepared_by_name', 'prepared_by_designation', 'footer_text', 'pdf_note',
+            'quotation_scope_assessment', 'quotation_methodology', 'quotation_deliverables',
+            'quotation_client_responsibilities',
             'quotation_vat_treatment', 'quotation_vat_rate', 'quotation_show_vat_separately',
             'quotation_vat_note', 'quotation_ait_note', 'quotation_terms_conditions',
             'quotation_include_acceptance', 'quotation_acceptance_text',

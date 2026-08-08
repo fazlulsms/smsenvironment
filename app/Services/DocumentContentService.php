@@ -22,6 +22,10 @@ class DocumentContentService
             'intro_text' => $this->quotationIntro($settings, $services),
             'compliance_note' => $this->combinedText($services->pluck('compliance_note')->filter())
                 ?: $settings->quotation_compliance_note,
+            'scope_assessment' => $settings->quotation_scope_assessment ?: $this->defaultScopeAssessment($services),
+            'methodology' => $settings->quotation_methodology ?: $this->defaultMethodology($services),
+            'deliverables' => $settings->quotation_deliverables ?: $this->defaultDeliverables($services),
+            'client_responsibilities' => $settings->quotation_client_responsibilities ?: $this->defaultClientResponsibilities($services),
             'closing_text' => $settings->quotation_closing_text,
             'validity_text' => $settings->quotation_validity_text,
             'payment_terms' => $this->quotationPaymentTerms($settings),
@@ -154,7 +158,108 @@ class DocumentContentService
 
     private function defaultTermsConditions(): string
     {
-        return "Scope of Service: Services will be performed according to the scope described in this quotation. Activities outside the agreed scope may require additional fees or written agreement.\n\nClient Cooperation and Scheduling: The client will provide reasonable access to relevant areas, personnel, documents and information. Assessment or testing dates will be mutually agreed and remain subject to availability and site readiness.\n\nReporting and Confidentiality: Reports will be prepared based on information, observations, measurements and data available during the assignment. Information obtained during the assignment will be treated as confidential, subject to applicable legal or regulatory requirements.\n\nPayment and Validity: Payment shall follow the commercial terms stated in this quotation. The quotation remains valid for the stated validity period unless otherwise agreed in writing.";
+        return "Scope of Service: Services shall be performed according to the scope stated in this quotation. Additional activity outside the agreed scope may require written confirmation and additional fees.\n\nScheduling: Assessment or testing dates will be mutually agreed based on scope, site readiness and technical team availability.\n\nScope Changes and Additional Work: Additional locations, testing points, parameters or material scope changes may require revision of the fee, timeline or quotation.\n\nClient Cooperation: The client shall provide reasonable access to premises, personnel, records, documents, utilities and information required for the assignment.\n\nReporting: Reports will be prepared based on observations, measurements, records and information available within the agreed service scope.\n\nConfidentiality: Assignment information will be treated confidentially and used for the intended service, subject to applicable legal or regulatory obligations.\n\nCancellation or Rescheduling: Confirmed schedules may be revised subject to operational availability, site readiness and any cost already incurred.";
+    }
+
+    private function defaultScopeAssessment(Collection $services): string
+    {
+        $category = $this->serviceCategory($services);
+        $items = [
+            'Review relevant documents, records, permits, previous reports and available monitoring data.',
+            'Assess relevant facility operations, processes, utilities and environmental aspects.',
+        ];
+
+        if ($category === 'testing') {
+            $items[] = 'Conduct environmental measurements, monitoring and/or parameter testing where included.';
+        }
+
+        if ($category === 'consultancy') {
+            $items[] = 'Develop mitigation, monitoring, management or improvement actions where included.';
+        }
+
+        if ($this->containsServiceText($services, ['energy'])) {
+            $items[] = 'Review energy consumption, major energy-using systems and efficiency opportunities.';
+        }
+
+        $items[] = 'Evaluate aspects, impacts, risks, results and applicable compliance requirements.';
+        $items[] = 'Prepare professional reports with findings, observations and recommendations.';
+
+        return $this->lines($items);
+    }
+
+    private function defaultMethodology(Collection $services): string
+    {
+        $items = [
+            'Document and data review.',
+            'Onsite assessment / inspection.',
+        ];
+
+        if ($this->serviceCategory($services) === 'testing') {
+            $items[] = 'Measurements, monitoring or testing where included.';
+        }
+
+        $items[] = 'Information analysis and evaluation.';
+        $items[] = 'Reporting with practical recommendations.';
+
+        return $this->lines($items);
+    }
+
+    private function defaultDeliverables(Collection $services): string
+    {
+        $items = [
+            'Environmental assessment / technical report.',
+            'Findings against applicable requirements.',
+            'Identified risks, impacts or compliance gaps where applicable.',
+            'Recommended corrective, mitigation or improvement measures.',
+        ];
+
+        if ($this->serviceCategory($services) === 'testing') {
+            $items[] = 'Test and monitoring results where applicable.';
+        }
+
+        if ($this->containsServiceText($services, ['management plan', 'emp'])) {
+            $items[] = 'Environmental Management Plan where included in the agreed services.';
+        }
+
+        $items[] = 'Supporting tables, observations and relevant evidence where applicable.';
+
+        return $this->lines($items);
+    }
+
+    private function defaultClientResponsibilities(Collection $services): string
+    {
+        $items = [
+            'Provide reasonable access to relevant facility areas, personnel, documents, records, operational information, utilities and resources required for the assignment.',
+        ];
+
+        if ($this->serviceCategory($services) === 'testing') {
+            $items[] = 'Facilitate access to relevant sampling or monitoring locations and operating conditions where environmental testing is included.';
+        }
+
+        return $this->lines($items);
+    }
+
+    private function containsServiceText(Collection $services, array $needles): bool
+    {
+        $text = $services
+            ->map(fn (Service $service) => strtolower($service->name.' '.$service->short_name.' '.$service->default_description.' '.$service->quotation_scope))
+            ->implode(' ');
+
+        foreach ($needles as $needle) {
+            if (str_contains($text, strtolower($needle))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function lines(array $items): string
+    {
+        return collect($items)
+            ->map(fn (string $item) => trim($item))
+            ->filter()
+            ->implode("\n");
     }
 
     private function combinedText(Collection $parts): ?string
