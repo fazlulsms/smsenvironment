@@ -37,6 +37,7 @@
     .quotation-proposal .rh-brand-cell { padding-left: 3mm; }
     .quotation-proposal .rh-brand { color: #1f6f4a; font-size: 18px; font-weight: 700; line-height: 1.05; }
     .quotation-proposal .rh-tagline { color: #667085; font-size: 8.6px; margin-top: 2px; }
+    .quotation-proposal .rh-title-cell { width: 34mm; text-align: right; color: #1f2933; font-size: 16px; font-weight: 700; letter-spacing: 0; }
     .footer-table { width: 100%; margin: 0; border-collapse: collapse; }
     .footer-table td { border: 0; padding: 0 0 2px; font-size: 7.5px; }
     .footer-contact { text-align: center; color: #78847e; font-size: 7.1px; }
@@ -80,13 +81,14 @@
     .quotation-proposal .compact-ordered { margin: 3px 0 0 16px; padding: 0; }
     .quotation-proposal .compact-ordered li { margin: 1px 0; }
     .quotation-proposal .commercial-grid { display: table; width: 100%; margin-top: 4px; }
+    .quotation-proposal .terms-page .commercial-grid { display: none; }
     .quotation-proposal .commercial-block { display: table-cell; width: 50%; vertical-align: top; padding-right: 10px; }
     .quotation-proposal .commercial-block + .commercial-block { padding-right: 0; padding-left: 10px; }
     .quotation-proposal .commercial-block p { margin: 4px 0; }
-    .quotation-proposal .proposal-info-table { width: 100%; margin-top: 8px; border-collapse: collapse; page-break-inside: auto; }
-    .quotation-proposal .proposal-info-table td { width: 50%; border: 1px solid #dce8e2; padding: 5px 7px; vertical-align: top; font-size: 8.2px; line-height: 1.28; }
-    .quotation-proposal .proposal-info-table h3 { margin: 0 0 3px; font-size: 9.4px; }
-    .quotation-proposal .proposal-info-table p { margin: 0 0 3px; }
+    .quotation-proposal .document-section { margin-top: 7px; padding-top: 5px; border-top: 1px solid #d8e2dc; }
+    .quotation-proposal .document-section h3 { margin-bottom: 4px; }
+    .quotation-proposal .document-section p { margin: 0; }
+    .quotation-proposal .document-section .compact-list li { margin: 1px 0; line-height: 1.28; }
     .quotation-proposal .terms-section { page-break-before: auto; }
     .quotation-proposal .terms-list { margin: 0 0 0 18px; padding: 0; }
     .quotation-proposal .terms-list li { page-break-inside: avoid; margin-bottom: 3px; padding-left: 2px; line-height: 1.36; }

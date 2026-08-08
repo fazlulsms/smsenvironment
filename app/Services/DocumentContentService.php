@@ -158,7 +158,7 @@ class DocumentContentService
 
     private function defaultTermsConditions(): string
     {
-        return "Scope of Service: Services shall be performed according to the scope stated in this quotation. Additional activity outside the agreed scope may require written confirmation and additional fees.\n\nScheduling: Assessment or testing dates will be mutually agreed based on scope, site readiness and technical team availability.\n\nScope Changes and Additional Work: Additional locations, testing points, parameters or material scope changes may require revision of the fee, timeline or quotation.\n\nClient Cooperation: The client shall provide reasonable access to premises, personnel, records, documents, utilities and information required for the assignment.\n\nReporting: Reports will be prepared based on observations, measurements, records and information available within the agreed service scope.\n\nConfidentiality: Assignment information will be treated confidentially and used for the intended service, subject to applicable legal or regulatory obligations.\n\nCancellation or Rescheduling: Confirmed schedules may be revised subject to operational availability, site readiness and any cost already incurred.";
+        return "Scope of Service: Services shall be performed according to the scope stated in this quotation. Additional activity outside the agreed scope may require written confirmation and additional fees.\n\nScheduling and Site Readiness: Assessment or testing dates will be mutually agreed based on scope, site readiness and technical team availability.\n\nChanges and Additional Work: Additional locations, testing points, parameters or material scope changes may require revision of the fee, timeline or quotation.\n\nReporting: Reports will be prepared based on observations, measurements, records and information available within the agreed service scope.\n\nConfidentiality: Assignment information will be treated confidentially and used for the intended service, subject to applicable legal or regulatory obligations.\n\nFees and Payment: Fees and payment shall follow the commercial and payment terms stated in this quotation.\n\nVAT, AIT and Statutory Treatment: VAT, AIT or withholding tax and other statutory deductions shall be treated according to the stated tax treatment and applicable requirements.\n\nValidity: This quotation remains valid for the stated validity period unless otherwise agreed in writing.\n\nCancellation or Rescheduling: Confirmed schedules may be revised subject to operational availability, site readiness and any cost already incurred.";
     }
 
     private function defaultScopeAssessment(Collection $services): string
@@ -190,16 +190,24 @@ class DocumentContentService
     private function defaultMethodology(Collection $services): string
     {
         $items = [
-            'Document and data review.',
-            'Onsite assessment / inspection.',
+            'The assignment will combine document/data review, onsite assessment or inspection, relevant information collection, analysis of findings and preparation of the applicable report and recommendations.',
         ];
 
         if ($this->serviceCategory($services) === 'testing') {
-            $items[] = 'Measurements, monitoring or testing where included.';
+            $items[] = 'Environmental measurements, monitoring or testing will be performed where included.';
         }
 
-        $items[] = 'Information analysis and evaluation.';
-        $items[] = 'Reporting with practical recommendations.';
+        if ($this->containsServiceText($services, ['management plan', 'emp'])) {
+            $items[] = 'Where EMP is included, mitigation, monitoring and management measures will be developed.';
+        }
+
+        if ($this->containsServiceText($services, ['energy'])) {
+            $items[] = 'Energy audit work will include energy-use data and performance analysis where applicable.';
+        }
+
+        if ($this->containsServiceText($services, ['environmental and social', 'esia'])) {
+            $items[] = 'ESIA work will consider relevant environmental and social impact/risk evaluation where applicable.';
+        }
 
         return $this->lines($items);
     }
@@ -218,10 +226,8 @@ class DocumentContentService
         }
 
         if ($this->containsServiceText($services, ['management plan', 'emp'])) {
-            $items[] = 'Environmental Management Plan where included in the agreed services.';
+            $items[] = 'Environmental Management Plan where included.';
         }
-
-        $items[] = 'Supporting tables, observations and relevant evidence where applicable.';
 
         return $this->lines($items);
     }

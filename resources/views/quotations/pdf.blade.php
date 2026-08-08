@@ -66,10 +66,18 @@
     $methodologyLines = collect(preg_split('/\r\n|\r|\n/', trim((string) $quotation->methodology)))->map(fn ($line) => trim($line))->filter()->values();
     $deliverableLines = collect(preg_split('/\r\n|\r|\n/', trim((string) $quotation->deliverables)))->map(fn ($line) => trim($line))->filter()->values();
     $responsibilityLines = collect(preg_split('/\r\n|\r|\n/', trim((string) $quotation->client_responsibilities)))->map(fn ($line) => trim($line))->filter()->values();
+    $approachText = $methodologyLines->implode(' ');
+    $clientResponsibilitiesText = $responsibilityLines->implode(' ') ?: 'The client shall provide reasonable access to relevant premises, personnel, records, documents, operational information, utilities, sampling/monitoring locations and other resources reasonably required to complete the agreed assignment.';
     $terms = collect(preg_split('/\n\s*\n/', trim((string) $quotation->terms_conditions)))
         ->map(fn ($term) => trim($term))
         ->filter()
         ->values();
+    if ($clientResponsibilitiesText !== '' && ! $terms->contains(fn ($term) => str_contains(strtolower($term), 'client responsibilit'))) {
+        $terms = $terms->take(1)
+            ->concat(['Client Responsibilities: '.$clientResponsibilitiesText])
+            ->concat($terms->slice(1))
+            ->values();
+    }
     $termRows = $terms->chunk(2);
     $paymentLines = collect(preg_split('/\r\n|\r|\n/', trim((string) $quotation->payment_terms)))->map(fn ($line) => trim($line))->filter()->values();
 @endphp
@@ -86,6 +94,7 @@
                 <div class="rh-brand">{{ $settings['organization_name'] ?? 'SMS Environmental Alliance' }}</div>
                 <div class="rh-tagline">{{ $settings['tagline'] ?? 'Environmental Testing, Assessment & Compliance Services' }}</div>
             </td>
+            <td class="rh-title-cell">QUOTATION</td>
         </tr>
     </table>
 </div>
@@ -105,9 +114,6 @@
 </div>
 
 <section class="proposal-page letter-page">
-    <div class="document-kicker">Commercial Proposal / Quotation</div>
-    <h1>Quotation</h1>
-
     <table class="letter-meta">
         <tr>
             <td><strong>Reference No.</strong><br>{{ $quotation->number }}</td>
@@ -200,33 +206,24 @@
         @include('documents.pdf_totals', ['document' => $quotation, 'amountInWords' => $amountInWords])
     </div>
 
-    <table class="proposal-info-table">
-        <tr>
-            <td>
-                <h3>Scope of Assessment</h3>
-                <p>{{ $scopeLines->implode(' ') }}</p>
-            </td>
-            <td>
-                <h3>Assessment Methodology</h3>
-                <p>{{ $methodologyLines->implode(' ') }}</p>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <h3>Deliverables</h3>
-                <p>{{ $deliverableLines->implode(' ') }}</p>
-            </td>
-            <td>
-                <h3>Client Responsibilities</h3>
-                <p>{{ $responsibilityLines->implode(' ') }}</p>
-                @if($quotation->compliance_note)
-                    <p><strong>Reference Framework:</strong>
-                        {{ collect(preg_split('/\r\n|\r|\n/', $quotation->compliance_note))->map(fn ($line) => trim($line, " \t\n\r\0\x0B-â€¢"))->filter()->implode('; ') }}
-                    </p>
-                @endif
-            </td>
-        </tr>
-    </table>
+
+    @if($approachText !== '')
+        <div class="section document-section">
+            <h3>Assessment Approach</h3>
+            <p>{{ $approachText }}</p>
+        </div>
+    @endif
+
+    @if($deliverableLines->isNotEmpty())
+        <div class="section document-section">
+            <h3>Deliverables</h3>
+            <ul class="compact-list">
+                @foreach($deliverableLines as $line)
+                    <li>{{ $line }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 </section>
 
 <section class="proposal-page terms-page">
