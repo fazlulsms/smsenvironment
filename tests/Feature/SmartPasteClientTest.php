@@ -41,6 +41,41 @@ class SmartPasteClientTest extends TestCase
             ->assertJsonPath('duplicates', []);
     }
 
+    public function test_uni_garments_endpoint_returns_javascript_response_contract(): void
+    {
+        config(['services.ai.provider' => null]);
+
+        $this->actingAs(User::factory()->create())
+            ->postJson(route('clients.smart-paste'), [
+                'raw_text' => "UNI Garments Limited\n80 Bayazid Bostami Rd, Chattogram 4210\nsohel@rdmapparels.com\nMr. Sohel- Compliance Manager",
+            ])
+            ->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    'company_name',
+                    'parent_company',
+                    'contact_person',
+                    'designation',
+                    'department',
+                    'email',
+                    'phone',
+                    'website',
+                    'address',
+                    'city',
+                    'postal_code',
+                    'country',
+                ],
+                'duplicates',
+            ])
+            ->assertJsonPath('data.company_name', 'UNI Garments Limited')
+            ->assertJsonPath('data.contact_person', 'Sohel')
+            ->assertJsonPath('data.designation', 'Compliance Manager')
+            ->assertJsonPath('data.email', 'sohel@rdmapparels.com')
+            ->assertJsonPath('data.address', '80 Bayazid Bostami Rd, Chattogram 4210')
+            ->assertJsonPath('data.city', 'Chattogram')
+            ->assertJsonPath('data.postal_code', '4210');
+    }
+
     public function test_missing_fields_remain_blank(): void
     {
         $this->mockExtractor([

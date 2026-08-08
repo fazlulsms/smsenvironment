@@ -205,7 +205,7 @@ clientSelect.addEventListener('change', () => {
 });
 
 function clientInput(field) {
-    return document.forms[0].elements[`new_client[${field}]`];
+    return document.forms[0].querySelector(`[name="new_client[${field}]"]`);
 }
 
 function quickClientData() {
@@ -215,9 +215,15 @@ function quickClientData() {
 }
 
 function fillQuickClient(data) {
+    let populated = 0;
     clientFields.forEach(field => {
-        if (data[field] && clientInput(field)) clientInput(field).value = data[field];
+        const input = clientInput(field);
+        if (data[field] && input) {
+            input.value = data[field];
+            populated++;
+        }
     });
+    return populated;
 }
 
 function showDuplicateWarning(duplicates) {
@@ -296,13 +302,17 @@ document.getElementById('detectClient').addEventListener('click', async () => {
     button.disabled = true;
     try {
         const result = await postJson('{{ route('clients.smart-paste') }}', { raw_text: document.getElementById('smartPasteText').value });
-        fillQuickClient(result.data || {});
+        const populated = fillQuickClient(result.data || {});
         showDuplicateWarning(result.duplicates || []);
-        status.textContent = 'Detected. Please review before saving.';
+        status.textContent = populated
+            ? 'Detected. Please review before saving.'
+            : 'No client information could be detected. Please review the pasted information or enter the details manually.';
     } catch (error) {
-        if (error.json?.data) fillQuickClient(error.json.data);
+        const populated = error.json?.data ? fillQuickClient(error.json.data) : 0;
         showDuplicateWarning(error.json?.duplicates || []);
-        status.textContent = error.json?.message || 'Smart Paste failed. Enter manually.';
+        status.textContent = populated
+            ? 'Some information was detected locally. Please review before saving.'
+            : (error.json?.message || 'Smart Paste failed. Enter manually.');
     } finally {
         button.disabled = false;
     }

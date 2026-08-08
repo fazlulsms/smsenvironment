@@ -44,13 +44,19 @@
 const clientFields = ['company_name', 'parent_company', 'contact_person', 'designation', 'department', 'email', 'phone', 'website', 'address', 'city', 'postal_code', 'country'];
 
 function clientInput(field) {
-    return document.forms[0].elements[field];
+    return document.forms[0].querySelector(`[name="${field}"]`);
 }
 
 function fillClient(data) {
+    let populated = 0;
     clientFields.forEach(field => {
-        if (data[field] && clientInput(field)) clientInput(field).value = data[field];
+        const input = clientInput(field);
+        if (data[field] && input) {
+            input.value = data[field];
+            populated++;
+        }
     });
+    return populated;
 }
 
 function showDuplicateWarning(duplicates) {
@@ -95,13 +101,17 @@ document.getElementById('detectClient').addEventListener('click', async () => {
     button.disabled = true;
     try {
         const result = await postJson('{{ route('clients.smart-paste') }}', { raw_text: document.getElementById('smartPasteText').value });
-        fillClient(result.data || {});
+        const populated = fillClient(result.data || {});
         showDuplicateWarning(result.duplicates || []);
-        status.textContent = 'Detected. Please review before saving.';
+        status.textContent = populated
+            ? 'Detected. Please review before saving.'
+            : 'No client information could be detected. Please review the pasted information or enter the details manually.';
     } catch (error) {
-        if (error.json?.data) fillClient(error.json.data);
+        const populated = error.json?.data ? fillClient(error.json.data) : 0;
         showDuplicateWarning(error.json?.duplicates || []);
-        status.textContent = error.json?.message || 'Smart Paste failed. Enter manually.';
+        status.textContent = populated
+            ? 'Some information was detected locally. Please review before saving.'
+            : (error.json?.message || 'Smart Paste failed. Enter manually.');
     } finally {
         button.disabled = false;
     }
