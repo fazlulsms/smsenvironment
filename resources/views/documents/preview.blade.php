@@ -40,6 +40,9 @@
         <tfoot>
         <tr><th colspan="5" class="text-end">Subtotal</th><th class="text-end">{{ number_format($document->subtotal, 2) }}</th></tr>
         <tr><th colspan="5" class="text-end">Adjustment</th><th class="text-end">{{ number_format($document->adjustment, 2) }}</th></tr>
+        @if (($document->vat_treatment ?? null) === 'add' && (float) ($document->vat_amount ?? 0) > 0 && ($document->show_vat_separately ?? true))
+            <tr><th colspan="5" class="text-end">VAT @ {{ rtrim(rtrim(number_format((float) $document->vat_rate, 3), '0'), '.') }}%</th><th class="text-end">{{ number_format($document->vat_amount, 2) }}</th></tr>
+        @endif
         <tr><th colspan="5" class="text-end">Total</th><th class="text-end">{{ number_format($document->total, 2) }}</th></tr>
         </tfoot>
     </table>

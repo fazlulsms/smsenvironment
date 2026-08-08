@@ -108,4 +108,41 @@
     .quotation-proposal .acceptance-ref { margin-top: 7px; font-size: 8.8px; color: #4f5f58; }
     .quotation-proposal .page-number:before { content: counter(page); }
     .text-center { text-align: center; }
+    .proforma-document { font-size: 9.2px; line-height: 1.35; }
+    .proforma-document .rh-title-cell { width: 49mm; }
+    .proforma-document .invoice-page { page-break-after: auto; }
+    .proforma-document .invoice-meta { margin: 0 0 8px; border-collapse: collapse; }
+    .proforma-document .invoice-meta td { border: 0; padding: 0; font-size: 9.4px; }
+    .proforma-document .client-charge-table { margin: 0 0 8px; border-collapse: collapse; }
+    .proforma-document .client-charge-table td { width: 50%; border: 0; padding: 0 10px 0 0; vertical-align: top; font-size: 9.1px; }
+    .proforma-document .client-charge-table td + td { padding: 0 0 0 10px; }
+    .proforma-document .section { margin-top: 7px; }
+    .proforma-document .proposal-table { margin-top: 5px; }
+    .proforma-document .proposal-table th { font-size: 8.1px; padding: 4px 5px; }
+    .proforma-document .proposal-table td { font-size: 8.2px; padding: 4px 5px; line-height: 1.25; }
+    .proforma-document .service-title { font-size: 9.4px; margin-bottom: 2px; }
+    .proforma-document .scope-label { margin-top: 2px; font-size: 7.8px; }
+    .proforma-document .scope-list { margin: 1px 0 0 12px; }
+    .proforma-document .scope-list li { margin: 0; line-height: 1.2; }
+    .proforma-document .financial-verification-table { margin-top: 7px; }
+    .proforma-document .financial-summary-cell { width: 70%; padding-right: 7mm; }
+    .proforma-document .financial-summary-cell .totals { width: 68%; margin-top: 0; margin-left: auto; }
+    .proforma-document .financial-summary-cell .section { margin-top: 6px; font-size: 8.3px; line-height: 1.25; }
+    .proforma-document .financial-summary-cell .totals td { font-size: 8.4px; padding: 3px 5px; }
+    .proforma-document .financial-summary-cell .grand td { font-size: 9.2px; padding-top: 4px; }
+    .proforma-document .verification-cell { width: 30%; }
+    .proforma-document .verification-block { width: 30mm; }
+    .proforma-document .verification-qr { width: 27mm; height: 27mm; }
+    .proforma-document .tax-note { margin-top: 4px; color: #4f5f58; font-size: 7.8px; text-align: right; }
+    .proforma-document .invoice-lower-table { margin-top: 8px; border-collapse: collapse; page-break-inside: avoid; }
+    .proforma-document .invoice-lower-table td { border: 0; padding: 0; vertical-align: top; }
+    .proforma-document .bank-cell { width: 58%; padding-right: 8mm; }
+    .proforma-document .terms-cell { width: 42%; }
+    .proforma-document h3 { margin: 0 0 4px; font-size: 9px; }
+    .proforma-document .invoice-bank-table { width: 100%; margin-top: 0; }
+    .proforma-document .invoice-bank-table td { border-bottom: 1px solid #e4ebe7; padding: 3px 5px; font-size: 8.2px; }
+    .proforma-document .invoice-bank-table td:first-child { width: 29%; color: #4f5f58; font-weight: 700; }
+    .proforma-document .invoice-terms { margin-top: 0; font-size: 8.1px; line-height: 1.25; }
+    .proforma-document .invoice-terms li { margin: 0 0 2px; }
+    .proforma-document .prepared-by { margin-top: 8px; font-size: 8.3px; line-height: 1.28; }
 </style>

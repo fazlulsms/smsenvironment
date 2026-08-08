@@ -54,6 +54,9 @@ class DocumentContentService
             'payment_terms' => $settings->invoice_payment_terms ?: $settings->default_payment_terms,
             'validity_text' => $settings->invoice_validity_text,
             'notes' => $settings->invoice_default_notes,
+            'vat_treatment' => $settings->quotation_vat_treatment ?: 'exclusive',
+            'vat_rate' => $settings->quotation_vat_rate,
+            'show_vat_separately' => (bool) ($settings->quotation_show_vat_separately ?? true),
         ];
     }
 

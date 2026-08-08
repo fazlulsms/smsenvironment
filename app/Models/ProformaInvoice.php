@@ -25,8 +25,15 @@ class ProformaInvoice extends Model
         'validity_text',
         'subtotal',
         'adjustment',
+        'vat_treatment',
+        'vat_rate',
+        'vat_amount',
+        'show_vat_separately',
         'total',
         'notes',
+        'verification_payload_version',
+        'verification_id',
+        'verification_signature',
     ];
 
     protected function casts(): array
@@ -38,6 +45,9 @@ class ProformaInvoice extends Model
             'settings_snapshot' => 'array',
             'subtotal' => 'decimal:2',
             'adjustment' => 'decimal:2',
+            'vat_rate' => 'decimal:3',
+            'vat_amount' => 'decimal:2',
+            'show_vat_separately' => 'boolean',
             'total' => 'decimal:2',
         ];
     }

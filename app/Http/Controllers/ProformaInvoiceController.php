@@ -11,6 +11,7 @@ use App\Services\AmountInWords;
 use App\Services\DocumentContentService;
 use App\Services\DocumentFilenameService;
 use App\Services\DocumentNumberService;
+use App\Services\ProformaInvoiceVerificationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,20 +40,30 @@ class ProformaInvoiceController extends Controller
 
     public function create(Request $request, DocumentNumberService $numbers): View
     {
+        $settings = Setting::current();
+
         return view('proforma_invoices.create', $this->formData([
             'invoice' => new ProformaInvoice([
                 'client_id' => $request->integer('client_id') ?: null,
                 'number' => $numbers->invoice(),
                 'date' => now(),
-                'payment_terms' => Setting::current()->default_payment_terms,
+                'payment_terms' => $settings->default_payment_terms,
                 'adjustment' => 0,
+                'vat_treatment' => $settings->quotation_vat_treatment ?: 'exclusive',
+                'vat_rate' => $settings->quotation_vat_rate,
+                'show_vat_separately' => $settings->quotation_show_vat_separately ?? true,
             ]),
         ]));
     }
 
-    public function store(Request $request, DocumentNumberService $numbers, DocumentContentService $content): RedirectResponse
+    public function store(
+        Request $request,
+        DocumentNumberService $numbers,
+        DocumentContentService $content,
+        ProformaInvoiceVerificationService $verification
+    ): RedirectResponse
     {
-        $invoice = DB::transaction(function () use ($request, $numbers, $content) {
+        $invoice = DB::transaction(function () use ($request, $numbers, $content, $verification) {
             $data = $this->validated($request);
             $client = $this->resolveClient($data);
             $bank = $this->resolveBank($data);
@@ -62,6 +73,7 @@ class ProformaInvoiceController extends Controller
             $data = $this->applyDefaults($data, $content->invoiceDefaults($client, $services, $settings));
             [$items, $subtotal] = $this->items($data['items'], 'invoice', $content);
             $adjustment = (float) ($data['adjustment'] ?? 0);
+            $vat = $this->vat($subtotal + $adjustment, $data);
 
             $invoice = ProformaInvoice::query()->create([
                 ...$this->documentData($data),
@@ -74,10 +86,12 @@ class ProformaInvoiceController extends Controller
                 'settings_snapshot' => $this->settingsSnapshot($settings),
                 'subtotal' => $subtotal,
                 'adjustment' => $adjustment,
-                'total' => $subtotal + $adjustment,
+                'vat_amount' => $vat,
+                'total' => $subtotal + $adjustment + $vat,
             ]);
 
             $invoice->items()->createMany($items);
+            $verification->apply($invoice->load('items'));
 
             return $invoice;
         });
@@ -103,9 +117,14 @@ class ProformaInvoiceController extends Controller
         return view('proforma_invoices.edit', $this->formData(['invoice' => $proformaInvoice]));
     }
 
-    public function update(Request $request, ProformaInvoice $proformaInvoice, DocumentContentService $content): RedirectResponse
+    public function update(
+        Request $request,
+        ProformaInvoice $proformaInvoice,
+        DocumentContentService $content,
+        ProformaInvoiceVerificationService $verification
+    ): RedirectResponse
     {
-        DB::transaction(function () use ($request, $proformaInvoice, $content) {
+        DB::transaction(function () use ($request, $proformaInvoice, $content, $verification) {
             $data = $this->validated($request);
             $client = $this->resolveClient($data);
             $bank = $this->resolveBank($data);
@@ -115,6 +134,7 @@ class ProformaInvoiceController extends Controller
             $data = $this->applyDefaults($data, $content->invoiceDefaults($client, $services, $settings));
             [$items, $subtotal] = $this->items($data['items'], 'invoice', $content);
             $adjustment = (float) ($data['adjustment'] ?? 0);
+            $vat = $this->vat($subtotal + $adjustment, $data);
 
             $proformaInvoice->update([
                 ...$this->documentData($data),
@@ -125,11 +145,13 @@ class ProformaInvoiceController extends Controller
                 'settings_snapshot' => $this->settingsSnapshot($settings),
                 'subtotal' => $subtotal,
                 'adjustment' => $adjustment,
-                'total' => $subtotal + $adjustment,
+                'vat_amount' => $vat,
+                'total' => $subtotal + $adjustment + $vat,
             ]);
 
             $proformaInvoice->items()->delete();
             $proformaInvoice->items()->createMany($items);
+            $verification->apply($proformaInvoice->load('items'));
         });
 
         return redirect()->route('proforma-invoices.show', $proformaInvoice)->with('status', 'Invoice updated.');
@@ -142,11 +164,20 @@ class ProformaInvoiceController extends Controller
         return redirect()->route('proforma-invoices.index')->with('status', 'Invoice deleted.');
     }
 
-    public function duplicate(ProformaInvoice $proformaInvoice, DocumentNumberService $numbers): RedirectResponse
+    public function duplicate(
+        ProformaInvoice $proformaInvoice,
+        DocumentNumberService $numbers,
+        ProformaInvoiceVerificationService $verification
+    ): RedirectResponse
     {
-        $copy = DB::transaction(function () use ($proformaInvoice, $numbers) {
+        $copy = DB::transaction(function () use ($proformaInvoice, $numbers, $verification) {
             $proformaInvoice->load('items');
-            $copy = $proformaInvoice->replicate(['number']);
+            $copy = $proformaInvoice->replicate([
+                'number',
+                'verification_payload_version',
+                'verification_id',
+                'verification_signature',
+            ]);
             $copy->number = $numbers->invoice();
             $copy->date = now();
             $copy->created_by = auth()->id();
@@ -155,6 +186,7 @@ class ProformaInvoiceController extends Controller
             foreach ($proformaInvoice->items as $item) {
                 $copy->items()->create($item->replicate(['proforma_invoice_id'])->toArray());
             }
+            $verification->apply($copy->load('items'));
 
             return $copy;
         });
@@ -162,7 +194,12 @@ class ProformaInvoiceController extends Controller
         return redirect()->route('proforma-invoices.edit', $copy)->with('status', 'Invoice duplicated with a new number.');
     }
 
-    public function pdf(ProformaInvoice $proformaInvoice, AmountInWords $words, DocumentFilenameService $filenames)
+    public function pdf(
+        ProformaInvoice $proformaInvoice,
+        AmountInWords $words,
+        ProformaInvoiceVerificationService $verification,
+        DocumentFilenameService $filenames
+    )
     {
         $proformaInvoice->load('client', 'bankAccount', 'items.service', 'creator');
         $settings = $proformaInvoice->settings_snapshot ?: Setting::current()->toArray();
@@ -178,6 +215,7 @@ class ProformaInvoiceController extends Controller
             'settings' => $settings,
             'client' => $proformaInvoice->client_snapshot ?: $this->clientSnapshot($proformaInvoice->client),
             'bank' => $bank,
+            'verificationQr' => $verification->qrDataUri($proformaInvoice),
             'amountInWords' => $words->convert(
                 $proformaInvoice->total,
                 $settings['default_currency'] ?? 'BDT',
@@ -224,6 +262,9 @@ class ProformaInvoiceController extends Controller
             'payment_terms' => ['nullable', 'string'],
             'validity_text' => ['nullable', 'string'],
             'adjustment' => ['nullable', 'numeric'],
+            'vat_treatment' => ['nullable', 'in:exclusive,included,add,not_applicable'],
+            'vat_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'show_vat_separately' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
             'after_save' => ['nullable', 'in:view,pdf'],
             'items' => ['required', 'array', 'min:1'],
@@ -266,6 +307,17 @@ class ProformaInvoiceController extends Controller
         return collect($data)->except(['items', 'new_client', 'client_id', 'after_save'])->all();
     }
 
+    private function vat(float $net, array $data): float
+    {
+        if (($data['vat_treatment'] ?? 'exclusive') !== 'add') {
+            return 0.0;
+        }
+
+        $rate = (float) ($data['vat_rate'] ?? 0);
+
+        return round($net * $rate / 100, 2);
+    }
+
     private function clientSnapshot(?Client $client): ?array
     {
         return $client?->only([
@@ -287,6 +339,7 @@ class ProformaInvoiceController extends Controller
             'organization_name', 'logo_path', 'tagline', 'office_address', 'phone', 'email', 'website',
             'default_currency', 'currency_major_name', 'currency_minor_name',
             'prepared_by_name', 'prepared_by_designation', 'footer_text', 'pdf_note',
+            'quotation_vat_treatment', 'quotation_vat_rate', 'quotation_show_vat_separately',
         ]);
     }
 

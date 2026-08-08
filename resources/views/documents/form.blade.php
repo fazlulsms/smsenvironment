@@ -154,17 +154,17 @@
                 @endif
                 <div class="col-md-8"><label class="form-label">Payment Terms Override</label><textarea class="form-control" name="payment_terms" placeholder="Leave blank to use defaults">{{ old('payment_terms', $document->payment_terms) }}</textarea></div>
                 <div class="col-md-4"><label class="form-label">Notes Override</label><textarea class="form-control" name="notes">{{ old('notes', $document->notes) }}</textarea></div>
+                <div class="col-md-4">
+                    <label class="form-label">VAT Treatment</label>
+                    <select class="form-select" name="vat_treatment">
+                        @foreach (['exclusive' => 'Exclusive of VAT', 'included' => 'VAT Included', 'add' => 'Add VAT', 'not_applicable' => 'Not Applicable'] as $value => $label)
+                            <option value="{{ $value }}" @selected(old('vat_treatment', $document->vat_treatment ?: ($settings->quotation_vat_treatment ?? 'exclusive')) === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4"><label class="form-label">VAT Rate (%)</label><input class="form-control" type="number" step="0.001" name="vat_rate" value="{{ old('vat_rate', $document->vat_rate ?: $settings->quotation_vat_rate) }}"></div>
+                <div class="col-md-4 d-flex align-items-end"><input type="hidden" name="show_vat_separately" value="0"><label class="form-check"><input class="form-check-input" type="checkbox" name="show_vat_separately" value="1" @checked(old('show_vat_separately', $document->show_vat_separately ?? ($settings->quotation_show_vat_separately ?? true)))> <span class="form-check-label">Show VAT separately</span></label></div>
                 @if ($isQuotation)
-                    <div class="col-md-4">
-                        <label class="form-label">VAT Treatment</label>
-                        <select class="form-select" name="vat_treatment">
-                            @foreach (['exclusive' => 'Exclusive of VAT', 'included' => 'VAT Included', 'add' => 'Add VAT', 'not_applicable' => 'Not Applicable'] as $value => $label)
-                                <option value="{{ $value }}" @selected(old('vat_treatment', $document->vat_treatment ?: ($settings->quotation_vat_treatment ?? 'exclusive')) === $value)>{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-4"><label class="form-label">VAT Rate (%)</label><input class="form-control" type="number" step="0.001" name="vat_rate" value="{{ old('vat_rate', $document->vat_rate ?: $settings->quotation_vat_rate) }}"></div>
-                    <div class="col-md-4 d-flex align-items-end"><input type="hidden" name="show_vat_separately" value="0"><label class="form-check"><input class="form-check-input" type="checkbox" name="show_vat_separately" value="1" @checked(old('show_vat_separately', $document->show_vat_separately ?? ($settings->quotation_show_vat_separately ?? true)))> <span class="form-check-label">Show VAT separately</span></label></div>
                     <div class="col-md-6"><label class="form-label">VAT Note Override</label><textarea class="form-control" name="vat_note">{{ old('vat_note', $document->vat_note) }}</textarea></div>
                     <div class="col-md-6"><label class="form-label">AIT / Tax Note Override</label><textarea class="form-control" name="ait_note">{{ old('ait_note', $document->ait_note) }}</textarea></div>
                     <div class="col-12"><label class="form-label">Terms & Conditions Override</label><textarea class="form-control" rows="5" name="terms_conditions">{{ old('terms_conditions', $document->terms_conditions) }}</textarea></div>
@@ -211,8 +211,12 @@ function recalc() {
         row.querySelector('[data-amount]').textContent = amount.toFixed(2);
     });
     const adjustment = parseFloat(document.querySelector('[name="adjustment"]').value || 0);
+    const vatTreatment = document.querySelector('[name="vat_treatment"]')?.value || 'exclusive';
+    const vatRate = parseFloat(document.querySelector('[name="vat_rate"]')?.value || 0);
+    const net = subtotal + adjustment;
+    const vat = vatTreatment === 'add' ? net * vatRate / 100 : 0;
     document.getElementById('subtotal').textContent = subtotal.toFixed(2);
-    document.getElementById('grandTotal').textContent = (subtotal + adjustment).toFixed(2);
+    document.getElementById('grandTotal').textContent = (net + vat).toFixed(2);
 }
 
 document.getElementById('addItem').addEventListener('click', () => {
@@ -377,10 +381,15 @@ toggleAdvanced.addEventListener('click', () => {
 });
 
 document.addEventListener('input', event => {
-    if (event.target.matches('.calc')) recalc();
+    if (event.target.matches('.calc, [name="vat_rate"]')) recalc();
 });
 
 document.addEventListener('change', event => {
+    if (event.target.matches('[name="vat_treatment"], [name="show_vat_separately"]')) {
+        recalc();
+        return;
+    }
+
     if (! event.target.matches('[data-service-select]')) return;
     const service = services[event.target.value];
     if (! service) return;
