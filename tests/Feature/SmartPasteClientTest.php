@@ -51,6 +51,7 @@ class SmartPasteClientTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonStructure([
+                'message',
                 'data' => [
                     'company_name',
                     'parent_company',
@@ -65,6 +66,8 @@ class SmartPasteClientTest extends TestCase
                     'postal_code',
                     'country',
                 ],
+                'source',
+                'provider',
                 'duplicates',
             ])
             ->assertJsonPath('data.company_name', 'UNI Garments Limited')
@@ -93,9 +96,14 @@ class SmartPasteClientTest extends TestCase
     public function test_extraction_failure_returns_manual_fallback_data(): void
     {
         $this->app->instance(ClientInformationExtractor::class, new class extends ClientInformationExtractor {
-            public function extract(string $text): array
+            public function extractWithMetadata(string $text): array
             {
-                throw new \RuntimeException('failed');
+                return [
+                    'data' => $this->localExtract($text),
+                    'source' => 'local',
+                    'provider' => null,
+                    'message' => 'Some information was detected locally. Please review before saving.',
+                ];
             }
 
             public function localExtract(string $text): array
@@ -106,8 +114,43 @@ class SmartPasteClientTest extends TestCase
 
         $this->actingAs(User::factory()->create())
             ->postJson(route('clients.smart-paste'), ['raw_text' => 'client@example.com'])
+            ->assertOk()
+            ->assertJsonPath('source', 'local')
+            ->assertJsonPath('data.email', 'client@example.com')
+            ->assertJsonPath('message', 'Some information was detected locally. Please review before saving.');
+    }
+
+    public function test_no_detected_information_returns_manual_message_contract(): void
+    {
+        config(['services.ai.provider' => null]);
+
+        $this->actingAs(User::factory()->create())
+            ->postJson(route('clients.smart-paste'), ['raw_text' => 'hello there'])
             ->assertUnprocessable()
-            ->assertJsonPath('data.email', 'client@example.com');
+            ->assertJsonPath('source', 'none')
+            ->assertJsonPath('message', 'Information could not be detected automatically. Please enter the client details manually.');
+    }
+
+    public function test_add_client_smart_paste_endpoint_populates_ai_payload(): void
+    {
+        $this->mockExtractor([
+            'company_name' => 'UNI Garments Limited',
+            'contact_person' => 'Sohel',
+            'designation' => 'Compliance Manager',
+            'email' => 'sohel@rdmapparels.com',
+            'address' => '80 Bayazid Bostami Rd, Chattogram 4210',
+            'city' => 'Chattogram',
+            'postal_code' => '4210',
+            'country' => 'Bangladesh',
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->postJson(route('clients.smart-paste'), ['raw_text' => 'UNI text'])
+            ->assertOk()
+            ->assertJsonPath('source', 'ai')
+            ->assertJsonPath('data.company_name', 'UNI Garments Limited')
+            ->assertJsonPath('data.contact_person', 'Sohel')
+            ->assertJsonPath('data.designation', 'Compliance Manager');
     }
 
     public function test_duplicate_client_warning_on_detection(): void
@@ -180,6 +223,47 @@ class SmartPasteClientTest extends TestCase
         $this->assertDatabaseHas('clients', ['company_name' => 'INLINE CLIENT LIMITED']);
     }
 
+    public function test_quotation_inline_smart_paste_contract_preserves_document_workflow(): void
+    {
+        $this->mockExtractor([
+            'company_name' => 'UNI Garments Limited',
+            'contact_person' => 'Sohel',
+            'designation' => 'Compliance Manager',
+            'email' => 'sohel@rdmapparels.com',
+            'address' => '80 Bayazid Bostami Rd, Chattogram 4210',
+            'city' => 'Chattogram',
+            'postal_code' => '4210',
+        ]);
+
+        $user = User::factory()->create();
+        [$service, $bank] = $this->setupDocumentData();
+
+        $detected = $this->actingAs($user)
+            ->postJson(route('clients.smart-paste'), ['raw_text' => 'UNI text'])
+            ->assertOk()
+            ->assertJsonPath('data.company_name', 'UNI Garments Limited')
+            ->json('data');
+
+        $clientId = $this->actingAs($user)->postJson(route('clients.smart-store'), $detected)
+            ->assertCreated()
+            ->json('client.id');
+
+        $this->actingAs($user)->post(route('quotations.store'), [
+            'client_id' => $clientId,
+            'bank_account_id' => $bank->id,
+            'date' => '2026-08-08',
+            'items' => [[
+                'service_id' => $service->id,
+                'description' => '',
+                'unit' => '',
+                'quantity' => 3,
+                'unit_rate' => 2500,
+            ]],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('quotations', ['total' => 7500]);
+    }
+
     public function test_inline_client_can_be_selected_for_invoice_without_losing_document_data(): void
     {
         $user = User::factory()->create();
@@ -207,6 +291,47 @@ class SmartPasteClientTest extends TestCase
         $this->assertDatabaseHas('clients', ['company_name' => 'INLINE INVOICE CLIENT LIMITED']);
     }
 
+    public function test_invoice_inline_smart_paste_contract_preserves_document_workflow(): void
+    {
+        $this->mockExtractor([
+            'company_name' => 'Zhaofeng Gelatin Ltd.',
+            'contact_person' => 'Masud Hossain Khan',
+            'designation' => 'Chief Executive Officer',
+            'email' => 'masud96@gmail.com',
+            'address' => 'Sutipara, Dhamrai, Savar, Dhaka, Bangladesh',
+            'city' => 'Dhaka',
+            'country' => 'Bangladesh',
+        ]);
+
+        $user = User::factory()->create();
+        [$service, $bank] = $this->setupDocumentData();
+
+        $detected = $this->actingAs($user)
+            ->postJson(route('clients.smart-paste'), ['raw_text' => 'Masud text'])
+            ->assertOk()
+            ->assertJsonPath('data.company_name', 'Zhaofeng Gelatin Ltd.')
+            ->json('data');
+
+        $clientId = $this->actingAs($user)->postJson(route('clients.smart-store'), $detected)
+            ->assertCreated()
+            ->json('client.id');
+
+        $this->actingAs($user)->post(route('proforma-invoices.store'), [
+            'client_id' => $clientId,
+            'bank_account_id' => $bank->id,
+            'date' => '2026-08-08',
+            'items' => [[
+                'service_id' => $service->id,
+                'description' => '',
+                'unit' => '',
+                'quantity' => 2,
+                'unit_rate' => 7500,
+            ]],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('proforma_invoices', ['total' => 15000]);
+    }
+
     private function mockExtractor(array $data): void
     {
         $this->app->instance(ClientInformationExtractor::class, new class($data) extends ClientInformationExtractor {
@@ -217,6 +342,16 @@ class SmartPasteClientTest extends TestCase
             public function extract(string $text): array
             {
                 return array_replace(array_fill_keys(self::FIELDS, null), $this->data);
+            }
+
+            public function extractWithMetadata(string $text): array
+            {
+                return [
+                    'data' => array_replace(array_fill_keys(self::FIELDS, null), $this->data),
+                    'source' => 'ai',
+                    'provider' => 'gemini',
+                    'message' => 'Information detected. Please review before saving.',
+                ];
             }
         });
     }

@@ -37,8 +37,16 @@ return [
 
     'ai' => [
         'provider' => env('AI_PROVIDER'),
-        'key' => env('AI_API_KEY'),
-        'model' => env('AI_MODEL', 'gpt-4.1-mini'),
+        'timeout' => env('AI_TIMEOUT', 20),
+        'gemini' => [
+            'key' => env('GEMINI_API_KEY'),
+            'model' => env('GEMINI_MODEL', 'gemini-3.6-flash'),
+            'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com'),
+        ],
+        'openai' => [
+            'key' => env('OPENAI_API_KEY', env('AI_API_KEY')),
+            'model' => env('OPENAI_MODEL', env('AI_MODEL', 'gpt-4.1-mini')),
+        ],
     ],
 
 ];

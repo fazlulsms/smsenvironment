@@ -97,21 +97,21 @@ async function postJson(url, payload) {
 document.getElementById('detectClient').addEventListener('click', async () => {
     const status = document.getElementById('smartPasteStatus');
     const button = document.getElementById('detectClient');
-    status.textContent = 'Detecting...';
+    status.textContent = 'Detecting client information...';
     button.disabled = true;
     try {
         const result = await postJson('{{ route('clients.smart-paste') }}', { raw_text: document.getElementById('smartPasteText').value });
         const populated = fillClient(result.data || {});
         showDuplicateWarning(result.duplicates || []);
         status.textContent = populated
-            ? 'Detected. Please review before saving.'
-            : 'No client information could be detected. Please review the pasted information or enter the details manually.';
+            ? (result.message || 'Information detected. Please review before saving.')
+            : 'Information could not be detected automatically. Please enter the client details manually.';
     } catch (error) {
         const populated = error.json?.data ? fillClient(error.json.data) : 0;
         showDuplicateWarning(error.json?.duplicates || []);
         status.textContent = populated
-            ? 'Some information was detected locally. Please review before saving.'
-            : (error.json?.message || 'Smart Paste failed. Enter manually.');
+            ? (error.json?.message || 'Some information was detected locally. Please review before saving.')
+            : 'Information could not be detected automatically. Please enter the client details manually.';
     } finally {
         button.disabled = false;
     }

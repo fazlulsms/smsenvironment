@@ -2,6 +2,18 @@
 
 @section('content')
 <h1 class="h3 mb-3">Settings</h1>
+<div class="panel p-3 mb-3">
+    <div class="muted-label">Smart Paste AI</div>
+    @php
+        $aiProvider = config('services.ai.provider');
+        $aiConfigured = $aiProvider === 'gemini'
+            ? filled(config('services.ai.gemini.key')) && filled(config('services.ai.gemini.model'))
+            : ($aiProvider === 'openai' && filled(config('services.ai.openai.key')) && filled(config('services.ai.openai.model')));
+    @endphp
+    <div class="fw-semibold">
+        {{ $aiConfigured ? ucfirst($aiProvider).' - Configured' : 'Not configured' }}
+    </div>
+</div>
 <form class="panel p-3" method="post" action="{{ route('settings.update') }}" enctype="multipart/form-data">
     @csrf
     @method('put')

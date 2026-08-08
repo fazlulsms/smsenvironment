@@ -46,20 +46,17 @@ class ClientController extends Controller
             'raw_text' => ['required', 'string', 'max:5000'],
         ]);
 
-        try {
-            $client = $extractor->extract($data['raw_text']);
-        } catch (\Throwable) {
-            return response()->json([
-                'message' => 'Smart Paste could not detect the information. You can still enter the client manually.',
-                'data' => $extractor->localExtract($data['raw_text']),
-                'duplicates' => [],
-            ], 422);
-        }
+        $result = $extractor->extractWithMetadata($data['raw_text']);
+        $client = $result['data'];
+        $status = $result['source'] === 'none' ? 422 : 200;
 
         return response()->json([
+            'message' => $result['message'],
             'data' => $client,
+            'source' => $result['source'],
+            'provider' => $result['provider'],
             'duplicates' => $this->possibleDuplicates($client),
-        ]);
+        ], $status);
     }
 
     public function smartStore(Request $request): JsonResponse
