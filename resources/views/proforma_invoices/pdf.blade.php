@@ -84,14 +84,9 @@
 <div class="footer">
     <table class="footer-table">
         <tr>
-            <td>SMS Environmental Alliance</td>
+            <td>{{ $settings['pdf_note'] ?? 'This is a computer-generated document and does not require a physical signature.' }}</td>
             <td class="text-center">Invoice: {{ $invoice->number }}</td>
-            <td class="text-right">Page <span class="page-number"></span></td>
-        </tr>
-        <tr>
-            <td colspan="3" class="footer-contact">
-                {{ implode(' | ', $footerBits) }}@if (!empty($settings['pdf_note'])) | {{ $settings['pdf_note'] }} @endif
-            </td>
+            <td class="text-right">Page <span class="page-number"></span> of <span class="page-count"></span></td>
         </tr>
     </table>
 </div>
@@ -147,27 +142,20 @@
             </tbody>
         </table>
 
-        <table class="financial-verification-table">
-            <tr>
-                <td class="financial-summary-cell">
-                    @include('documents.pdf_totals', ['document' => $invoice, 'amountInWords' => $amountInWords])
-                    @if($taxNote)
-                        <div class="tax-note">{{ $taxNote }}</div>
-                    @endif
-                </td>
-                <td class="verification-cell">
-                    @if(!empty($verificationQr))
-                        <div class="verification-block">
-                            <h3>Invoice Verification</h3>
-                            <img class="verification-qr" src="{{ $verificationQr }}" alt="Invoice verification QR code">
-                            <div class="verification-caption">Scan to compare recorded details.</div>
-                            <div class="verification-meta">Ref: {{ $invoice->number }}</div>
-                            <div class="verification-meta">ID: {{ $invoice->verification_id }}</div>
-                        </div>
-                    @endif
-                </td>
-            </tr>
+        <table class="invoice-financial-summary">
+            <tr><td>Net Amount</td><td class="text-right">{{ number_format($invoice->subtotal, 2) }}</td></tr>
+            @if ((float) $invoice->adjustment !== 0.0)
+                <tr><td>Discount / Adjustment</td><td class="text-right">{{ number_format($invoice->adjustment, 2) }}</td></tr>
+            @endif
+            @if (($invoice->vat_treatment ?? null) === 'add' && (float) ($invoice->vat_amount ?? 0) > 0 && ($invoice->show_vat_separately ?? true))
+                <tr><td>VAT @ {{ rtrim(rtrim(number_format((float) $invoice->vat_rate, 3), '0'), '.') }}%</td><td class="text-right">{{ number_format($invoice->vat_amount, 2) }}</td></tr>
+            @endif
+            <tr class="grand"><td>Total Payable Amount</td><td class="text-right">{{ number_format($invoice->total, 2) }}</td></tr>
         </table>
+        <div class="invoice-amount-words"><strong>Amount in Words:</strong> {{ $amountInWords }}</div>
+        @if($taxNote)
+            <div class="tax-note">{{ $taxNote }}</div>
+        @endif
     </div>
 
     <table class="invoice-lower-table">
@@ -207,6 +195,26 @@
         <div class="signature-line"></div>
         <div class="signature-caption">Authorized Signature</div>
     </div>
+
+    @if(!empty($verificationQr))
+        <table class="invoice-verification-strip">
+            <tr>
+                <td class="verification-strip-qr-cell">
+                    <img class="verification-strip-qr" src="{{ $verificationQr }}" alt="Invoice verification QR code">
+                </td>
+                <td class="verification-strip-details">
+                    <h3>Invoice Verification</h3>
+                    <div>Scan to compare recorded details.</div>
+                    <div class="verification-strip-meta">Ref: {{ $invoice->number }}</div>
+                    <div class="verification-strip-meta">ID: {{ $invoice->verification_id }}</div>
+                </td>
+                <td class="verification-strip-contact">
+                    <strong>SMS Environmental Alliance</strong><br>
+                    {{ implode(' | ', $footerBits) }}
+                </td>
+            </tr>
+        </table>
+    @endif
 </section>
 </body>
 </html>

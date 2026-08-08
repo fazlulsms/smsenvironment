@@ -107,6 +107,7 @@
     .quotation-proposal .acceptance-table td:nth-child(3) { width: 18%; font-weight: 700; color: #4f5f58; white-space: nowrap; }
     .quotation-proposal .acceptance-ref { margin-top: 7px; font-size: 8.8px; color: #4f5f58; }
     .quotation-proposal .page-number:before { content: counter(page); }
+    .quotation-proposal .page-count:before { content: counter(pages); }
     .text-center { text-align: center; }
     .proforma-document { font-size: 9.2px; line-height: 1.35; }
     .proforma-document .rh-title-cell { width: 49mm; }
@@ -124,17 +125,14 @@
     .proforma-document .scope-label { margin-top: 2px; font-size: 7.8px; }
     .proforma-document .scope-list { margin: 1px 0 0 12px; }
     .proforma-document .scope-list li { margin: 0; line-height: 1.2; }
-    .proforma-document .financial-verification-table { margin-top: 7px; }
-    .proforma-document .financial-summary-cell { width: 70%; padding-right: 7mm; }
-    .proforma-document .financial-summary-cell .totals { width: 68%; margin-top: 0; margin-left: auto; }
-    .proforma-document .financial-summary-cell .section { margin-top: 6px; font-size: 8.3px; line-height: 1.25; }
-    .proforma-document .financial-summary-cell .totals td { font-size: 8.4px; padding: 3px 5px; }
-    .proforma-document .financial-summary-cell .grand td { font-size: 9.2px; padding-top: 4px; }
-    .proforma-document .verification-cell { width: 30%; }
-    .proforma-document .verification-block { width: 30mm; }
-    .proforma-document .verification-qr { width: 27mm; height: 27mm; }
-    .proforma-document .tax-note { margin-top: 4px; color: #4f5f58; font-size: 7.8px; text-align: right; }
-    .proforma-document .invoice-lower-table { margin-top: 14px; border-collapse: collapse; page-break-inside: avoid; }
+    .proforma-document .invoice-financial-summary { width: 52%; margin: 8px 0 0 auto; border-collapse: collapse; page-break-inside: avoid; }
+    .proforma-document .invoice-financial-summary td { border: 0; padding: 3px 5px; font-size: 8.6px; }
+    .proforma-document .invoice-financial-summary td:first-child { text-align: right; color: #1f2933; }
+    .proforma-document .invoice-financial-summary td:last-child { width: 30mm; text-align: right; }
+    .proforma-document .invoice-financial-summary .grand td { border-top: 2px solid #1f6f4a; font-weight: 700; font-size: 9.2px; padding-top: 4px; }
+    .proforma-document .invoice-amount-words { margin-top: 7px; font-size: 8.4px; line-height: 1.25; }
+    .proforma-document .tax-note { margin-top: 4px; color: #4f5f58; font-size: 7.8px; text-align: left; }
+    .proforma-document .invoice-lower-table { margin-top: 13px; border-collapse: collapse; page-break-inside: avoid; }
     .proforma-document .invoice-lower-table td { border: 0; padding: 0; vertical-align: top; }
     .proforma-document .bank-cell { width: 58%; padding-right: 8mm; }
     .proforma-document .terms-cell { width: 42%; }
@@ -146,6 +144,14 @@
     .proforma-document .invoice-terms li { margin: 0 0 5px; padding-left: 2px; }
     .proforma-document .prepared-section { margin-top: 13px; width: 48%; page-break-inside: avoid; font-size: 8.7px; line-height: 1.32; }
     .proforma-document .authorization-note { margin-top: 4px; color: #4f5f58; font-size: 7.9px; }
-    .proforma-document .signature-line { width: 42mm; border-top: 1px solid #667085; margin-top: 16px; }
+    .proforma-document .signature-line { width: 42mm; border-top: 1px solid #667085; margin-top: 13px; }
     .proforma-document .signature-caption { color: #4f5f58; font-size: 7.8px; margin-top: 2px; }
+    .proforma-document .invoice-verification-strip { margin-top: 9px; border-top: 1px solid #d8e2dc; border-bottom: 1px solid #d8e2dc; page-break-inside: avoid; }
+    .proforma-document .invoice-verification-strip td { border: 0; padding: 4px 0; vertical-align: middle; }
+    .proforma-document .verification-strip-qr-cell { width: 31mm; }
+    .proforma-document .verification-strip-qr { width: 27mm; height: 27mm; display: block; background: #fff; }
+    .proforma-document .verification-strip-details { width: 47mm; padding-left: 5mm !important; font-size: 7.8px; line-height: 1.2; color: #4f5f58; }
+    .proforma-document .verification-strip-details h3 { margin: 0 0 2px; font-size: 8.2px; line-height: 1.05; }
+    .proforma-document .verification-strip-meta { color: #1f2933; font-size: 7.2px; margin-top: 1px; }
+    .proforma-document .verification-strip-contact { text-align: right; color: #4f5f58; font-size: 7.4px; line-height: 1.22; }
 </style>

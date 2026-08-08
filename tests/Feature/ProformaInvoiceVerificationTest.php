@@ -124,6 +124,9 @@ class ProformaInvoiceVerificationTest extends TestCase
         $this->assertStringContainsString('Invoice Verification', $html);
         $this->assertStringContainsString('PROFORMA INVOICE', $html);
         $this->assertSame(1, substr_count($html, 'PROFORMA INVOICE'));
+        $this->assertStringContainsString('class="invoice-financial-summary"', $html);
+        $this->assertStringContainsString('class="invoice-verification-strip"', $html);
+        $this->assertStringNotContainsString('class="financial-verification-table"', $html);
         $this->assertStringContainsString('<ol class="invoice-terms">', $html);
         $this->assertStringContainsString('The client is requested to mention the Proforma Invoice reference', $html);
         $this->assertStringContainsString('class="prepared-section"', $html);
