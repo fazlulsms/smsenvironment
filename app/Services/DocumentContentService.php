@@ -51,13 +51,18 @@ class DocumentContentService
                 $client,
                 $serviceNames
             ),
-            'payment_terms' => $settings->invoice_payment_terms ?: $settings->default_payment_terms,
+            'payment_terms' => $settings->invoice_payment_terms ?: $this->defaultInvoicePaymentTerms(),
             'validity_text' => $settings->invoice_validity_text,
             'notes' => $settings->invoice_default_notes,
             'vat_treatment' => $settings->quotation_vat_treatment ?: 'exclusive',
             'vat_rate' => $settings->quotation_vat_rate,
             'show_vat_separately' => (bool) ($settings->quotation_show_vat_separately ?? true),
         ];
+    }
+
+    private function defaultInvoicePaymentTerms(): string
+    {
+        return "Payment shall be made by account payee cheque or bank transfer in favour of SMS Environmental Alliance.\nWhere advance payment is applicable, the assignment will commence or be scheduled following confirmation of the applicable payment.\nVAT, AIT/withholding tax and other statutory deductions, where applicable, shall be treated according to the stated invoice tax treatment and prevailing statutory requirements.\nThe client is requested to mention the Proforma Invoice reference when making payment or sending payment confirmation.";
     }
 
     public function serviceDescription(?Service $service, string $type): ?string

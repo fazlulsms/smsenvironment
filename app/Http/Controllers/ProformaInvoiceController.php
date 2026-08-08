@@ -204,6 +204,7 @@ class ProformaInvoiceController extends Controller
         $proformaInvoice->load('client', 'bankAccount', 'items.service', 'creator');
         $settings = $proformaInvoice->settings_snapshot ?: Setting::current()->toArray();
         $bank = $proformaInvoice->bank_snapshot ?: $this->bankSnapshot($proformaInvoice->bankAccount);
+        $bank = $this->realBankSnapshot($bank, $proformaInvoice);
 
         if (! $this->isValidBankSnapshot($bank)) {
             return redirect()->route('proforma-invoices.show', $proformaInvoice)
@@ -441,5 +442,36 @@ class ProformaInvoiceController extends Controller
         return filled($bank['beneficiary_name'] ?? null)
             && filled($bank['bank_name'] ?? null)
             && filled($bank['account_number'] ?? null);
+    }
+
+    private function realBankSnapshot(?array $bank, ProformaInvoice $invoice): ?array
+    {
+        if (! $this->isDevelopmentBankSnapshot($bank)) {
+            return $bank;
+        }
+
+        $selectedBank = $invoice->bankAccount;
+        if ($selectedBank && ! $this->isDevelopmentBankSnapshot($this->bankSnapshot($selectedBank))) {
+            return $this->bankSnapshot($selectedBank);
+        }
+
+        $configuredBank = BankAccount::query()
+            ->whereIn('account_number', ['2170316017001', '1301000014453'])
+            ->orderByDesc('is_default')
+            ->orderBy('bank_name')
+            ->first();
+
+        return $this->bankSnapshot($configuredBank) ?: $bank;
+    }
+
+    private function isDevelopmentBankSnapshot(?array $bank): bool
+    {
+        $bankName = strtolower((string) ($bank['bank_name'] ?? ''));
+        $accountNumber = preg_replace('/\D+/', '', (string) ($bank['account_number'] ?? ''));
+
+        return str_contains($bankName, 'local verification')
+            || str_contains($bankName, 'test bank')
+            || $accountNumber === '1234567890'
+            || $accountNumber === '123456789';
     }
 }

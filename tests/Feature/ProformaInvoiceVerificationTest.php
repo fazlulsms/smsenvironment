@@ -8,6 +8,7 @@ use App\Models\ProformaInvoice;
 use App\Models\Service;
 use App\Models\Setting;
 use App\Models\User;
+use App\Http\Controllers\ProformaInvoiceController;
 use App\Services\ProformaInvoiceVerificationService;
 use Database\Seeders\BankAccountSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -123,6 +124,10 @@ class ProformaInvoiceVerificationTest extends TestCase
         $this->assertStringContainsString('Invoice Verification', $html);
         $this->assertStringContainsString('PROFORMA INVOICE', $html);
         $this->assertSame(1, substr_count($html, 'PROFORMA INVOICE'));
+        $this->assertStringContainsString('<ol class="invoice-terms">', $html);
+        $this->assertStringContainsString('The client is requested to mention the Proforma Invoice reference', $html);
+        $this->assertStringContainsString('class="prepared-section"', $html);
+        $this->assertStringContainsString('Authorized Signature', $html);
     }
 
     public function test_selected_bank_is_rendered_without_showing_other_accounts(): void
@@ -152,6 +157,30 @@ class ProformaInvoiceVerificationTest extends TestCase
         $this->assertStringNotContainsString('Prime Bank Ltd.', $html);
         $this->assertStringNotContainsString('2170316017001', $html);
         $this->assertNotSame($prime->id, $mutual->id);
+    }
+
+    public function test_development_bank_snapshot_is_replaced_by_selected_real_bank_for_pdf(): void
+    {
+        [$user, $client, $bank, $service] = $this->setupData();
+        $invoice = $this->createInvoice($user, $client, $bank, $service, 10000);
+        $invoice->forceFill([
+            'bank_snapshot' => [
+                'beneficiary_name' => 'Local Verification Bank',
+                'bank_name' => 'Local Verification Bank',
+                'branch' => 'Uttara',
+                'account_number' => '1234567890',
+                'swift_code' => null,
+            ],
+        ])->save();
+
+        $method = new \ReflectionMethod(ProformaInvoiceController::class, 'realBankSnapshot');
+        $method->setAccessible(true);
+        $bank = $method->invoke(new ProformaInvoiceController, $invoice->fresh('bankAccount')->bank_snapshot, $invoice->fresh('bankAccount'));
+
+        $this->assertSame('Prime Bank Ltd.', $bank['bank_name']);
+        $this->assertSame('2170316017001', $bank['account_number']);
+        $this->assertNotSame('Local Verification Bank', $bank['bank_name']);
+        $this->assertNotSame('1234567890', $bank['account_number']);
     }
 
     public function test_bank_seeder_configures_real_smsea_accounts_idempotently(): void

@@ -47,11 +47,12 @@
         ->map(fn ($line) => trim($line, " \t\n\r\0\x0B-*"))
         ->filter()
         ->values();
-    if ($paymentTerms->isEmpty()) {
+    if ($paymentTerms->isEmpty() || $paymentTerms->count() < 4) {
         $paymentTerms = collect([
-            'Payment shall be made by bank transfer or account payee cheque.',
-            'Where applicable, work will commence following confirmation of payment.',
-            'VAT/AIT or statutory deductions shall be treated according to the stated invoice tax treatment and applicable requirements.',
+            'Payment shall be made by account payee cheque or bank transfer in favour of SMS Environmental Alliance.',
+            'Where advance payment is applicable, the assignment will commence or be scheduled following confirmation of the applicable payment.',
+            'VAT, AIT/withholding tax and other statutory deductions, where applicable, shall be treated according to the stated invoice tax treatment and prevailing statutory requirements.',
+            'The client is requested to mention the Proforma Invoice reference when making payment or sending payment confirmation.',
         ]);
     }
     $bankRows = [
@@ -183,23 +184,29 @@
             </td>
             <td class="terms-cell">
                 <h3>Payment Terms</h3>
-                <ul class="compact-list invoice-terms">
-                    @foreach($paymentTerms->take(3) as $term)
+                <ol class="invoice-terms">
+                    @foreach($paymentTerms->take(4) as $term)
                         <li>{{ $term }}</li>
                     @endforeach
-                </ul>
-                <div class="prepared-by">
-                    <h3>Prepared By</h3>
-                    @if (!empty($settings['prepared_by_name']))<strong>{{ $settings['prepared_by_name'] }}</strong><br>@endif
-                    @php $preparedDesignation = $settings['prepared_by_designation'] ?? 'Authorized Representative'; @endphp
-                    {{ $preparedDesignation }}<br>
-                    @if(trim((string) $preparedDesignation) !== 'SMS Environmental Alliance')
-                        SMS Environmental Alliance
-                    @endif
-                </div>
+                </ol>
             </td>
         </tr>
     </table>
+
+    <div class="prepared-section">
+        <h3>Prepared By</h3>
+        @if (!empty($settings['prepared_by_name']))
+            <strong>{{ $settings['prepared_by_name'] }}</strong><br>
+        @endif
+        @php $preparedDesignation = $settings['prepared_by_designation'] ?? 'Authorized Representative'; @endphp
+        {{ $preparedDesignation }}<br>
+        @if(trim((string) $preparedDesignation) !== 'SMS Environmental Alliance')
+            SMS Environmental Alliance<br>
+        @endif
+        <div class="authorization-note">Electronically generated and authorized through the SMSEA Office system.</div>
+        <div class="signature-line"></div>
+        <div class="signature-caption">Authorized Signature</div>
+    </div>
 </section>
 </body>
 </html>

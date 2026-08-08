@@ -134,15 +134,18 @@
     .proforma-document .verification-block { width: 30mm; }
     .proforma-document .verification-qr { width: 27mm; height: 27mm; }
     .proforma-document .tax-note { margin-top: 4px; color: #4f5f58; font-size: 7.8px; text-align: right; }
-    .proforma-document .invoice-lower-table { margin-top: 8px; border-collapse: collapse; page-break-inside: avoid; }
+    .proforma-document .invoice-lower-table { margin-top: 14px; border-collapse: collapse; page-break-inside: avoid; }
     .proforma-document .invoice-lower-table td { border: 0; padding: 0; vertical-align: top; }
     .proforma-document .bank-cell { width: 58%; padding-right: 8mm; }
     .proforma-document .terms-cell { width: 42%; }
-    .proforma-document h3 { margin: 0 0 4px; font-size: 9px; }
+    .proforma-document h3 { margin: 0 0 6px; font-size: 9px; }
     .proforma-document .invoice-bank-table { width: 100%; margin-top: 0; }
-    .proforma-document .invoice-bank-table td { border-bottom: 1px solid #e4ebe7; padding: 3px 5px; font-size: 8.2px; }
+    .proforma-document .invoice-bank-table td { border-bottom: 1px solid #e4ebe7; padding: 4px 6px; font-size: 8.5px; line-height: 1.28; }
     .proforma-document .invoice-bank-table td:first-child { width: 29%; color: #4f5f58; font-weight: 700; }
-    .proforma-document .invoice-terms { margin-top: 0; font-size: 8.1px; line-height: 1.25; }
-    .proforma-document .invoice-terms li { margin: 0 0 2px; }
-    .proforma-document .prepared-by { margin-top: 8px; font-size: 8.3px; line-height: 1.28; }
+    .proforma-document .invoice-terms { margin: 0 0 0 13px; padding: 0; font-size: 8.4px; line-height: 1.32; }
+    .proforma-document .invoice-terms li { margin: 0 0 5px; padding-left: 2px; }
+    .proforma-document .prepared-section { margin-top: 13px; width: 48%; page-break-inside: avoid; font-size: 8.7px; line-height: 1.32; }
+    .proforma-document .authorization-note { margin-top: 4px; color: #4f5f58; font-size: 7.9px; }
+    .proforma-document .signature-line { width: 42mm; border-top: 1px solid #667085; margin-top: 16px; }
+    .proforma-document .signature-caption { color: #4f5f58; font-size: 7.8px; margin-top: 2px; }
 </style>
