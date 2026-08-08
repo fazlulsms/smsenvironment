@@ -69,6 +69,17 @@
     .quotation-proposal .service-summary { margin-top: 2px; line-height: 1.35; }
     .quotation-proposal .totals { width: 45%; margin-top: 10px; }
     .quotation-proposal .totals td { font-size: 9px; padding: 4px 6px; }
+    .quotation-proposal .financial-verification-table { width: 100%; margin-top: 9px; border-collapse: collapse; page-break-inside: avoid; }
+    .quotation-proposal .financial-verification-table td { border: 0; padding: 0; vertical-align: top; }
+    .quotation-proposal .financial-summary-cell { width: 67%; padding-right: 8mm; }
+    .quotation-proposal .financial-summary-cell .totals { width: 62%; margin-top: 0; margin-left: auto; }
+    .quotation-proposal .financial-summary-cell .section { margin-top: 9px; }
+    .quotation-proposal .verification-cell { width: 33%; text-align: right; }
+    .quotation-proposal .verification-block { display: inline-block; width: 32mm; text-align: center; page-break-inside: avoid; }
+    .quotation-proposal .verification-block h3 { margin-bottom: 3px; font-size: 8.2px; line-height: 1.08; }
+    .quotation-proposal .verification-qr { width: 29mm; height: 29mm; display: block; margin: 0 auto 2px; background: #fff; }
+    .quotation-proposal .verification-caption { color: #4f5f58; font-size: 7px; line-height: 1.15; margin: 0 auto 2px; }
+    .quotation-proposal .verification-meta { color: #1f2933; font-size: 6.6px; line-height: 1.15; overflow-wrap: break-word; }
     .quotation-proposal .bank-table { width: 70%; margin-top: 5px; }
     .quotation-proposal .bank-table td { border-bottom: 1px solid #e4ebe7; padding: 4px 6px; font-size: 9px; }
     .quotation-proposal .bank-table td:first-child { width: 28%; color: #4f5f58; font-weight: 700; }

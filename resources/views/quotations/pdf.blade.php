@@ -203,7 +203,24 @@
             </tbody>
         </table>
 
-        @include('documents.pdf_totals', ['document' => $quotation, 'amountInWords' => $amountInWords])
+        <table class="financial-verification-table">
+            <tr>
+                <td class="financial-summary-cell">
+                    @include('documents.pdf_totals', ['document' => $quotation, 'amountInWords' => $amountInWords])
+                </td>
+                <td class="verification-cell">
+                    @if(!empty($verificationQr))
+                        <div class="verification-block">
+                            <h3>Quotation Verification</h3>
+                            <img class="verification-qr" src="{{ $verificationQr }}" alt="Quotation verification QR code">
+                            <div class="verification-caption">Scan to compare recorded details.</div>
+                            <div class="verification-meta">Ref: {{ $quotation->number }}</div>
+                            <div class="verification-meta">ID: {{ $quotation->verification_id }}</div>
+                        </div>
+                    @endif
+                </td>
+            </tr>
+        </table>
     </div>
 
 

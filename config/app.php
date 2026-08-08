@@ -54,6 +54,8 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'quotation_verification_secret' => env('QUOTATION_VERIFICATION_SECRET'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

@@ -41,6 +41,9 @@ class Quotation extends Model
         'terms_conditions',
         'include_acceptance',
         'acceptance_text',
+        'verification_payload_version',
+        'verification_id',
+        'verification_signature',
         'total',
         'notes',
     ];
