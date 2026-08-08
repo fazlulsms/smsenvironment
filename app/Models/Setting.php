@@ -26,6 +26,14 @@ class Setting extends Model
         'quotation_closing_text',
         'quotation_validity_text',
         'quotation_default_notes',
+        'quotation_vat_treatment',
+        'quotation_vat_rate',
+        'quotation_show_vat_separately',
+        'quotation_vat_note',
+        'quotation_ait_note',
+        'quotation_terms_conditions',
+        'quotation_include_acceptance',
+        'quotation_acceptance_text',
         'invoice_charge_for_pattern',
         'invoice_payment_terms',
         'invoice_validity_text',
@@ -45,6 +53,18 @@ class Setting extends Model
             'currency_minor_name' => 'Paisa',
             'quotation_number_format' => 'SMSEA/QT/{YYYY}/{####}',
             'invoice_number_format' => 'SMSEA/PI/{YYYY}/{####}',
+            'quotation_vat_treatment' => 'exclusive',
+            'quotation_show_vat_separately' => true,
+            'quotation_include_acceptance' => true,
         ]);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'quotation_vat_rate' => 'decimal:3',
+            'quotation_show_vat_separately' => 'boolean',
+            'quotation_include_acceptance' => 'boolean',
+        ];
     }
 }

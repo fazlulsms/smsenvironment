@@ -45,9 +45,13 @@ class QuotationController extends Controller
                 'client_id' => $request->integer('client_id') ?: null,
                 'number' => $numbers->quotation(),
                 'date' => now(),
-                'intro_text' => $settings->quotation_intro_text ?: 'We are pleased to submit our financial proposal for the requested environmental assessment/testing services.',
+                'intro_text' => null,
                 'payment_terms' => $settings->default_payment_terms,
                 'adjustment' => 0,
+                'vat_treatment' => $settings->quotation_vat_treatment ?: 'exclusive',
+                'vat_rate' => $settings->quotation_vat_rate,
+                'show_vat_separately' => $settings->quotation_show_vat_separately ?? true,
+                'include_acceptance' => $settings->quotation_include_acceptance ?? true,
             ]),
         ]));
     }
@@ -64,6 +68,7 @@ class QuotationController extends Controller
             $data = $this->applyDefaults($data, $content->quotationDefaults($client, $services, $settings));
             [$items, $subtotal] = $this->items($data['items'], 'quotation', $content);
             $adjustment = (float) ($data['adjustment'] ?? 0);
+            $vat = $this->vat($subtotal + $adjustment, $data);
 
             $quotation = Quotation::query()->create([
                 ...$this->documentData($data),
@@ -76,7 +81,8 @@ class QuotationController extends Controller
                 'settings_snapshot' => $this->settingsSnapshot($settings),
                 'subtotal' => $subtotal,
                 'adjustment' => $adjustment,
-                'total' => $subtotal + $adjustment,
+                'vat_amount' => $vat,
+                'total' => $subtotal + $adjustment + $vat,
             ]);
 
             $quotation->items()->createMany($items);
@@ -117,6 +123,7 @@ class QuotationController extends Controller
             $data = $this->applyDefaults($data, $content->quotationDefaults($client, $services, $settings));
             [$items, $subtotal] = $this->items($data['items'], 'quotation', $content);
             $adjustment = (float) ($data['adjustment'] ?? 0);
+            $vat = $this->vat($subtotal + $adjustment, $data);
 
             $quotation->update([
                 ...$this->documentData($data),
@@ -127,7 +134,8 @@ class QuotationController extends Controller
                 'settings_snapshot' => $this->settingsSnapshot($settings),
                 'subtotal' => $subtotal,
                 'adjustment' => $adjustment,
-                'total' => $subtotal + $adjustment,
+                'vat_amount' => $vat,
+                'total' => $subtotal + $adjustment + $vat,
             ]);
 
             $quotation->items()->delete();
@@ -228,6 +236,14 @@ class QuotationController extends Controller
             'closing_text' => ['nullable', 'string'],
             'validity_text' => ['nullable', 'string'],
             'payment_terms' => ['nullable', 'string'],
+            'vat_treatment' => ['nullable', 'in:exclusive,included,add,not_applicable'],
+            'vat_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'show_vat_separately' => ['nullable', 'boolean'],
+            'vat_note' => ['nullable', 'string'],
+            'ait_note' => ['nullable', 'string'],
+            'terms_conditions' => ['nullable', 'string'],
+            'include_acceptance' => ['nullable', 'boolean'],
+            'acceptance_text' => ['nullable', 'string'],
             'adjustment' => ['nullable', 'numeric'],
             'notes' => ['nullable', 'string'],
             'after_save' => ['nullable', 'in:view,pdf'],
@@ -271,6 +287,21 @@ class QuotationController extends Controller
         return collect($data)->except(['items', 'new_client', 'client_id', 'after_save'])->all();
     }
 
+    private function vat(float $netAmount, array $data): float
+    {
+        if (($data['vat_treatment'] ?? 'exclusive') !== 'add') {
+            return 0.0;
+        }
+
+        $rate = (float) ($data['vat_rate'] ?? 0);
+
+        if ($rate <= 0) {
+            return 0.0;
+        }
+
+        return round(max(0, $netAmount) * $rate / 100, 2);
+    }
+
     private function clientSnapshot(?Client $client): ?array
     {
         return $client?->only([
@@ -292,6 +323,9 @@ class QuotationController extends Controller
             'organization_name', 'logo_path', 'tagline', 'office_address', 'phone', 'email', 'website',
             'default_currency', 'currency_major_name', 'currency_minor_name',
             'prepared_by_name', 'prepared_by_designation', 'footer_text', 'pdf_note',
+            'quotation_vat_treatment', 'quotation_vat_rate', 'quotation_show_vat_separately',
+            'quotation_vat_note', 'quotation_ait_note', 'quotation_terms_conditions',
+            'quotation_include_acceptance', 'quotation_acceptance_text',
         ]);
     }
 
@@ -309,7 +343,7 @@ class QuotationController extends Controller
     private function applyDefaults(array $data, array $defaults): array
     {
         foreach ($defaults as $key => $value) {
-            if (($data[$key] ?? null) === null || trim((string) $data[$key]) === '') {
+            if (! array_key_exists($key, $data) || $data[$key] === null || (is_string($data[$key]) && trim($data[$key]) === '')) {
                 $data[$key] = $value;
             }
         }

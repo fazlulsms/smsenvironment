@@ -28,6 +28,15 @@ class Quotation extends Model
         'payment_terms',
         'subtotal',
         'adjustment',
+        'vat_treatment',
+        'vat_rate',
+        'vat_amount',
+        'show_vat_separately',
+        'vat_note',
+        'ait_note',
+        'terms_conditions',
+        'include_acceptance',
+        'acceptance_text',
         'total',
         'notes',
     ];
@@ -41,6 +50,10 @@ class Quotation extends Model
             'settings_snapshot' => 'array',
             'subtotal' => 'decimal:2',
             'adjustment' => 'decimal:2',
+            'vat_rate' => 'decimal:3',
+            'vat_amount' => 'decimal:2',
+            'show_vat_separately' => 'boolean',
+            'include_acceptance' => 'boolean',
             'total' => 'decimal:2',
         ];
     }

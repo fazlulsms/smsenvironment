@@ -15,7 +15,7 @@
     $showQuickClient = old('new_client.company_name') || ! old('client_id', request('client_id', $document->client_id));
     $defaultBank = $bankAccounts->firstWhere('is_default', true);
     $selectedBankId = old('bank_account_id', $document->bank_account_id ?: ($defaultBank?->id ?: ($bankAccounts->count() === 1 ? $bankAccounts->first()->id : null)));
-    $showAdvanced = $errors->has('subject') || $errors->has('charge_for') || $errors->has('intro_text') || $errors->has('payment_terms') || $errors->has('notes');
+    $showAdvanced = $errors->has('subject') || $errors->has('charge_for') || $errors->has('intro_text') || $errors->has('payment_terms') || $errors->has('notes') || $errors->has('vat_treatment') || $errors->has('vat_rate');
 @endphp
 
 @csrf
@@ -150,6 +150,23 @@
                 @endif
                 <div class="col-md-8"><label class="form-label">Payment Terms Override</label><textarea class="form-control" name="payment_terms" placeholder="Leave blank to use defaults">{{ old('payment_terms', $document->payment_terms) }}</textarea></div>
                 <div class="col-md-4"><label class="form-label">Notes Override</label><textarea class="form-control" name="notes">{{ old('notes', $document->notes) }}</textarea></div>
+                @if ($isQuotation)
+                    <div class="col-md-4">
+                        <label class="form-label">VAT Treatment</label>
+                        <select class="form-select" name="vat_treatment">
+                            @foreach (['exclusive' => 'Exclusive of VAT', 'included' => 'VAT Included', 'add' => 'Add VAT', 'not_applicable' => 'Not Applicable'] as $value => $label)
+                                <option value="{{ $value }}" @selected(old('vat_treatment', $document->vat_treatment ?: ($settings->quotation_vat_treatment ?? 'exclusive')) === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4"><label class="form-label">VAT Rate (%)</label><input class="form-control" type="number" step="0.001" name="vat_rate" value="{{ old('vat_rate', $document->vat_rate ?: $settings->quotation_vat_rate) }}"></div>
+                    <div class="col-md-4 d-flex align-items-end"><input type="hidden" name="show_vat_separately" value="0"><label class="form-check"><input class="form-check-input" type="checkbox" name="show_vat_separately" value="1" @checked(old('show_vat_separately', $document->show_vat_separately ?? ($settings->quotation_show_vat_separately ?? true)))> <span class="form-check-label">Show VAT separately</span></label></div>
+                    <div class="col-md-6"><label class="form-label">VAT Note Override</label><textarea class="form-control" name="vat_note">{{ old('vat_note', $document->vat_note) }}</textarea></div>
+                    <div class="col-md-6"><label class="form-label">AIT / Tax Note Override</label><textarea class="form-control" name="ait_note">{{ old('ait_note', $document->ait_note) }}</textarea></div>
+                    <div class="col-12"><label class="form-label">Terms & Conditions Override</label><textarea class="form-control" rows="5" name="terms_conditions">{{ old('terms_conditions', $document->terms_conditions) }}</textarea></div>
+                    <div class="col-md-4 d-flex align-items-end"><input type="hidden" name="include_acceptance" value="0"><label class="form-check"><input class="form-check-input" type="checkbox" name="include_acceptance" value="1" @checked(old('include_acceptance', $document->include_acceptance ?? ($settings->quotation_include_acceptance ?? true)))> <span class="form-check-label">Include Acceptance</span></label></div>
+                    <div class="col-md-8"><label class="form-label">Acceptance Wording Override</label><textarea class="form-control" name="acceptance_text">{{ old('acceptance_text', $document->acceptance_text) }}</textarea></div>
+                @endif
             </div>
         </div>
     </div>

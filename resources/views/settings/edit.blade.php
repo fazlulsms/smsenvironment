@@ -38,6 +38,21 @@
         <div class="col-md-6"><label class="form-label">Quotation Closing Text</label><textarea class="form-control" name="quotation_closing_text">{{ old('quotation_closing_text', $settings->quotation_closing_text) }}</textarea></div>
         <div class="col-md-6"><label class="form-label">Quotation Validity Text</label><textarea class="form-control" name="quotation_validity_text">{{ old('quotation_validity_text', $settings->quotation_validity_text) }}</textarea></div>
         <div class="col-12"><label class="form-label">Quotation Default Notes</label><textarea class="form-control" name="quotation_default_notes">{{ old('quotation_default_notes', $settings->quotation_default_notes) }}</textarea></div>
+        <div class="col-md-4">
+            <label class="form-label">Default VAT Treatment</label>
+            <select class="form-select" name="quotation_vat_treatment">
+                @foreach (['exclusive' => 'Exclusive of VAT', 'included' => 'VAT Included', 'add' => 'Add VAT', 'not_applicable' => 'Not Applicable'] as $value => $label)
+                    <option value="{{ $value }}" @selected(old('quotation_vat_treatment', $settings->quotation_vat_treatment ?? 'exclusive') === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-4"><label class="form-label">Default VAT Rate (%)</label><input class="form-control" type="number" step="0.001" name="quotation_vat_rate" value="{{ old('quotation_vat_rate', $settings->quotation_vat_rate) }}"></div>
+        <div class="col-md-4 d-flex align-items-end"><label class="form-check"><input class="form-check-input" type="checkbox" name="quotation_show_vat_separately" value="1" @checked(old('quotation_show_vat_separately', $settings->quotation_show_vat_separately ?? true))> <span class="form-check-label">Show VAT separately</span></label></div>
+        <div class="col-md-6"><label class="form-label">VAT Note</label><textarea class="form-control" name="quotation_vat_note">{{ old('quotation_vat_note', $settings->quotation_vat_note) }}</textarea></div>
+        <div class="col-md-6"><label class="form-label">AIT / Withholding Note</label><textarea class="form-control" name="quotation_ait_note">{{ old('quotation_ait_note', $settings->quotation_ait_note) }}</textarea></div>
+        <div class="col-12"><label class="form-label">Standard Terms & Conditions</label><textarea class="form-control" rows="7" name="quotation_terms_conditions">{{ old('quotation_terms_conditions', $settings->quotation_terms_conditions) }}</textarea></div>
+        <div class="col-md-4 d-flex align-items-end"><label class="form-check"><input class="form-check-input" type="checkbox" name="quotation_include_acceptance" value="1" @checked(old('quotation_include_acceptance', $settings->quotation_include_acceptance ?? true))> <span class="form-check-label">Include Acceptance Section</span></label></div>
+        <div class="col-md-8"><label class="form-label">Acceptance Wording</label><textarea class="form-control" name="quotation_acceptance_text">{{ old('quotation_acceptance_text', $settings->quotation_acceptance_text) }}</textarea></div>
         <div class="col-md-6"><label class="form-label">Invoice Payment Terms</label><textarea class="form-control" name="invoice_payment_terms">{{ old('invoice_payment_terms', $settings->invoice_payment_terms) }}</textarea></div>
         <div class="col-md-6"><label class="form-label">Invoice Validity Text</label><textarea class="form-control" name="invoice_validity_text">{{ old('invoice_validity_text', $settings->invoice_validity_text) }}</textarea></div>
         <div class="col-12"><label class="form-label">Invoice Default Notes</label><textarea class="form-control" name="invoice_default_notes">{{ old('invoice_default_notes', $settings->invoice_default_notes) }}</textarea></div>

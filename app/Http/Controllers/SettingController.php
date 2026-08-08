@@ -38,6 +38,14 @@ class SettingController extends Controller
             'quotation_closing_text' => ['nullable', 'string'],
             'quotation_validity_text' => ['nullable', 'string'],
             'quotation_default_notes' => ['nullable', 'string'],
+            'quotation_vat_treatment' => ['required', 'in:exclusive,included,add,not_applicable'],
+            'quotation_vat_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'quotation_show_vat_separately' => ['nullable', 'boolean'],
+            'quotation_vat_note' => ['nullable', 'string'],
+            'quotation_ait_note' => ['nullable', 'string'],
+            'quotation_terms_conditions' => ['nullable', 'string'],
+            'quotation_include_acceptance' => ['nullable', 'boolean'],
+            'quotation_acceptance_text' => ['nullable', 'string'],
             'invoice_charge_for_pattern' => ['nullable', 'string', 'max:255'],
             'invoice_payment_terms' => ['nullable', 'string'],
             'invoice_validity_text' => ['nullable', 'string'],
@@ -49,6 +57,8 @@ class SettingController extends Controller
         ]);
 
         unset($data['logo']);
+        $data['quotation_show_vat_separately'] = $request->boolean('quotation_show_vat_separately');
+        $data['quotation_include_acceptance'] = $request->boolean('quotation_include_acceptance');
 
         if ($request->hasFile('logo')) {
             if ($settings->logo_path) {

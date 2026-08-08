@@ -4,32 +4,118 @@
     <meta charset="utf-8">
     @include('documents.pdf_styles')
 </head>
-<body>
-@include('documents.pdf_header', ['title' => 'QUOTATION', 'number' => $quotation->number, 'date' => $quotation->date])
+<body class="quotation-proposal">
+@php
+    $currency = $settings['default_currency'] ?? 'BDT';
+    $netPayableBeforeVat = (float) $quotation->subtotal + (float) $quotation->adjustment;
+    $vatTreatment = $quotation->vat_treatment ?? 'exclusive';
+    $storedVatNote = trim((string) $quotation->vat_note);
+    if ($vatTreatment === 'add' && str_contains(strtolower($storedVatNote), 'exclusive of vat')) {
+        $storedVatNote = '';
+    }
+    $taxNote = $storedVatNote ?: match ($vatTreatment) {
+        'included' => 'Quoted fees are inclusive of applicable VAT.',
+        'add' => (float) $quotation->vat_amount > 0
+            ? 'VAT has been shown separately according to the selected quotation tax treatment.'
+            : 'Applicable VAT may be added according to the selected quotation tax treatment.',
+        'not_applicable' => null,
+        default => 'Quoted fees are exclusive of VAT. Applicable VAT shall be added or borne as required under prevailing regulations.',
+    };
+    $footerBits = array_filter([
+        $settings['office_address'] ?? null,
+        $settings['phone'] ?? null,
+        $settings['email'] ?? null,
+        $settings['website'] ?? null,
+    ]);
+@endphp
 
-<div class="row">
-    <div class="col">
-        <div class="label">Recipient</div>
+<div class="running-header">
+    <div class="rh-left">
+        @if (!empty($settings['logo_path']) && file_exists(storage_path('app/public/'.$settings['logo_path'])))
+            <img class="rh-logo" src="{{ storage_path('app/public/'.$settings['logo_path']) }}" alt="">
+        @endif
+        <div>
+            <div class="rh-brand">{{ $settings['organization_name'] ?? 'SMS Environmental Alliance' }}</div>
+            <div class="rh-tagline">{{ $settings['tagline'] ?? 'Environmental testing, assessment and compliance support' }}</div>
+        </div>
+    </div>
+    <div class="rh-meta">
+        Quotation: {{ $quotation->number }}<br>
+        Date: {{ $quotation->date->format('d M Y') }}
+    </div>
+</div>
+<div class="footer">
+    {{ implode(' | ', $footerBits) }} @if (!empty($settings['pdf_note'])) | {{ $settings['pdf_note'] }} @endif | Page <span class="page-number"></span>
+</div>
+
+<section class="proposal-page letter-page">
+    <div class="document-kicker">Commercial Proposal / Quotation</div>
+    <h1>Quotation</h1>
+
+    <table class="letter-meta">
+        <tr>
+            <td><strong>Reference No.</strong><br>{{ $quotation->number }}</td>
+            <td class="text-right"><strong>Date</strong><br>{{ $quotation->date->format('d M Y') }}</td>
+        </tr>
+    </table>
+
+    <div class="letter-recipient">
+        <div class="label">To</div>
         @if(!empty($client['contact_person'])){{ $client['contact_person'] }}<br>@endif
         @if(!empty($client['designation'])){{ $client['designation'] }}<br>@endif
         @if(!empty($client['company_name']))<strong>{{ $client['company_name'] }}</strong><br>@endif
         @if(!empty($client['address'])){{ $client['address'] }}<br>@endif
         @if(!empty($client['email'])){{ $client['email'] }}@endif
     </div>
-    <div class="col">
+
+    <div class="subject-box">
         <div class="label">Subject</div>
-        {{ $quotation->subject }}
+        <strong>{{ $quotation->subject ?: 'Quotation for Environmental Services' }}</strong>
     </div>
-</div>
 
-@if($quotation->intro_text)
-    <p class="section">{{ $quotation->intro_text }}</p>
-@endif
+    <p>Dear {{ !empty($client['contact_person']) ? $client['contact_person'] : 'Sir/Madam' }},</p>
 
-<div class="section">
-    <div class="label">Financial Proposal</div>
-    <table>
-        <thead><tr><th style="width:7%">SL</th><th>Description / Particular</th><th style="width:15%">Unit / Qty</th><th style="width:16%" class="text-right">Unit Rate</th><th style="width:16%" class="text-right">Total</th></tr></thead>
+    @foreach (preg_split('/\n\s*\n/', trim((string) $quotation->intro_text)) as $paragraph)
+        @if(trim($paragraph) !== '')
+            <p>{{ trim($paragraph) }}</p>
+        @endif
+    @endforeach
+
+    @if($quotation->compliance_note)
+        <div class="section avoid-break">
+            <div class="label">Applicable Reference Framework</div>
+            <p>The assessment/reporting, where applicable, will consider relevant requirements and guidance including:</p>
+            <ul class="compact-list">
+                @foreach(preg_split('/\r\n|\r|\n/', $quotation->compliance_note) as $line)
+                    @if(trim($line) !== '')
+                        <li>{{ trim($line, " \t\n\r\0\x0B-•") }}</li>
+                    @endif
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if($quotation->closing_text)
+        <p>{{ $quotation->closing_text }}</p>
+    @else
+        <p>We look forward to supporting your environmental compliance requirements and remain available for any clarification required.</p>
+    @endif
+
+    <div class="signature-block">
+        <div>Sincerely,</div>
+        <div class="signature-space"></div>
+        @if (!empty($settings['prepared_by_name']))<strong>{{ $settings['prepared_by_name'] }}</strong><br>@endif
+        @if (!empty($settings['prepared_by_designation'])){{ $settings['prepared_by_designation'] }}<br>@endif
+        @if (!empty($settings['phone'])){{ $settings['phone'] }} @endif
+        @if (!empty($settings['email'])){{ !empty($settings['phone']) ? ' | ' : '' }}{{ $settings['email'] }}@endif
+    </div>
+</section>
+
+<section class="proposal-page content-page">
+    <h2>Scope & Financial Proposal</h2>
+
+    <table class="proposal-table">
+        <thead><tr><th style="width:7%">SL</th><th>Service / Description</th><th style="width:15%">Unit / Qty</th><th style="width:16%" class="text-right">Unit Rate</th><th style="width:16%" class="text-right">Amount</th></tr></thead>
         <tbody>
         @foreach($quotation->items as $item)
             <tr>
@@ -42,21 +128,49 @@
         @endforeach
         </tbody>
     </table>
+
     @include('documents.pdf_totals', ['document' => $quotation, 'amountInWords' => $amountInWords])
-</div>
 
-@if($quotation->compliance_note)
-    <div class="section">
-        <div class="label">Scope / Standards</div>
-        {!! nl2br(e($quotation->compliance_note)) !!}
+    <div class="section avoid-break">
+        <div class="label">Tax Treatment</div>
+        @if ($taxNote)<p>{{ $taxNote }}</p>@endif
+        @if ($quotation->ait_note)<p>{{ $quotation->ait_note }}</p>@endif
     </div>
-@endif
 
-@if($quotation->closing_text)
-    <p class="section">{{ $quotation->closing_text }}</p>
-@endif
+    @if ($quotation->payment_terms || $quotation->validity_text || $quotation->notes)
+        <div class="section avoid-break">
+            <h3>Payment Terms</h3>
+            @if ($quotation->payment_terms)<div>{!! nl2br(e($quotation->payment_terms)) !!}</div>@endif
+            @if ($quotation->validity_text)<p><strong>Validity:</strong> {{ $quotation->validity_text }}</p>@endif
+            @if ($quotation->notes)<p>{!! nl2br(e($quotation->notes)) !!}</p>@endif
+        </div>
+    @endif
 
-@include('documents.pdf_bank', ['bank' => $bank])
-@include('documents.pdf_terms', ['document' => $quotation, 'settings' => $settings])
+    @include('documents.pdf_bank', ['bank' => $bank])
+
+    @if($quotation->terms_conditions)
+        <div class="section terms-section">
+            <h2>Terms & Conditions</h2>
+            @foreach(preg_split('/\n\s*\n/', trim($quotation->terms_conditions)) as $term)
+                @if(trim($term) !== '')
+                    <p>{{ trim($term) }}</p>
+                @endif
+            @endforeach
+        </div>
+    @endif
+
+    @if($quotation->include_acceptance)
+        <div class="section acceptance-block">
+            <h2>Acceptance of Quotation</h2>
+            <p>{{ $quotation->acceptance_text ?: 'We confirm acceptance of the scope, commercial terms and conditions stated in this quotation and authorize SMS Environmental Alliance to proceed.' }}</p>
+            <table class="acceptance-table">
+                <tr><td>Company:</td><td></td><td>Name:</td><td></td></tr>
+                <tr><td>Designation:</td><td></td><td>Signature:</td><td></td></tr>
+                <tr><td>Date:</td><td></td><td>Company Seal:</td><td></td></tr>
+            </table>
+            <div class="acceptance-ref"><strong>Quotation Reference:</strong> {{ $quotation->number }}</div>
+        </div>
+    @endif
+</section>
 </body>
 </html>
