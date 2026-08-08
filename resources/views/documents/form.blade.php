@@ -213,7 +213,7 @@ clientSelect.addEventListener('change', () => {
 });
 
 function clientInput(field) {
-    return document.forms[0].querySelector(`[name="new_client[${field}]"]`);
+    return document.querySelector(`[name="new_client[${field}]"]`);
 }
 
 function quickClientData() {

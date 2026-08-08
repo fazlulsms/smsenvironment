@@ -44,7 +44,7 @@
 const clientFields = ['company_name', 'parent_company', 'contact_person', 'designation', 'department', 'email', 'phone', 'website', 'address', 'city', 'postal_code', 'country'];
 
 function clientInput(field) {
-    return document.forms[0].querySelector(`[name="${field}"]`);
+    return document.querySelector(`[name="${field}"]`);
 }
 
 function fillClient(data) {
