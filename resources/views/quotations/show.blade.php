@@ -8,9 +8,11 @@
     </div>
     <div class="d-flex gap-2">
         <a class="btn btn-primary" href="{{ route('quotations.pdf', $quotation) }}">Download PDF</a>
+        <a class="btn btn-outline-primary" href="{{ route('quotations.email.create', $quotation) }}">Send Email</a>
         <a class="btn btn-outline-secondary" href="{{ route('quotations.edit', $quotation) }}">Edit</a>
         <form method="post" action="{{ route('quotations.duplicate', $quotation) }}">@csrf <button class="btn btn-outline-secondary">Duplicate</button></form>
     </div>
 </div>
 @include('documents.preview', ['document' => $quotation, 'type' => 'quotation'])
+@include('document_emails.history', ['deliveries' => $quotation->emailDeliveries])
 @endsection

@@ -84,4 +84,12 @@ class Quotation extends Model
     {
         return $this->hasMany(QuotationItem::class)->orderBy('sort_order');
     }
+
+    public function emailDeliveries(): HasMany
+    {
+        return $this->hasMany(DocumentEmailDelivery::class, 'document_id')
+            ->where('document_type', 'quotation')
+            ->latest('sent_at')
+            ->latest('id');
+    }
 }

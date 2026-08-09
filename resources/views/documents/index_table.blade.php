@@ -16,6 +16,7 @@
                             <a class="btn btn-outline-secondary" href="{{ $type === 'quotation' ? route('quotations.show', $document) : route('proforma-invoices.show', $document) }}">View</a>
                             <a class="btn btn-outline-secondary" href="{{ $type === 'quotation' ? route('quotations.edit', $document) : route('proforma-invoices.edit', $document) }}">Edit</a>
                             <a class="btn btn-outline-secondary" href="{{ $type === 'quotation' ? route('quotations.pdf', $document) : route('proforma-invoices.pdf', $document) }}">PDF</a>
+                            <a class="btn btn-outline-secondary" href="{{ $type === 'quotation' ? route('quotations.email.create', $document) : route('proforma-invoices.email.create', $document) }}">Email</a>
                             <form method="post" action="{{ $type === 'quotation' ? route('quotations.duplicate', $document) : route('proforma-invoices.duplicate', $document) }}">
                                 @csrf
                                 <button class="btn btn-outline-secondary">Duplicate</button>

@@ -7,12 +7,10 @@ use App\Models\Client;
 use App\Models\ProformaInvoice;
 use App\Models\Service;
 use App\Models\Setting;
-use App\Services\AmountInWords;
 use App\Services\DocumentContentService;
-use App\Services\DocumentFilenameService;
 use App\Services\DocumentNumberService;
+use App\Services\DocumentPdfService;
 use App\Services\ProformaInvoiceVerificationService;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -61,8 +59,7 @@ class ProformaInvoiceController extends Controller
         DocumentNumberService $numbers,
         DocumentContentService $content,
         ProformaInvoiceVerificationService $verification
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $invoice = DB::transaction(function () use ($request, $numbers, $content, $verification) {
             $data = $this->validated($request);
             $client = $this->resolveClient($data);
@@ -105,7 +102,7 @@ class ProformaInvoiceController extends Controller
 
     public function show(ProformaInvoice $proformaInvoice): View
     {
-        $proformaInvoice->load('client', 'bankAccount', 'items.service', 'creator');
+        $proformaInvoice->load('client', 'bankAccount', 'items.service', 'creator', 'emailDeliveries.sender');
 
         return view('proforma_invoices.show', ['invoice' => $proformaInvoice]);
     }
@@ -122,8 +119,7 @@ class ProformaInvoiceController extends Controller
         ProformaInvoice $proformaInvoice,
         DocumentContentService $content,
         ProformaInvoiceVerificationService $verification
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         DB::transaction(function () use ($request, $proformaInvoice, $content, $verification) {
             $data = $this->validated($request);
             $client = $this->resolveClient($data);
@@ -168,8 +164,7 @@ class ProformaInvoiceController extends Controller
         ProformaInvoice $proformaInvoice,
         DocumentNumberService $numbers,
         ProformaInvoiceVerificationService $verification
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $copy = DB::transaction(function () use ($proformaInvoice, $numbers, $verification) {
             $proformaInvoice->load('items');
             $copy = $proformaInvoice->replicate([
@@ -196,34 +191,16 @@ class ProformaInvoiceController extends Controller
 
     public function pdf(
         ProformaInvoice $proformaInvoice,
-        AmountInWords $words,
-        ProformaInvoiceVerificationService $verification,
-        DocumentFilenameService $filenames
-    )
-    {
-        $proformaInvoice->load('client', 'bankAccount', 'items.service', 'creator');
-        $settings = $proformaInvoice->settings_snapshot ?: Setting::current()->toArray();
-        $bank = $proformaInvoice->bank_snapshot ?: $this->bankSnapshot($proformaInvoice->bankAccount);
-        $bank = $this->realBankSnapshot($bank, $proformaInvoice);
-
-        if (! $this->isValidBankSnapshot($bank)) {
+        DocumentPdfService $pdfs
+    ) {
+        try {
+            $pdf = $pdfs->proformaInvoicePdf($proformaInvoice);
+        } catch (ValidationException) {
             return redirect()->route('proforma-invoices.show', $proformaInvoice)
                 ->withErrors(['bank_account_id' => 'Configure and select a valid bank account before downloading the PDF.']);
         }
 
-        return Pdf::loadView('proforma_invoices.pdf', [
-            'invoice' => $proformaInvoice,
-            'settings' => $settings,
-            'client' => $proformaInvoice->client_snapshot ?: $this->clientSnapshot($proformaInvoice->client),
-            'bank' => $bank,
-            'verificationQr' => $verification->qrDataUri($proformaInvoice),
-            'amountInWords' => $words->convert(
-                $proformaInvoice->total,
-                $settings['default_currency'] ?? 'BDT',
-                $settings['currency_major_name'] ?? 'Taka',
-                $settings['currency_minor_name'] ?? 'Paisa'
-            ),
-        ])->setPaper('a4')->download($filenames->proformaInvoiceFilename($proformaInvoice));
+        return $pdf->download($pdfs->proformaInvoiceFilename($proformaInvoice));
     }
 
     private function formData(array $extra): array

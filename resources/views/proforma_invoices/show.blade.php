@@ -8,9 +8,11 @@
     </div>
     <div class="d-flex gap-2">
         <a class="btn btn-primary" href="{{ route('proforma-invoices.pdf', $invoice) }}">Download PDF</a>
+        <a class="btn btn-outline-primary" href="{{ route('proforma-invoices.email.create', $invoice) }}">Send Email</a>
         <a class="btn btn-outline-secondary" href="{{ route('proforma-invoices.edit', $invoice) }}">Edit</a>
         <form method="post" action="{{ route('proforma-invoices.duplicate', $invoice) }}">@csrf <button class="btn btn-outline-secondary">Duplicate</button></form>
     </div>
 </div>
 @include('documents.preview', ['document' => $invoice, 'type' => 'invoice'])
+@include('document_emails.history', ['deliveries' => $invoice->emailDeliveries])
 @endsection

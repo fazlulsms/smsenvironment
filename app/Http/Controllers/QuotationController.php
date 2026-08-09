@@ -7,12 +7,10 @@ use App\Models\Client;
 use App\Models\Quotation;
 use App\Models\Service;
 use App\Models\Setting;
-use App\Services\AmountInWords;
 use App\Services\DocumentContentService;
-use App\Services\DocumentFilenameService;
 use App\Services\DocumentNumberService;
+use App\Services\DocumentPdfService;
 use App\Services\QuotationVerificationService;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -63,8 +61,7 @@ class QuotationController extends Controller
         DocumentNumberService $numbers,
         DocumentContentService $content,
         QuotationVerificationService $verification
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $quotation = DB::transaction(function () use ($request, $numbers, $content, $verification) {
             $data = $this->validated($request);
             $client = $this->resolveClient($data);
@@ -107,7 +104,7 @@ class QuotationController extends Controller
 
     public function show(Quotation $quotation): View
     {
-        $quotation->load('client', 'bankAccount', 'items.service', 'creator');
+        $quotation->load('client', 'bankAccount', 'items.service', 'creator', 'emailDeliveries.sender');
 
         return view('quotations.show', compact('quotation'));
     }
@@ -124,8 +121,7 @@ class QuotationController extends Controller
         Quotation $quotation,
         DocumentContentService $content,
         QuotationVerificationService $verification
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         DB::transaction(function () use ($request, $quotation, $content, $verification) {
             $data = $this->validated($request);
             $client = $this->resolveClient($data);
@@ -170,8 +166,7 @@ class QuotationController extends Controller
         Quotation $quotation,
         DocumentNumberService $numbers,
         QuotationVerificationService $verification
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $copy = DB::transaction(function () use ($quotation, $numbers, $verification) {
             $quotation->load('items');
             $copy = $quotation->replicate([
@@ -198,33 +193,16 @@ class QuotationController extends Controller
 
     public function pdf(
         Quotation $quotation,
-        AmountInWords $words,
-        QuotationVerificationService $verification,
-        DocumentFilenameService $filenames
-    )
-    {
-        $quotation->load('client', 'bankAccount', 'items.service', 'creator');
-        $settings = $quotation->settings_snapshot ?: Setting::current()->toArray();
-        $bank = $quotation->bank_snapshot ?: $this->bankSnapshot($quotation->bankAccount);
-
-        if (! $this->isValidBankSnapshot($bank)) {
+        DocumentPdfService $pdfs
+    ) {
+        try {
+            $pdf = $pdfs->quotationPdf($quotation);
+        } catch (ValidationException) {
             return redirect()->route('quotations.show', $quotation)
                 ->withErrors(['bank_account_id' => 'Configure and select a valid bank account before downloading the PDF.']);
         }
 
-        return Pdf::loadView('quotations.pdf', [
-            'quotation' => $quotation,
-            'settings' => $settings,
-            'client' => $quotation->client_snapshot ?: $this->clientSnapshot($quotation->client),
-            'bank' => $bank,
-            'verificationQr' => $verification->qrDataUri($quotation),
-            'amountInWords' => $words->convert(
-                $quotation->total,
-                $settings['default_currency'] ?? 'BDT',
-                $settings['currency_major_name'] ?? 'Taka',
-                $settings['currency_minor_name'] ?? 'Paisa'
-            ),
-        ])->setPaper('a4')->download($filenames->quotationFilename($quotation));
+        return $pdf->download($pdfs->quotationFilename($quotation));
     }
 
     private function formData(array $extra): array

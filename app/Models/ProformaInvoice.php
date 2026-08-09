@@ -71,4 +71,12 @@ class ProformaInvoice extends Model
     {
         return $this->hasMany(ProformaInvoiceItem::class)->orderBy('sort_order');
     }
+
+    public function emailDeliveries(): HasMany
+    {
+        return $this->hasMany(DocumentEmailDelivery::class, 'document_id')
+            ->where('document_type', 'proforma_invoice')
+            ->latest('sent_at')
+            ->latest('id');
+    }
 }

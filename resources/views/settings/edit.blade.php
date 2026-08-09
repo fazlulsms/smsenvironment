@@ -35,6 +35,11 @@
         <div class="col-md-6"><label class="form-label">Invoice Charge For Pattern</label><input class="form-control" name="invoice_charge_for_pattern" value="{{ old('invoice_charge_for_pattern', $settings->invoice_charge_for_pattern) }}" placeholder="{services}"></div>
         <div class="col-12"><label class="form-label">Quotation Introduction</label><textarea class="form-control" name="quotation_intro_text">{{ old('quotation_intro_text', $settings->quotation_intro_text) }}</textarea></div>
         <div class="col-12"><label class="form-label">Default Quotation Compliance Note</label><textarea class="form-control" name="quotation_compliance_note">{{ old('quotation_compliance_note', $settings->quotation_compliance_note) }}</textarea></div>
+        <div class="col-md-6"><label class="form-label">Quotation Email Subject</label><input class="form-control" name="quotation_email_subject_template" value="{{ old('quotation_email_subject_template', $settings->quotation_email_subject_template) }}" placeholder="Quotation for {{service_name}} - {{client_name}}"></div>
+        <div class="col-md-6"><label class="form-label">Proforma Invoice Email Subject</label><input class="form-control" name="proforma_invoice_email_subject_template" value="{{ old('proforma_invoice_email_subject_template', $settings->proforma_invoice_email_subject_template) }}" placeholder="Proforma Invoice for {{service_name}} - {{client_name}}"></div>
+        <div class="col-md-6"><label class="form-label">Quotation Email Body</label><textarea class="form-control" rows="9" name="quotation_email_body_template">{{ old('quotation_email_body_template', $settings->quotation_email_body_template) }}</textarea></div>
+        <div class="col-md-6"><label class="form-label">Proforma Invoice Email Body</label><textarea class="form-control" rows="9" name="proforma_invoice_email_body_template">{{ old('proforma_invoice_email_body_template', $settings->proforma_invoice_email_body_template) }}</textarea></div>
+        <div class="col-12"><label class="form-label">Default Email CC</label><input class="form-control" name="default_email_cc" value="{{ old('default_email_cc', $settings->default_email_cc) }}" placeholder="finance@example.com, coordinator@example.com"></div>
         <div class="col-md-6"><label class="form-label">Quotation Closing Text</label><textarea class="form-control" name="quotation_closing_text">{{ old('quotation_closing_text', $settings->quotation_closing_text) }}</textarea></div>
         <div class="col-md-6"><label class="form-label">Quotation Validity Text</label><textarea class="form-control" name="quotation_validity_text">{{ old('quotation_validity_text', $settings->quotation_validity_text) }}</textarea></div>
         <div class="col-12"><label class="form-label">Quotation Default Notes</label><textarea class="form-control" name="quotation_default_notes">{{ old('quotation_default_notes', $settings->quotation_default_notes) }}</textarea></div>
@@ -66,5 +71,19 @@
         <div class="col-md-6"><label class="form-label">Invoice Number Format</label><input class="form-control" name="invoice_number_format" value="{{ old('invoice_number_format', $settings->invoice_number_format) }}" required></div>
     </div>
     <div class="mt-4"><button class="btn btn-primary">Save Settings</button></div>
+</form>
+
+<form class="panel p-3 mt-3" method="post" action="{{ route('settings.test-email') }}">
+    @csrf
+    <h2 class="h6">Test Email Configuration</h2>
+    <div class="row g-3 align-items-end">
+        <div class="col-md-8">
+            <label class="form-label">Test Recipient</label>
+            <input class="form-control" type="email" name="test_email" value="{{ old('test_email', $settings->email) }}" required>
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-outline-primary">Send Test Email</button>
+        </div>
+    </div>
 </form>
 @endsection
