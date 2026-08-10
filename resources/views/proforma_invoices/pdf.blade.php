@@ -86,7 +86,7 @@
         <tr>
             <td>{{ $settings['pdf_note'] ?? 'This is a computer-generated document and does not require a physical signature.' }}</td>
             <td class="text-center">Invoice: {{ $invoice->number }}</td>
-            <td class="text-right">Page <span class="page-number"></span> of <span class="page-count"></span></td>
+            <td class="text-right">Page <span class="page-number"></span></td>
         </tr>
     </table>
 </div>

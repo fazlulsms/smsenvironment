@@ -23,7 +23,10 @@ class DocumentPdfService
     {
         $quotation->loadMissing('client', 'bankAccount', 'items.service', 'creator');
         $settings = $quotation->settings_snapshot ?: Setting::current()->toArray();
-        $bank = $quotation->bank_snapshot ?: $this->bankSnapshot($quotation->bankAccount);
+        $bank = $this->resolveBankSnapshot(
+            $quotation->bank_snapshot ?: $this->bankSnapshot($quotation->bankAccount),
+            $quotation->bankAccount
+        );
 
         $this->ensureBankSnapshot($bank);
 
@@ -46,7 +49,10 @@ class DocumentPdfService
     {
         $invoice->loadMissing('client', 'bankAccount', 'items.service', 'creator');
         $settings = $invoice->settings_snapshot ?: Setting::current()->toArray();
-        $bank = $this->realBankSnapshot($invoice->bank_snapshot ?: $this->bankSnapshot($invoice->bankAccount), $invoice);
+        $bank = $this->resolveBankSnapshot(
+            $invoice->bank_snapshot ?: $this->bankSnapshot($invoice->bankAccount),
+            $invoice->bankAccount
+        );
 
         $this->ensureBankSnapshot($bank);
 
@@ -108,24 +114,29 @@ class DocumentPdfService
             && filled($bank['account_number'] ?? null);
     }
 
-    private function realBankSnapshot(?array $bank, ProformaInvoice $invoice): ?array
+    /**
+     * Return a usable bank snapshot, substituting a real configured bank when the
+     * stored snapshot is a leftover development/test bank. Shared by quotations and
+     * proforma invoices so no professional document ever renders a placeholder bank.
+     */
+    public function resolveBankSnapshot(?array $snapshot, ?BankAccount $selected): ?array
     {
-        if (! $this->isDevelopmentBankSnapshot($bank)) {
-            return $bank;
+        if (! $this->isDevelopmentBankSnapshot($snapshot)) {
+            return $snapshot;
         }
 
-        $selectedBank = $invoice->bankAccount;
-        if ($selectedBank && ! $this->isDevelopmentBankSnapshot($this->bankSnapshot($selectedBank))) {
-            return $this->bankSnapshot($selectedBank);
+        if ($selected && ! $this->isDevelopmentBankSnapshot($this->bankSnapshot($selected))) {
+            return $this->bankSnapshot($selected);
         }
 
-        $configuredBank = BankAccount::query()
-            ->whereIn('account_number', ['2170316017001', '1301000014453'])
+        $fallback = BankAccount::query()
+            ->where('is_active', true)
             ->orderByDesc('is_default')
-            ->orderBy('bank_name')
-            ->first();
+            ->orderBy('id')
+            ->get()
+            ->first(fn (BankAccount $bank) => ! $this->isDevelopmentBankSnapshot($this->bankSnapshot($bank)));
 
-        return $this->bankSnapshot($configuredBank) ?: $bank;
+        return $this->bankSnapshot($fallback) ?: $snapshot;
     }
 
     private function isDevelopmentBankSnapshot(?array $bank): bool

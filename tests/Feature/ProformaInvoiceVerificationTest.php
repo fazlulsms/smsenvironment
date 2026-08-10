@@ -8,7 +8,7 @@ use App\Models\ProformaInvoice;
 use App\Models\Service;
 use App\Models\Setting;
 use App\Models\User;
-use App\Http\Controllers\ProformaInvoiceController;
+use App\Services\DocumentPdfService;
 use App\Services\ProformaInvoiceVerificationService;
 use Database\Seeders\BankAccountSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -176,14 +176,22 @@ class ProformaInvoiceVerificationTest extends TestCase
             ],
         ])->save();
 
-        $method = new \ReflectionMethod(ProformaInvoiceController::class, 'realBankSnapshot');
-        $method->setAccessible(true);
-        $bank = $method->invoke(new ProformaInvoiceController, $invoice->fresh('bankAccount')->bank_snapshot, $invoice->fresh('bankAccount'));
+        $pdfs = app(DocumentPdfService::class);
+        $devSnapshot = $invoice->fresh('bankAccount')->bank_snapshot;
 
+        // The real bank selected on the document is substituted for the dev snapshot.
+        $bank = $pdfs->resolveBankSnapshot($devSnapshot, $invoice->fresh('bankAccount')->bankAccount);
         $this->assertSame('Prime Bank Ltd.', $bank['bank_name']);
         $this->assertSame('2170316017001', $bank['account_number']);
-        $this->assertNotSame('Local Verification Bank', $bank['bank_name']);
-        $this->assertNotSame('1234567890', $bank['account_number']);
+
+        // With no bank selected, the active default real bank is substituted.
+        $fallback = $pdfs->resolveBankSnapshot($devSnapshot, null);
+        $this->assertSame('Prime Bank Ltd.', $fallback['bank_name']);
+        $this->assertSame('2170316017001', $fallback['account_number']);
+
+        // A genuine bank snapshot passes through unchanged.
+        $realSnapshot = $bank;
+        $this->assertSame($realSnapshot, $pdfs->resolveBankSnapshot($realSnapshot, null));
     }
 
     public function test_bank_seeder_configures_real_smsea_accounts_idempotently(): void

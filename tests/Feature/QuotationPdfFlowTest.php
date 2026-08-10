@@ -8,7 +8,9 @@ use App\Models\Quotation;
 use App\Models\Service;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\DocumentPdfService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\View;
 use Tests\TestCase;
 
 class QuotationPdfFlowTest extends TestCase
@@ -53,6 +55,34 @@ class QuotationPdfFlowTest extends TestCase
         $this->assertStringContainsString('.quotation-proposal .letter-page { page-break-after: always; }', $css);
         $this->assertStringContainsString('.quotation-proposal .acceptance-block { margin-top: 8px; border: 1px solid #cfe0d7; padding: 7px 10px; page-break-inside: avoid; }', $css);
         $this->assertStringNotContainsString('.quotation-proposal .proposal-page { page-break-after: always; }', $css);
+    }
+
+    public function test_quotation_pdf_substitutes_leftover_dev_bank_with_real_bank(): void
+    {
+        [, $quotation] = $this->quotationWithLegacyTerms();
+
+        // The quotation was saved against a leftover dev bank ("Test Bank" / 123456789).
+        BankAccount::query()->create([
+            'beneficiary_name' => 'SMS Environmental Alliance',
+            'bank_name' => 'Prime Bank Ltd.',
+            'branch' => 'Garib E Newaj Avenue, Uttara, Dhaka, Bangladesh',
+            'account_number' => '2170316017001',
+            'swift_code' => 'PRBLBDDH',
+            'is_active' => true,
+            'is_default' => true,
+        ]);
+
+        $capturedBank = null;
+        View::composer('quotations.pdf', function ($view) use (&$capturedBank) {
+            $capturedBank = $view->getData()['bank'] ?? null;
+        });
+
+        app(DocumentPdfService::class)->quotationPdf($quotation->fresh(['bankAccount', 'items.service']))->output();
+
+        $this->assertNotNull($capturedBank);
+        $this->assertSame('Prime Bank Ltd.', $capturedBank['bank_name']);
+        $this->assertSame('2170316017001', $capturedBank['account_number']);
+        $this->assertNotSame('Test Bank', $capturedBank['bank_name']);
     }
 
     private function quotationWithLegacyTerms(): array
