@@ -22,6 +22,7 @@ class ExampleTest extends TestCase
         $this->actingAs($user)
             ->get('/')
             ->assertOk()
-            ->assertSee('Office Desk');
+            ->assertSee('Quick actions')
+            ->assertSee('Quotations');
     }
 }

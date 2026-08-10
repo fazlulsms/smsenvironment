@@ -56,6 +56,14 @@ class BankAccountController extends Controller
         return redirect()->route('bank-accounts.index')->with('status', 'Bank account deleted.');
     }
 
+    public function setDefault(BankAccount $bankAccount): RedirectResponse
+    {
+        BankAccount::query()->whereKeyNot($bankAccount->id)->update(['is_default' => false]);
+        $bankAccount->update(['is_default' => true, 'is_active' => true]);
+
+        return redirect()->route('bank-accounts.index')->with('status', $bankAccount->bank_name.' is now the default bank.');
+    }
+
     private function validated(Request $request): array
     {
         $data = $request->validate([

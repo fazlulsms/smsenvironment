@@ -23,13 +23,16 @@ class ProformaInvoiceController extends Controller
     {
         return view('proforma_invoices.index', [
             'invoices' => ProformaInvoice::query()
-                ->with('client', 'creator')
+                ->with('client', 'creator', 'items.service', 'emailDeliveries')
                 ->when(request('search'), function ($query, string $search) {
                     $query->where(function ($query) use ($search) {
                         $query->where('number', 'like', "%{$search}%")
                             ->orWhereHas('client', fn ($query) => $query->where('company_name', 'like', "%{$search}%"));
                     });
                 })
+                ->when(request('email') === 'sent', fn ($q) => $q->whereHas('emailDeliveries', fn ($d) => $d->where('status', 'sent')))
+                ->when(request('email') === 'not_sent', fn ($q) => $q->whereDoesntHave('emailDeliveries'))
+                ->when(request('email') === 'failed', fn ($q) => $q->whereHas('emailDeliveries')->whereDoesntHave('emailDeliveries', fn ($d) => $d->where('status', 'sent')))
                 ->latest('date')
                 ->paginate(12)
                 ->withQueryString(),

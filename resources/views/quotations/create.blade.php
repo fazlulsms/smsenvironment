@@ -1,8 +1,11 @@
 @extends('layouts.app', ['title' => 'New Quotation'])
 
 @section('content')
-<h1 class="h3 mb-3">New Quotation</h1>
-<form class="panel p-3" method="post" action="{{ route('quotations.store') }}">
+<x-page-toolbar title="New Quotation" subtitle="Client → Service → Amount → Preview.">
+    <a class="btn btn-outline-secondary btn-sm mb-1" href="{{ route('quotations.index') }}"><x-icon name="chevron-left" :size="15" /> All quotations</a>
+</x-page-toolbar>
+
+<form method="post" action="{{ route('quotations.store') }}" data-loading>
     @include('documents.form', ['type' => 'quotation'])
 </form>
 @endsection

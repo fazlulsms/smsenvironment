@@ -26,7 +26,10 @@ Route::middleware('auth')->group(function () {
     Route::post('clients/smart-store', [ClientController::class, 'smartStore'])->name('clients.smart-store');
     Route::resource('clients', ClientController::class);
     Route::resource('services', ServiceController::class);
+    Route::post('bank-accounts/{bankAccount}/default', [BankAccountController::class, 'setDefault'])->name('bank-accounts.default');
     Route::resource('bank-accounts', BankAccountController::class)->parameters(['bank-accounts' => 'bankAccount']);
+    Route::get('email-deliveries', [DocumentEmailController::class, 'index'])->name('email-deliveries.index');
+
     Route::get('settings', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
     Route::post('settings/test-email', TestEmailController::class)->name('settings.test-email');

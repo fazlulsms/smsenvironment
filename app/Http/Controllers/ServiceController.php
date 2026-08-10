@@ -12,7 +12,11 @@ class ServiceController extends Controller
     public function index(Request $request): View
     {
         $services = Service::query()
+            ->withCount('components')
             ->when($request->search, fn ($query, string $search) => $query->where('name', 'like', "%{$search}%"))
+            ->when($request->input('type'), fn ($query, string $type) => $query->where('service_type', $type))
+            ->when($request->input('status') === 'active', fn ($query) => $query->where('is_active', true))
+            ->when($request->input('status') === 'inactive', fn ($query) => $query->where('is_active', false))
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->paginate(12)

@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Services\ClientInformationExtractor;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
 class ClientController extends Controller
@@ -14,6 +14,7 @@ class ClientController extends Controller
     public function index(Request $request): View
     {
         $clients = Client::query()
+            ->withCount(['quotations', 'proformaInvoices'])
             ->when($request->search, function ($query, string $search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('company_name', 'like', "%{$search}%")
@@ -99,9 +100,9 @@ class ClientController extends Controller
     public function show(Client $client): View
     {
         $client->load([
-            'quotations' => fn ($query) => $query->latest()->limit(8),
-            'proformaInvoices' => fn ($query) => $query->latest()->limit(8),
-        ]);
+            'quotations' => fn ($query) => $query->with('emailDeliveries')->latest()->limit(8),
+            'proformaInvoices' => fn ($query) => $query->with('emailDeliveries')->latest()->limit(8),
+        ])->loadCount(['quotations', 'proformaInvoices']);
 
         return view('clients.show', compact('client'));
     }

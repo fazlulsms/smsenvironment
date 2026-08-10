@@ -1,8 +1,11 @@
-@extends('layouts.app', ['title' => 'Edit Quotation'])
+@extends('layouts.app', ['title' => 'Edit '.$quotation->number])
 
 @section('content')
-<h1 class="h3 mb-3">Edit Quotation</h1>
-<form class="panel p-3" method="post" action="{{ route('quotations.update', $quotation) }}">
+<x-page-toolbar title="Edit Quotation" subtitle="{{ $quotation->number }}">
+    <a class="btn btn-outline-secondary btn-sm mb-1" href="{{ route('quotations.show', $quotation) }}"><x-icon name="chevron-left" :size="15" /> Back to quotation</a>
+</x-page-toolbar>
+
+<form method="post" action="{{ route('quotations.update', $quotation) }}" data-loading>
     @include('documents.form', ['type' => 'quotation'])
 </form>
 @endsection

@@ -16,6 +16,7 @@
     $defaultBank = $bankAccounts->firstWhere('is_default', true);
     $selectedBankId = old('bank_account_id', $document->bank_account_id ?: ($defaultBank?->id ?: ($bankAccounts->count() === 1 ? $bankAccounts->first()->id : null)));
     $showAdvanced = $errors->has('subject') || $errors->has('charge_for') || $errors->has('intro_text') || $errors->has('payment_terms') || $errors->has('notes') || $errors->has('vat_treatment') || $errors->has('vat_rate');
+    $currency = $settings->default_currency ?: 'BDT';
 @endphp
 
 @csrf
@@ -23,114 +24,126 @@
     @method('put')
 @endif
 
-<div class="row g-3 align-items-end">
-    <div class="col-lg-6">
-        <label class="form-label">Select Existing Client</label>
-        <input class="form-control mb-2" id="clientSearch" placeholder="Type to filter clients">
-        <select class="form-select" name="client_id" id="clientSelect">
-            <option value="">Use quick client below</option>
-            @foreach ($clients as $client)
-                <option value="{{ $client->id }}" @selected(old('client_id', request('client_id', $document->client_id)) == $client->id)>
-                    {{ $client->company_name }}{{ $client->contact_person ? ' - '.$client->contact_person : '' }}{{ $client->email ? ' - '.$client->email : '' }}
-                </option>
-            @endforeach
-        </select>
-    </div>
-    <div class="col-lg-3">
-        <label class="form-label">Date</label>
-        <input class="form-control" type="date" name="date" value="{{ old('date', optional($document->date)->format('Y-m-d') ?: now()->format('Y-m-d')) }}" required>
-    </div>
-    <div class="col-lg-3">
-        <label class="form-label">Bank Account</label>
-        <select class="form-select" name="bank_account_id">
-            <option value="">Select bank before PDF</option>
-            @foreach ($bankAccounts as $bankAccount)
-                <option value="{{ $bankAccount->id }}" @selected($selectedBankId == $bankAccount->id)>
-                    {{ $bankAccount->bank_name }} - {{ $bankAccount->account_number }}{{ $bankAccount->is_default ? ' (Default)' : '' }}
-                </option>
-            @endforeach
-        </select>
-    </div>
-
-    <div class="col-lg-3">
-        <label class="form-label">{{ $isQuotation ? 'Quotation' : 'Invoice' }} Number</label>
-        <input class="form-control" value="{{ $document->number }}" disabled>
-    </div>
-
-    <div class="col-12">
-        <button class="btn btn-sm btn-outline-primary" type="button" id="toggleQuickClient" aria-expanded="{{ $showQuickClient ? 'true' : 'false' }}">
-            + Add New Client
-        </button>
-        <div class="collapse mt-2 {{ $showQuickClient ? 'show' : '' }}" id="quickClient">
-        <div class="panel p-3 bg-light">
-            <div class="muted-label mb-2">Quick Client</div>
-            <div class="row g-3 mb-3">
-                <div class="col-12">
-                    <label class="form-label">Smart Paste New Client</label>
-                    <textarea class="form-control" id="smartPasteText" placeholder="Paste client information copied from WhatsApp, email, or a message"></textarea>
-                </div>
-                <div class="col-12 d-flex gap-2 align-items-center">
-                    <button class="btn btn-sm btn-outline-primary" type="button" id="detectClient">Detect Information</button>
-                    <button class="btn btn-sm btn-outline-primary" type="button" id="saveQuickClient">Save Client</button>
-                    <span class="text-secondary small" id="smartPasteStatus"></span>
-                </div>
-                <div class="col-12 d-none" id="duplicateWarning">
-                    <div class="alert alert-warning mb-0">
-                        <strong>Possible existing client found.</strong>
-                        <div class="mt-2" id="duplicateList"></div>
+{{-- 1 · Client & document --}}
+<div class="form-section">
+    <div class="fs-head"><span class="fs-ico"><x-icon name="clients" /></span><div><div class="fs-t">Client &amp; Document</div><div class="fs-s">Select an existing client or add a new one.</div></div></div>
+    <div class="fs-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-6">
+                <label class="form-label">Select Existing Client</label>
+                <input class="form-control mb-2" id="clientSearch" placeholder="Type to filter clients">
+                <select class="form-select" name="client_id" id="clientSelect">
+                    <option value="">Use quick client below</option>
+                    @foreach ($clients as $client)
+                        <option value="{{ $client->id }}" @selected(old('client_id', request('client_id', $document->client_id)) == $client->id)>
+                            {{ $client->company_name }}{{ $client->contact_person ? ' - '.$client->contact_person : '' }}{{ $client->email ? ' - '.$client->email : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-lg-2">
+                <label class="form-label">Date</label>
+                <input class="form-control" type="date" name="date" value="{{ old('date', optional($document->date)->format('Y-m-d') ?: now()->format('Y-m-d')) }}" required>
+            </div>
+            <div class="col-lg-4">
+                <label class="form-label">Bank Account</label>
+                <select class="form-select" name="bank_account_id">
+                    <option value="">Select bank before PDF</option>
+                    @foreach ($bankAccounts as $bankAccount)
+                        <option value="{{ $bankAccount->id }}" @selected($selectedBankId == $bankAccount->id)>
+                            {{ $bankAccount->bank_name }} - {{ $bankAccount->account_number }}{{ $bankAccount->is_default ? ' (Default)' : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-12">
+                <span class="badge-soft b-neutral">{{ $isQuotation ? 'Quotation' : 'Invoice' }} No. {{ $document->number }}</span>
+            </div>
+            <div class="col-12">
+                <button class="btn btn-outline-primary btn-sm" type="button" id="toggleQuickClient" aria-expanded="{{ $showQuickClient ? 'true' : 'false' }}">
+                    <x-icon name="plus" :size="15" /> Add New Client
+                </button>
+                <div class="collapse mt-2 {{ $showQuickClient ? 'show' : '' }}" id="quickClient">
+                    <div class="p-3 rounded" style="background:#faf9ff;border:1px solid #ece7fb">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge-soft b-service"><x-icon name="sparkles" :size="12" /> Smart Paste</span>
+                            <span class="text-secondary small">Paste from WhatsApp or email, then detect.</span>
+                        </div>
+                        <textarea class="form-control mb-2" id="smartPasteText" rows="3" placeholder="Paste client information copied from WhatsApp, email, or a message"></textarea>
+                        <div class="d-flex gap-2 align-items-center flex-wrap mb-3">
+                            <button class="btn btn-sm btn-outline-primary" type="button" id="detectClient"><x-icon name="sparkles" :size="15" /> Detect Information</button>
+                            <button class="btn btn-sm btn-primary" type="button" id="saveQuickClient"><x-icon name="check" :size="15" /> Save Client</button>
+                            <span class="badge-soft b-neutral d-none" id="smartPasteStatus"></span>
+                        </div>
+                        <div class="col-12 d-none mb-2" id="duplicateWarning">
+                            <div class="alert alert-warning mb-0">
+                                <strong>Possible existing client found.</strong>
+                                <div class="mt-2" id="duplicateList"></div>
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-md-6"><input class="form-control" name="new_client[company_name]" value="{{ old('new_client.company_name') }}" placeholder="Company name"></div>
+                            <div class="col-md-6"><input class="form-control" name="new_client[parent_company]" value="{{ old('new_client.parent_company') }}" placeholder="Parent / group company"></div>
+                            <div class="col-md-4"><input class="form-control" name="new_client[contact_person]" value="{{ old('new_client.contact_person') }}" placeholder="Contact person"></div>
+                            <div class="col-md-4"><input class="form-control" name="new_client[designation]" value="{{ old('new_client.designation') }}" placeholder="Designation"></div>
+                            <div class="col-md-4"><input class="form-control" name="new_client[department]" value="{{ old('new_client.department') }}" placeholder="Department"></div>
+                            <div class="col-md-4"><input class="form-control" type="email" name="new_client[email]" value="{{ old('new_client.email') }}" placeholder="Email"></div>
+                            <div class="col-md-4"><input class="form-control" name="new_client[phone]" value="{{ old('new_client.phone') }}" placeholder="Phone"></div>
+                            <div class="col-md-4"><input class="form-control" name="new_client[website]" value="{{ old('new_client.website') }}" placeholder="Website"></div>
+                            <div class="col-12"><textarea class="form-control" name="new_client[address]" placeholder="Address">{{ old('new_client.address') }}</textarea></div>
+                            <div class="col-md-4"><input class="form-control" name="new_client[city]" value="{{ old('new_client.city') }}" placeholder="City"></div>
+                            <div class="col-md-4"><input class="form-control" name="new_client[postal_code]" value="{{ old('new_client.postal_code') }}" placeholder="Postal code"></div>
+                            <div class="col-md-4"><input class="form-control" name="new_client[country]" value="{{ old('new_client.country') }}" placeholder="Country"></div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="row g-3">
-                <div class="col-md-6"><input class="form-control" name="new_client[company_name]" value="{{ old('new_client.company_name') }}" placeholder="Company name"></div>
-                <div class="col-md-6"><input class="form-control" name="new_client[parent_company]" value="{{ old('new_client.parent_company') }}" placeholder="Parent / group company"></div>
-                <div class="col-md-4"><input class="form-control" name="new_client[contact_person]" value="{{ old('new_client.contact_person') }}" placeholder="Contact person"></div>
-                <div class="col-md-4"><input class="form-control" name="new_client[designation]" value="{{ old('new_client.designation') }}" placeholder="Designation"></div>
-                <div class="col-md-4"><input class="form-control" name="new_client[department]" value="{{ old('new_client.department') }}" placeholder="Department"></div>
-                <div class="col-md-4"><input class="form-control" type="email" name="new_client[email]" value="{{ old('new_client.email') }}" placeholder="Email"></div>
-                <div class="col-md-4"><input class="form-control" name="new_client[phone]" value="{{ old('new_client.phone') }}" placeholder="Phone"></div>
-                <div class="col-md-4"><input class="form-control" name="new_client[website]" value="{{ old('new_client.website') }}" placeholder="Website"></div>
-                <div class="col-12"><textarea class="form-control" name="new_client[address]" placeholder="Address">{{ old('new_client.address') }}</textarea></div>
-                <div class="col-md-4"><input class="form-control" name="new_client[city]" value="{{ old('new_client.city') }}" placeholder="City"></div>
-                <div class="col-md-4"><input class="form-control" name="new_client[postal_code]" value="{{ old('new_client.postal_code') }}" placeholder="Postal code"></div>
-                <div class="col-md-4"><input class="form-control" name="new_client[country]" value="{{ old('new_client.country') }}" placeholder="Country"></div>
+        </div>
+    </div>
+</div>
+
+{{-- 2 · Services & scope --}}
+<div class="form-section">
+    <div class="fs-head">
+        <span class="fs-ico"><x-icon name="services" /></span>
+        <div><div class="fs-t">Services &amp; Scope</div><div class="fs-s">Pick a service to auto-fill its description, scope and rate.</div></div>
+        <button class="btn btn-outline-primary btn-sm ms-auto" type="button" id="addItem"><x-icon name="plus" :size="15" /> Add Service Line</button>
+    </div>
+    <div class="fs-body">
+        <div class="table-responsive">
+            <table class="table align-middle" id="itemsTable">
+                <thead><tr><th style="width:20%">Service</th><th>Description / Scope</th><th style="width:9%">Unit</th><th style="width:9%">Qty</th><th style="width:14%" class="num">Rate</th><th style="width:14%" class="num">Amount</th><th></th></tr></thead>
+                <tbody>
+                @foreach ($items as $index => $item)
+                    @include('documents.item_row', ['index' => $index, 'item' => $item])
+                @endforeach
+                </tbody>
+            </table>
+        </div>
+        <div class="row justify-content-end">
+            <div class="col-md-5 col-lg-4">
+                <div class="d-flex justify-content-between py-1"><span class="text-secondary">Subtotal</span><strong class="num" id="subtotal">0.00</strong></div>
+                <label class="form-label mt-2">Adjustment</label>
+                <input class="form-control num calc" type="number" step="0.01" name="adjustment" value="{{ old('adjustment', $document->adjustment ?? 0) }}">
+                <div class="d-flex justify-content-between align-items-center py-2 mt-2 px-2 rounded" style="background:var(--brand-050)">
+                    <span class="fw-semibold">Total</span>
+                    <strong class="num" style="font-size:18px"><span class="cur">{{ $currency }}</span> <span id="grandTotal">0.00</span></strong>
+                </div>
             </div>
         </div>
-        </div>
     </div>
 </div>
 
-<div class="panel p-3 mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h5 mb-0">Services</h2>
-        <button class="btn btn-sm btn-outline-primary" type="button" id="addItem">Add Service Line</button>
-    </div>
-    <div class="table-responsive">
-        <table class="table align-middle" id="itemsTable">
-            <thead><tr><th style="width:20%">Service</th><th>Description / Scope</th><th style="width:10%">Unit</th><th style="width:10%">Qty</th><th style="width:14%">Rate</th><th style="width:14%">Amount</th><th></th></tr></thead>
-            <tbody>
-            @foreach ($items as $index => $item)
-                @include('documents.item_row', ['index' => $index, 'item' => $item])
-            @endforeach
-            </tbody>
-        </table>
-    </div>
-    <div class="row justify-content-end">
-        <div class="col-md-4">
-            <div class="d-flex justify-content-between py-1"><span>Subtotal</span><strong id="subtotal">0.00</strong></div>
-            <label class="form-label mt-2">Adjustment</label>
-            <input class="form-control text-end calc" type="number" step="0.01" name="adjustment" value="{{ old('adjustment', $document->adjustment ?? 0) }}">
-            <div class="d-flex justify-content-between py-2 fs-5"><span>Total</span><strong id="grandTotal">0.00</strong></div>
-        </div>
-    </div>
-</div>
-
-<div class="mt-3">
-    <button class="btn btn-sm btn-outline-primary" type="button" id="toggleAdvanced" aria-expanded="{{ $showAdvanced ? 'true' : 'false' }}">
-        Advanced / Customize Document
-    </button>
-    <div class="collapse mt-2 {{ $showAdvanced ? 'show' : '' }}" id="advancedDocument">
-        <div class="panel p-3 bg-light">
+{{-- 3 · Advanced document content --}}
+<details class="adv" {{ $showAdvanced ? 'open' : '' }} id="advancedWrap">
+    <summary>
+        <x-icon name="settings" :size="16" /> Advanced &amp; Tax / VAT
+        <span class="text-secondary fw-normal ms-2" style="font-size:12px">Wording overrides &amp; tax treatment — optional</span>
+        <span class="chev"><x-icon name="chevron-left" :size="14" style="transform:rotate(-90deg)" /></span>
+    </summary>
+    <div class="adv-body">
+        {{-- Hidden mirror kept so existing JS that toggles #advancedDocument still functions --}}
+        <div id="advancedDocument" class="show">
             <div class="row g-3">
                 <div class="col-12">
                     <label class="form-label">{{ $isQuotation ? 'Subject Override' : 'Charge For Override' }}</label>
@@ -167,18 +180,19 @@
                 @if ($isQuotation)
                     <div class="col-md-6"><label class="form-label">VAT Note Override</label><textarea class="form-control" name="vat_note">{{ old('vat_note', $document->vat_note) }}</textarea></div>
                     <div class="col-md-6"><label class="form-label">AIT / Tax Note Override</label><textarea class="form-control" name="ait_note">{{ old('ait_note', $document->ait_note) }}</textarea></div>
-                    <div class="col-12"><label class="form-label">Terms & Conditions Override</label><textarea class="form-control" rows="5" name="terms_conditions">{{ old('terms_conditions', $document->terms_conditions) }}</textarea></div>
+                    <div class="col-12"><label class="form-label">Terms &amp; Conditions Override</label><textarea class="form-control" rows="5" name="terms_conditions">{{ old('terms_conditions', $document->terms_conditions) }}</textarea></div>
                     <div class="col-md-4 d-flex align-items-end"><input type="hidden" name="include_acceptance" value="0"><label class="form-check"><input class="form-check-input" type="checkbox" name="include_acceptance" value="1" @checked(old('include_acceptance', $document->include_acceptance ?? ($settings->quotation_include_acceptance ?? true)))> <span class="form-check-label">Include Acceptance</span></label></div>
                     <div class="col-md-8"><label class="form-label">Acceptance Wording Override</label><textarea class="form-control" name="acceptance_text">{{ old('acceptance_text', $document->acceptance_text) }}</textarea></div>
                 @endif
             </div>
         </div>
     </div>
-</div>
-<div class="mt-4 d-flex gap-2">
-    <button class="btn btn-primary" name="after_save" value="view">Save & Preview</button>
-    <button class="btn btn-outline-primary" name="after_save" value="pdf">Save & Download PDF</button>
+</details>
+
+<div class="d-flex gap-2 justify-content-end mt-3">
     <a class="btn btn-outline-secondary" href="{{ $isQuotation ? route('quotations.index') : route('proforma-invoices.index') }}">Cancel</a>
+    <button class="btn btn-outline-primary" type="submit" name="after_save" value="pdf" data-no-loading><x-icon name="download" :size="16" /> Save &amp; Download PDF</button>
+    <button class="btn btn-primary" type="submit" name="after_save" value="view" data-no-loading><x-icon name="eye" :size="16" /> Save &amp; Preview</button>
 </div>
 
 @push('scripts')
@@ -190,7 +204,6 @@ const clientSelect = document.getElementById('clientSelect');
 const quickClient = document.getElementById('quickClient');
 const toggleQuickClient = document.getElementById('toggleQuickClient');
 const advancedDocument = document.getElementById('advancedDocument');
-const toggleAdvanced = document.getElementById('toggleAdvanced');
 const allClientOptions = Array.from(clientSelect.options).map(option => option.cloneNode(true));
 let nextItemIndex = tableBody.querySelectorAll('tr').length;
 const clientFields = ['company_name', 'parent_company', 'contact_person', 'designation', 'department', 'email', 'phone', 'website', 'address', 'city', 'postal_code', 'country'];
@@ -259,6 +272,12 @@ function fillQuickClient(data) {
     return populated;
 }
 
+function setQuickStatus(text, kind) {
+    const status = document.getElementById('smartPasteStatus');
+    status.textContent = text;
+    status.className = 'badge-soft ' + (kind || 'b-neutral');
+}
+
 function showDuplicateWarning(duplicates) {
     duplicateClients = duplicates || [];
     const warning = document.getElementById('duplicateWarning');
@@ -305,12 +324,11 @@ function selectClientOption(client) {
 }
 
 async function saveQuickClient(payload) {
-    const status = document.getElementById('smartPasteStatus');
-    status.textContent = 'Saving client...';
+    setQuickStatus('Saving…', 'b-info');
     const result = await postJson('{{ route('clients.smart-store') }}', payload);
     pendingDuplicatePayload = null;
     selectClientOption(result.client);
-    status.textContent = 'Client saved and selected.';
+    setQuickStatus('Client saved and selected', 'b-ok');
 }
 
 async function postJson(url, payload) {
@@ -329,43 +347,41 @@ async function postJson(url, payload) {
 }
 
 document.getElementById('detectClient').addEventListener('click', async () => {
-    const status = document.getElementById('smartPasteStatus');
     const button = document.getElementById('detectClient');
-    status.textContent = 'Detecting client information...';
+    setQuickStatus('Detecting…', 'b-info');
+    button.classList.add('is-loading');
     button.disabled = true;
     try {
         const result = await postJson('{{ route('clients.smart-paste') }}', { raw_text: document.getElementById('smartPasteText').value });
         const populated = fillQuickClient(result.data || {});
         showDuplicateWarning(result.duplicates || []);
-        status.textContent = populated
-            ? (result.message || 'Information detected. Please review before saving.')
-            : 'Information could not be detected automatically. Please enter the client details manually.';
+        setQuickStatus(populated ? (result.message || 'Detected — please review') : 'Nothing detected — enter manually', populated ? 'b-ok' : 'b-warn');
     } catch (error) {
         const populated = error.json?.data ? fillQuickClient(error.json.data) : 0;
         showDuplicateWarning(error.json?.duplicates || []);
-        status.textContent = populated
-            ? (error.json?.message || 'Some information was detected locally. Please review before saving.')
-            : 'Information could not be detected automatically. Please enter the client details manually.';
+        setQuickStatus(populated ? (error.json?.message || 'Detected locally — review') : 'Could not detect — enter manually', populated ? 'b-warn' : 'b-danger');
     } finally {
+        button.classList.remove('is-loading');
         button.disabled = false;
     }
 });
 
 document.getElementById('saveQuickClient').addEventListener('click', async () => {
-    const status = document.getElementById('smartPasteStatus');
     const button = document.getElementById('saveQuickClient');
     pendingDuplicatePayload = quickClientData();
+    button.classList.add('is-loading');
     button.disabled = true;
     try {
         await saveQuickClient(pendingDuplicatePayload);
     } catch (error) {
         if (error.status === 409) {
             showDuplicateWarning(error.json?.duplicates || []);
-            status.textContent = 'Possible existing client found. Choose existing or edit details.';
+            setQuickStatus('Possible existing client — choose or edit', 'b-warn');
             return;
         }
-        status.textContent = error.json?.message || 'Could not save client. Please check required fields.';
+        setQuickStatus(error.json?.message || 'Could not save — check required fields', 'b-danger');
     } finally {
+        button.classList.remove('is-loading');
         button.disabled = false;
     }
 });
@@ -373,11 +389,6 @@ document.getElementById('saveQuickClient').addEventListener('click', async () =>
 toggleQuickClient.addEventListener('click', () => {
     quickClient.classList.toggle('show');
     toggleQuickClient.setAttribute('aria-expanded', quickClient.classList.contains('show') ? 'true' : 'false');
-});
-
-toggleAdvanced.addEventListener('click', () => {
-    advancedDocument.classList.toggle('show');
-    toggleAdvanced.setAttribute('aria-expanded', advancedDocument.classList.contains('show') ? 'true' : 'false');
 });
 
 document.addEventListener('input', event => {

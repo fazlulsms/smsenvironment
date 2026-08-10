@@ -1,6 +1,9 @@
-@extends('layouts.app', ['title' => 'Edit Service'])
+@extends('layouts.app', ['title' => 'Edit '.$service->name])
 
 @section('content')
-<h1 class="h3 mb-3">Edit Service</h1>
-<form class="panel p-3" method="post" action="{{ route('services.update', $service) }}">@method('put') @include('services._form')</form>
+<x-page-toolbar title="Edit Service" subtitle="{{ $service->name }}">
+    <a class="btn btn-outline-secondary btn-sm mb-1" href="{{ route('services.index') }}"><x-icon name="chevron-left" :size="15" /> All services</a>
+</x-page-toolbar>
+
+<form method="post" action="{{ route('services.update', $service) }}" data-loading>@method('put') @include('services._form')</form>
 @endsection
