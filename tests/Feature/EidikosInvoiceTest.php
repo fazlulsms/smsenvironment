@@ -74,6 +74,11 @@ class EidikosInvoiceTest extends TestCase
         $this->assertSame('proforma_invoices.eidikos_pdf', $profile['pdf_view']);
         $this->assertFalse($profile['show_verification']);
         $this->assertFalse((bool) $this->eidikos->qr_verification_enabled);
+
+        // The brand logo is configured (entity + settings) and the asset ships.
+        $this->assertSame('logos/eidikos-logo.svg', $this->eidikos->logo_path);
+        $this->assertSame('logos/eidikos-logo.svg', Setting::current()->logo_path);
+        $this->assertFileExists(storage_path('app/public/'.$this->eidikos->logo_path));
     }
 
     /** Acceptance case: Amfori BSCI, USD 2,980 -> BDT 372,500 @ 125. */
@@ -95,8 +100,10 @@ class EidikosInvoiceTest extends TestCase
 
         $html = $this->renderHtml($invoice);
 
-        // Eidikos identity + no SMSEA verification anywhere.
+        // Eidikos identity + brand logo (not the monogram fallback) + no verification.
         $this->assertStringContainsString('eidikos-document', $html);
+        $this->assertStringContainsString('eidikos-logo.svg', $html); // configured logo is used
+        $this->assertStringNotContainsString('class="eh-mark"', $html); // not the EC monogram fallback
         $this->assertStringContainsString('EIDIKOS', $html);
         $this->assertStringContainsString('Amfori BSCI Monitoring Audit Fee', $html);
         $this->assertStringContainsString('EIDIKOS/REF/2026/018', $html); // Reference No.
