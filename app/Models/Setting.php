@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToBusinessEntity;
 use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
 {
+    use BelongsToBusinessEntity;
+
     protected $fillable = [
+        'business_entity_id',
         'organization_name',
         'logo_path',
         'tagline',

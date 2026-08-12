@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToBusinessEntity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Service extends Model
 {
+    use BelongsToBusinessEntity;
+
     public const TYPE_STANDALONE = 'standalone';
     public const TYPE_BUNDLE = 'bundle';
     public const TYPE_CONSOLIDATED = 'consolidated';
@@ -18,6 +21,7 @@ class Service extends Model
     ];
 
     protected $fillable = [
+        'business_entity_id',
         'name',
         'short_name',
         'category',

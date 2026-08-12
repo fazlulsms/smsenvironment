@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToBusinessEntity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DocumentEmailDelivery extends Model
 {
+    use BelongsToBusinessEntity;
+
     protected $fillable = [
+        'business_entity_id',
         'document_type',
         'document_id',
         'to_email',

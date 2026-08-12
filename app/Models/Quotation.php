@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToBusinessEntity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,9 +10,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Quotation extends Model
 {
+    use BelongsToBusinessEntity;
     use SoftDeletes;
 
     protected $fillable = [
+        'business_entity_id',
+        'entity_code',
         'client_id',
         'bank_account_id',
         'created_by',

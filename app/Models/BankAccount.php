@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToBusinessEntity;
 use Illuminate\Database\Eloquent\Model;
 
 class BankAccount extends Model
 {
+    use BelongsToBusinessEntity;
+
     protected $fillable = [
+        'business_entity_id',
         'beneficiary_name',
         'bank_name',
         'branch',
