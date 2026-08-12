@@ -13,11 +13,20 @@ use BaconQrCode\Writer;
 
 class ProformaInvoiceVerificationService
 {
-    /** Current payload version for new documents — signs the entity code. */
-    public const PAYLOAD_VERSION = 'DOC-PI-V2';
+    /** Current payload version for new documents — signs entity code + charge presentation. */
+    public const PAYLOAD_VERSION = 'DOC-PI-V3';
+
+    /** Entity-aware payload without charge presentation. */
+    public const PAYLOAD_VERSION_V2 = 'DOC-PI-V2';
 
     /** Original single-entity (SMSEA) payload — kept verifiable, never re-signed. */
     public const LEGACY_PAYLOAD_VERSION = 'SMSEA-PI-V1';
+
+    private const KNOWN_VERSIONS = [
+        self::PAYLOAD_VERSION,
+        self::PAYLOAD_VERSION_V2,
+        self::LEGACY_PAYLOAD_VERSION,
+    ];
 
     public function apply(ProformaInvoice $invoice): ProformaInvoice
     {
@@ -34,10 +43,8 @@ class ProformaInvoiceVerificationService
 
     public function ensure(ProformaInvoice $invoice): ProformaInvoice
     {
-        $version = $invoice->verification_payload_version;
-
         if (
-            in_array($version, [self::PAYLOAD_VERSION, self::LEGACY_PAYLOAD_VERSION], true)
+            in_array($invoice->verification_payload_version, self::KNOWN_VERSIONS, true)
             && filled($invoice->verification_id)
             && filled($invoice->verification_signature)
         ) {
@@ -52,10 +59,10 @@ class ProformaInvoiceVerificationService
         $invoice->loadMissing('items');
         $client = $invoice->client_snapshot ?: [];
         $settings = $invoice->settings_snapshot ?: [];
-        $legacy = $this->isLegacy($invoice);
+        $version = $this->version($invoice);
 
-        $data = [
-            'version' => $legacy ? self::LEGACY_PAYLOAD_VERSION : self::PAYLOAD_VERSION,
+        $base = [
+            'version' => $version,
             'document_type' => 'PROFORMA_INVOICE',
             'reference' => $this->clean($invoice->number),
             'date' => optional($invoice->date)->format('Y-m-d') ?: $this->clean((string) $invoice->date),
@@ -70,16 +77,27 @@ class ProformaInvoiceVerificationService
             'total_amount' => $this->money((float) $invoice->total),
         ];
 
-        if (! $legacy) {
-            $data = ['entity_code' => $this->clean((string) $invoice->entity_code)] + $data;
+        // V1: original SMSEA canonical, reproduced exactly.
+        if ($version === self::LEGACY_PAYLOAD_VERSION) {
+            return $base;
         }
 
-        return $data;
+        // V2: entity-aware. V3 additionally signs the charge presentation mode.
+        $entityCode = ['entity_code' => $this->clean((string) $invoice->entity_code)];
+
+        if ($version === self::PAYLOAD_VERSION) {
+            return $entityCode + ['presentation' => $invoice->charge_presentation ?: 'itemized'] + $base;
+        }
+
+        return $entityCode + $base;
     }
 
-    private function isLegacy(ProformaInvoice $invoice): bool
+    /** The canonical version to sign/verify a document with. New docs use the current version. */
+    private function version(ProformaInvoice $invoice): string
     {
-        return $invoice->verification_payload_version === self::LEGACY_PAYLOAD_VERSION;
+        return in_array($invoice->verification_payload_version, self::KNOWN_VERSIONS, true)
+            ? $invoice->verification_payload_version
+            : self::PAYLOAD_VERSION;
     }
 
     public function signature(ProformaInvoice $invoice): string
@@ -97,7 +115,8 @@ class ProformaInvoiceVerificationService
         $invoice = $this->ensure($invoice);
         $data = $this->canonicalData($invoice);
         $settings = $invoice->settings_snapshot ?: [];
-        $legacy = $this->isLegacy($invoice);
+        $version = $this->version($invoice);
+        $legacy = $version === self::LEGACY_PAYLOAD_VERSION;
         $entityName = $this->clean($settings['organization_name'] ?? 'SMS Environmental Alliance');
         $serviceLines = collect($data['services'])
             ->map(fn (array $service, int $index) => ($index + 1).'. '.$service['name'])
@@ -122,8 +141,9 @@ class ProformaInvoiceVerificationService
             'Total Payable: '.$data['currency'].' '.$this->formatAmount($data['total_amount']),
             '',
             $legacy ? null : 'Entity: '.$this->clean((string) $invoice->entity_code),
+            $version === self::PAYLOAD_VERSION ? 'Charge Presentation: '.($invoice->charge_presentation ?: 'itemized') : null,
             'Verification ID: '.$invoice->verification_id,
-            'Payload Version: '.($legacy ? self::LEGACY_PAYLOAD_VERSION : self::PAYLOAD_VERSION),
+            'Payload Version: '.$version,
             'Signature: '.$invoice->verification_signature,
         ];
 
@@ -140,7 +160,7 @@ class ProformaInvoiceVerificationService
                 null,
                 Fill::uniformColor(new Rgb(255, 255, 255), new Rgb(31, 111, 74))
             ),
-            new SvgImageBackEnd()
+            new SvgImageBackEnd
         );
 
         return (new Writer($renderer))->writeString(

@@ -125,6 +125,10 @@
     .proforma-document .scope-label { margin-top: 2px; font-size: 7.8px; }
     .proforma-document .scope-list { margin: 1px 0 0 12px; }
     .proforma-document .scope-list li { margin: 0; line-height: 1.2; }
+    .proforma-document .invoice-charge-2col .charge-desc { margin-top: 2px; font-size: 8.4px; line-height: 1.3; color: #33413a; }
+    .proforma-document .invoice-charge-2col .charge-qty { margin-top: 3px; font-size: 7.9px; color: #4f5f58; }
+    .proforma-document .invoice-charge-2col .charge-amount-cell { vertical-align: bottom; font-size: 9.4px; }
+    .proforma-document .invoice-charge-2col td { padding: 7px 6px; }
     .proforma-document .invoice-financial-summary { width: 52%; margin: 8px 0 0 auto; border-collapse: collapse; page-break-inside: avoid; }
     .proforma-document .invoice-financial-summary td { border: 0; padding: 3px 5px; font-size: 8.6px; }
     .proforma-document .invoice-financial-summary td:first-child { text-align: right; color: #1f2933; }

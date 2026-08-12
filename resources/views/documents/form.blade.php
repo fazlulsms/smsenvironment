@@ -102,37 +102,88 @@
     </div>
 </div>
 
-{{-- 2 · Services & scope --}}
-<div class="form-section">
-    <div class="fs-head">
-        <span class="fs-ico"><x-icon name="services" /></span>
-        <div><div class="fs-t">Services &amp; Scope</div><div class="fs-s">Pick a service to auto-fill its description, scope and rate.</div></div>
-        <button class="btn btn-outline-primary btn-sm ms-auto" type="button" id="addItem"><x-icon name="plus" :size="15" /> Add Service Line</button>
-    </div>
-    <div class="fs-body">
-        <div class="table-responsive">
-            <table class="table align-middle" id="itemsTable">
-                <thead><tr><th style="width:20%">Service</th><th>Description / Scope</th><th style="width:9%">Unit</th><th style="width:9%">Qty</th><th style="width:14%" class="num">Rate</th><th style="width:14%" class="num">Amount</th><th></th></tr></thead>
-                <tbody>
-                @foreach ($items as $index => $item)
-                    @include('documents.item_row', ['index' => $index, 'item' => $item])
-                @endforeach
-                </tbody>
-            </table>
+{{-- 2 · Services & charge presentation --}}
+@php
+    $chargeMode = old('charge_presentation', $document->charge_presentation ?? 'itemized');
+    $firstItem = $document->items?->first();
+    $serviceOptions = $services->map(fn ($s) => ['id' => $s->id, 'label' => ($s->short_name ?: $s->name)])->values();
+@endphp
+@if ($isQuotation)
+    <div class="form-section">
+        <div class="fs-head">
+            <span class="fs-ico"><x-icon name="services" /></span>
+            <div><div class="fs-t">Services &amp; Scope</div><div class="fs-s">Pick a service to auto-fill its description, scope and rate.</div></div>
+            <button class="btn btn-outline-primary btn-sm ms-auto" type="button" id="addItem"><x-icon name="plus" :size="15" /> Add Service Line</button>
         </div>
-        <div class="row justify-content-end">
-            <div class="col-md-5 col-lg-4">
-                <div class="d-flex justify-content-between py-1"><span class="text-secondary">Subtotal</span><strong class="num" id="subtotal">0.00</strong></div>
-                <label class="form-label mt-2">Adjustment</label>
-                <input class="form-control num calc" type="number" step="0.01" name="adjustment" value="{{ old('adjustment', $document->adjustment ?? 0) }}">
-                <div class="d-flex justify-content-between align-items-center py-2 mt-2 px-2 rounded" style="background:var(--brand-050)">
-                    <span class="fw-semibold">Total</span>
-                    <strong class="num" style="font-size:18px"><span class="cur">{{ $currency }}</span> <span id="grandTotal">0.00</span></strong>
+        <div class="fs-body">@include('documents._charge_itemized')</div>
+    </div>
+@else
+    <div class="form-section">
+        <div class="fs-head">
+            <span class="fs-ico"><x-icon name="invoice" /></span>
+            <div><div class="fs-t">Charge Presentation</div><div class="fs-s">Choose how the charges appear on this invoice.</div></div>
+        </div>
+        <div class="fs-body">
+            <div class="row g-3 mb-2">
+                <div class="col-md-5">
+                    <label class="form-label">Charge Presentation</label>
+                    <select class="form-select" name="charge_presentation" id="chargePresentation">
+                        @foreach (\App\Models\ProformaInvoice::PRESENTATIONS as $value => $label)
+                            <option value="{{ $value }}" @selected($chargeMode === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
                 </div>
+                <div class="col-md-7" id="chargeTitleWrap">
+                    <label class="form-label">Charge / Package Title</label>
+                    <input class="form-control" name="charge_title" id="chargeTitle" value="{{ old('charge_title', $document->charge_title) }}" placeholder="e.g. PEFC Chain of Custody Certification">
+                </div>
+            </div>
+
+            {{-- Consolidated --}}
+            <div data-mode-panel="consolidated" class="mode-panel {{ $chargeMode === 'consolidated' ? '' : 'd-none' }}">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label">Service (optional)</label>
+                        <select class="form-select" data-charge-service>
+                            <option value="">— none —</option>
+                            @foreach ($serviceOptions as $opt)<option value="{{ $opt['id'] }}">{{ $opt['label'] }}</option>@endforeach
+                        </select>
+                    </div>
+                    <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="consolidated[description]" rows="3" placeholder="Certification Fee, including the audit, certification, licence fees and transportation costs.">{{ old('consolidated.description', $chargeMode === 'consolidated' ? $firstItem?->description : '') }}</textarea></div>
+                    <div class="col-md-4"><label class="form-label">Unit</label><input class="form-control" name="consolidated[unit]" value="{{ old('consolidated.unit', $chargeMode === 'consolidated' ? $firstItem?->unit : 'Job') }}"></div>
+                    <div class="col-md-4"><label class="form-label">Qty</label><input class="form-control num" type="number" step="0.01" name="consolidated[quantity]" value="{{ old('consolidated.quantity', $chargeMode === 'consolidated' ? ($firstItem?->quantity ?? 1) : 1) }}"></div>
+                    <div class="col-md-4"><label class="form-label">Amount ({{ $currency }})</label><input class="form-control num" type="number" step="0.01" name="consolidated[unit_rate]" value="{{ old('consolidated.unit_rate', $chargeMode === 'consolidated' ? $firstItem?->unit_rate : null) }}"></div>
+                </div>
+                <div class="form-hint mt-2">Total = Qty × Amount. For a single fee, keep Qty at 1.</div>
+            </div>
+
+            {{-- Breakdown — one total --}}
+            <div data-mode-panel="component_breakdown" class="mode-panel {{ $chargeMode === 'component_breakdown' ? '' : 'd-none' }}">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label">Service (optional)</label>
+                        <select class="form-select" data-charge-service>
+                            <option value="">— none —</option>
+                            @foreach ($serviceOptions as $opt)<option value="{{ $opt['id'] }}">{{ $opt['label'] }}</option>@endforeach
+                        </select>
+                    </div>
+                    <div class="col-12"><label class="form-label">Components (one per line — no individual prices)</label><textarea class="form-control" name="breakdown[components]" rows="5" placeholder="SLCP Verification Fee (Step-03)&#10;Verification Initiation &amp; Upload Fee&#10;Administration Fee&#10;Travel &amp; Operational Cost">{{ old('breakdown.components', $chargeMode === 'component_breakdown' ? implode("\n", $firstItem?->scope_items ?? []) : '') }}</textarea></div>
+                    <div class="col-md-4"><label class="form-label">Unit (optional)</label><input class="form-control" name="breakdown[unit]" value="{{ old('breakdown.unit', $chargeMode === 'component_breakdown' ? $firstItem?->unit : '') }}"></div>
+                    <div class="col-md-4"><label class="form-label">Total Amount ({{ $currency }})</label><input class="form-control num" type="number" step="0.01" name="breakdown[amount]" value="{{ old('breakdown.amount', $chargeMode === 'component_breakdown' ? $firstItem?->amount : null) }}"></div>
+                </div>
+                <div class="form-hint mt-2">One consolidated amount applies to the whole package.</div>
+            </div>
+
+            {{-- Itemized --}}
+            <div data-mode-panel="itemized" class="mode-panel {{ $chargeMode === 'itemized' ? '' : 'd-none' }}">
+                <div class="d-flex justify-content-end mb-2">
+                    <button class="btn btn-outline-primary btn-sm" type="button" id="addItem"><x-icon name="plus" :size="15" /> Add Row</button>
+                </div>
+                @include('documents._charge_itemized')
             </div>
         </div>
     </div>
-</div>
+@endif
 
 {{-- 3 · Advanced document content --}}
 <details class="adv" {{ $showAdvanced ? 'open' : '' }} id="advancedWrap">
@@ -424,5 +475,51 @@ document.addEventListener('click', event => {
 });
 
 recalc();
+
+// Charge presentation mode switching (invoice form only).
+const chargePresentation = document.getElementById('chargePresentation');
+if (chargePresentation) {
+    const modePanels = document.querySelectorAll('[data-mode-panel]');
+    const titleWrap = document.getElementById('chargeTitleWrap');
+
+    function applyChargeMode() {
+        const mode = chargePresentation.value;
+        modePanels.forEach(panel => {
+            const active = panel.dataset.modePanel === mode;
+            panel.classList.toggle('d-none', !active);
+            // Disable inactive inputs so hidden required fields never block submit.
+            panel.querySelectorAll('input, textarea, select').forEach(el => { el.disabled = !active; });
+        });
+        if (titleWrap) titleWrap.classList.toggle('d-none', mode === 'itemized');
+        if (mode === 'itemized') recalc();
+    }
+
+    chargePresentation.addEventListener('change', applyChargeMode);
+    applyChargeMode();
+
+    document.querySelectorAll('[data-charge-service]').forEach(select => {
+        select.addEventListener('change', () => {
+            const service = services[select.value];
+            if (!service) return;
+            const panel = select.closest('[data-mode-panel]');
+            const mode = panel.dataset.modePanel;
+            const title = document.getElementById('chargeTitle');
+            if (title && !title.value) title.value = service.short_name || service.name || '';
+            if (mode === 'consolidated') {
+                const desc = panel.querySelector('[name="consolidated[description]"]');
+                if (desc && !desc.value) desc.value = service.invoice_description || service.default_description || service.name || '';
+                const unit = panel.querySelector('[name="consolidated[unit]"]');
+                if (unit && !unit.value) unit.value = service.default_unit || '';
+            } else {
+                const components = (service.components || [])
+                    .filter(c => c.is_active)
+                    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+                    .map(c => c.name).join('\n');
+                const textarea = panel.querySelector('[name="breakdown[components]"]');
+                if (textarea && !textarea.value) textarea.value = components;
+            }
+        });
+    });
+}
 </script>
 @endpush

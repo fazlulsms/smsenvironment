@@ -117,30 +117,7 @@
     </table>
 
     <div class="section financial-section">
-        <table class="proposal-table invoice-service-table">
-            <thead><tr><th style="width:6%">SL</th><th>Service / Description</th><th style="width:14%">Unit / Qty</th><th style="width:15%" class="text-right">Rate</th><th style="width:15%" class="text-right">Amount</th></tr></thead>
-            <tbody>
-            @foreach($serviceRows as $row)
-                <tr>
-                    <td class="text-center">{{ $loop->iteration }}</td>
-                    <td>
-                        <div class="service-title">{{ $row['title'] }}</div>
-                        @if($row['activities']->isNotEmpty())
-                            <div class="scope-label">Including:</div>
-                            <ul class="scope-list">
-                                @foreach($row['activities'] as $activity)
-                                    <li>{{ $activity }}</li>
-                                @endforeach
-                            </ul>
-                        @endif
-                    </td>
-                    <td class="text-center">{{ $row['item']->unit }} / {{ number_format($row['item']->quantity, 2) }}</td>
-                    <td class="text-right">{{ number_format($row['item']->unit_rate, 2) }}</td>
-                    <td class="text-right">{{ number_format($row['item']->amount, 2) }}</td>
-                </tr>
-            @endforeach
-            </tbody>
-        </table>
+        @include('documents.invoice_charge_table', ['invoice' => $invoice, 'serviceRows' => $serviceRows, 'currency' => $currency])
 
         <table class="invoice-financial-summary">
             <tr><td>Net Amount</td><td class="text-right">{{ number_format($invoice->subtotal, 2) }}</td></tr>

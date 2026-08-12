@@ -21,6 +21,7 @@
         <div class="d-flex align-items-center gap-2 flex-wrap">
             <h1 class="h4 mb-0">{{ $invoice->number }}</h1>
             <x-email-status :deliveries="$invoice->emailDeliveries" />
+            <span class="badge-soft b-invoice">{{ \App\Models\ProformaInvoice::PRESENTATIONS[$invoice->charge_presentation] ?? 'Itemized' }}</span>
         </div>
         <div class="text-secondary mt-1">{{ $invoice->date->format('d M Y') }} · {{ $invoice->client?->company_name ?? ($invoice->client_snapshot['company_name'] ?? '—') }}</div>
     </div>

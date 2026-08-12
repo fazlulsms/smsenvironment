@@ -11,7 +11,9 @@ class Service extends Model
     use BelongsToBusinessEntity;
 
     public const TYPE_STANDALONE = 'standalone';
+
     public const TYPE_BUNDLE = 'bundle';
+
     public const TYPE_CONSOLIDATED = 'consolidated';
 
     public const TYPES = [
@@ -33,6 +35,7 @@ class Service extends Model
         'quotation_scope',
         'compliance_note',
         'invoice_description',
+        'default_charge_presentation',
         'is_active',
     ];
 

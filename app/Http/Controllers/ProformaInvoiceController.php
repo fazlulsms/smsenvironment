@@ -14,6 +14,7 @@ use App\Services\ProformaInvoiceVerificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -65,6 +66,8 @@ class ProformaInvoiceController extends Controller
     ): RedirectResponse {
         $invoice = DB::transaction(function () use ($request, $numbers, $content, $verification) {
             $data = $this->validated($request);
+            $data['items'] = $this->normalizeItems($data);
+            $data['charge_for'] = ($data['charge_for'] ?? null) ?: ($data['charge_title'] ?? null);
             $client = $this->resolveClient($data);
             $bank = $this->resolveBank($data);
             $this->validateBankForPdf($bank, $request->input('after_save') === 'pdf');
@@ -125,6 +128,8 @@ class ProformaInvoiceController extends Controller
     ): RedirectResponse {
         DB::transaction(function () use ($request, $proformaInvoice, $content, $verification) {
             $data = $this->validated($request);
+            $data['items'] = $this->normalizeItems($data);
+            $data['charge_for'] = ($data['charge_for'] ?? null) ?: ($data['charge_title'] ?? null);
             $client = $this->resolveClient($data);
             $bank = $this->resolveBank($data);
             $this->validateBankForPdf($bank, false);
@@ -223,7 +228,10 @@ class ProformaInvoiceController extends Controller
 
     private function validated(Request $request): array
     {
-        return $request->validate([
+        $mode = $request->input('charge_presentation', ProformaInvoice::PRESENTATION_ITEMIZED);
+        $titleRequired = in_array($mode, [ProformaInvoice::PRESENTATION_CONSOLIDATED, ProformaInvoice::PRESENTATION_BREAKDOWN], true);
+
+        $rules = [
             'client_id' => ['nullable', 'exists:clients,id'],
             'new_client.company_name' => ['required_without:client_id', 'nullable', 'string', 'max:255'],
             'new_client.parent_company' => ['nullable', 'string', 'max:255'],
@@ -239,6 +247,8 @@ class ProformaInvoiceController extends Controller
             'new_client.country' => ['nullable', 'string', 'max:255'],
             'bank_account_id' => ['nullable', 'exists:bank_accounts,id'],
             'date' => ['required', 'date'],
+            'charge_presentation' => ['nullable', 'in:consolidated,component_breakdown,itemized'],
+            'charge_title' => [$titleRequired ? 'required' : 'nullable', 'string', 'max:255'],
             'charge_for' => ['nullable', 'string', 'max:255'],
             'payment_terms' => ['nullable', 'string'],
             'validity_text' => ['nullable', 'string'],
@@ -248,15 +258,92 @@ class ProformaInvoiceController extends Controller
             'show_vat_separately' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
             'after_save' => ['nullable', 'in:view,pdf'],
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.service_id' => ['nullable', 'exists:services,id'],
-            'items.*.pricing_mode' => ['nullable', 'in:separate,consolidated'],
-            'items.*.description' => ['nullable', 'string'],
-            'items.*.scope_items' => ['nullable'],
-            'items.*.unit' => ['nullable', 'string', 'max:255'],
-            'items.*.quantity' => ['required', 'numeric', 'min:0'],
-            'items.*.unit_rate' => ['required', 'numeric', 'min:0'],
-        ]);
+        ];
+
+        $rules += match ($mode) {
+            ProformaInvoice::PRESENTATION_CONSOLIDATED => [
+                'consolidated.service_id' => ['nullable', 'exists:services,id'],
+                'consolidated.description' => ['required', 'string'],
+                'consolidated.unit' => ['nullable', 'string', 'max:255'],
+                'consolidated.quantity' => ['nullable', 'numeric', 'min:0'],
+                'consolidated.unit_rate' => ['required', 'numeric', 'min:0'],
+            ],
+            ProformaInvoice::PRESENTATION_BREAKDOWN => [
+                'breakdown.service_id' => ['nullable', 'exists:services,id'],
+                'breakdown.components' => ['required', 'string'],
+                'breakdown.unit' => ['nullable', 'string', 'max:255'],
+                'breakdown.amount' => ['required', 'numeric', 'min:0'],
+            ],
+            default => [
+                'items' => ['required', 'array', 'min:1'],
+                'items.*.service_id' => ['nullable', 'exists:services,id'],
+                'items.*.pricing_mode' => ['nullable', 'in:separate,consolidated'],
+                'items.*.description' => ['nullable', 'string'],
+                'items.*.scope_items' => ['nullable'],
+                'items.*.unit' => ['nullable', 'string', 'max:255'],
+                'items.*.quantity' => ['required', 'numeric', 'min:0'],
+                'items.*.unit_rate' => ['required', 'numeric', 'min:0'],
+            ],
+        };
+
+        $validator = Validator::make($request->all(), $rules);
+
+        $validator->after(function ($validator) use ($request, $mode) {
+            if ($mode === ProformaInvoice::PRESENTATION_BREAKDOWN
+                && $this->splitLines($request->input('breakdown.components')) === []) {
+                $validator->errors()->add('breakdown.components', 'Add at least one component.');
+            }
+        });
+
+        return $validator->validate();
+    }
+
+    /**
+     * Normalise the mode-specific inputs into the shared item row structure the
+     * rest of the pipeline (pricing, snapshot, PDF, QR) already understands.
+     */
+    private function normalizeItems(array $data): array
+    {
+        $mode = $data['charge_presentation'] ?? ProformaInvoice::PRESENTATION_ITEMIZED;
+
+        if ($mode === ProformaInvoice::PRESENTATION_CONSOLIDATED) {
+            $c = $data['consolidated'] ?? [];
+
+            return [[
+                'service_id' => $c['service_id'] ?? null,
+                'pricing_mode' => 'consolidated',
+                'description' => $c['description'] ?? '',
+                'scope_items' => '',
+                'unit' => $c['unit'] ?? null,
+                'quantity' => ($c['quantity'] ?? null) ?: 1,
+                'unit_rate' => $c['unit_rate'] ?? 0,
+            ]];
+        }
+
+        if ($mode === ProformaInvoice::PRESENTATION_BREAKDOWN) {
+            $b = $data['breakdown'] ?? [];
+
+            return [[
+                'service_id' => $b['service_id'] ?? null,
+                'pricing_mode' => 'consolidated',
+                'description' => '',
+                'scope_items' => implode("\n", $this->splitLines($b['components'] ?? '')),
+                'unit' => $b['unit'] ?? null,
+                'quantity' => 1,
+                'unit_rate' => $b['amount'] ?? 0,
+            ]];
+        }
+
+        return $data['items'] ?? [];
+    }
+
+    private function splitLines(?string $text): array
+    {
+        return collect(preg_split('/\r\n|\r|\n/', (string) $text) ?: [])
+            ->map(fn ($line) => trim($line))
+            ->filter()
+            ->values()
+            ->all();
     }
 
     private function resolveClient(array $data): Client
@@ -285,7 +372,7 @@ class ProformaInvoiceController extends Controller
 
     private function documentData(array $data): array
     {
-        return collect($data)->except(['items', 'new_client', 'client_id', 'after_save'])->all();
+        return collect($data)->except(['items', 'consolidated', 'breakdown', 'new_client', 'client_id', 'after_save'])->all();
     }
 
     private function vat(float $net, array $data): float

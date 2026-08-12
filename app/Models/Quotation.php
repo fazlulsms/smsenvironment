@@ -24,6 +24,8 @@ class Quotation extends Model
         'client_snapshot',
         'bank_snapshot',
         'settings_snapshot',
+        'charge_presentation',
+        'charge_title',
         'subject',
         'intro_text',
         'compliance_note',

@@ -13,6 +13,18 @@ class ProformaInvoice extends Model
     use BelongsToBusinessEntity;
     use SoftDeletes;
 
+    public const PRESENTATION_CONSOLIDATED = 'consolidated';
+
+    public const PRESENTATION_BREAKDOWN = 'component_breakdown';
+
+    public const PRESENTATION_ITEMIZED = 'itemized';
+
+    public const PRESENTATIONS = [
+        self::PRESENTATION_CONSOLIDATED => 'Consolidated Fee',
+        self::PRESENTATION_BREAKDOWN => 'Fee Breakdown — One Total',
+        self::PRESENTATION_ITEMIZED => 'Itemized Charges',
+    ];
+
     protected $fillable = [
         'business_entity_id',
         'entity_code',
@@ -24,6 +36,8 @@ class ProformaInvoice extends Model
         'client_snapshot',
         'bank_snapshot',
         'settings_snapshot',
+        'charge_presentation',
+        'charge_title',
         'charge_for',
         'payment_terms',
         'validity_text',
