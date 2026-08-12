@@ -59,13 +59,25 @@ class Setting extends Model
 
     public static function current(): self
     {
+        // Seed a new entity's settings from its BusinessEntity identity so it is
+        // usable immediately (own name, currency and numbering) before manual
+        // configuration. The global scope keeps this row bound to the entity.
+        $entity = app(\App\Support\CurrentEntity::class)->get();
+        $code = $entity?->entity_code ?: 'SMSEA';
+
         return self::query()->firstOrCreate([], [
-            'organization_name' => 'SMS Environmental Alliance',
-            'default_currency' => 'BDT',
+            'organization_name' => $entity?->name ?: 'SMS Environmental Alliance',
+            'tagline' => $entity?->tagline,
+            'logo_path' => $entity?->logo_path,
+            'office_address' => $entity?->address,
+            'phone' => $entity?->phone,
+            'email' => $entity?->email,
+            'website' => $entity?->website,
+            'default_currency' => $entity?->default_currency ?: 'BDT',
             'currency_major_name' => 'Taka',
             'currency_minor_name' => 'Paisa',
-            'quotation_number_format' => 'SMSEA/QT/{YYYY}/{####}',
-            'invoice_number_format' => 'SMSEA/PI/{YYYY}/{####}',
+            'quotation_number_format' => $code.'/QT/{YYYY}/{####}',
+            'invoice_number_format' => $code.'/PI/{YYYY}/{####}',
             'quotation_vat_treatment' => 'exclusive',
             'quotation_show_vat_separately' => true,
             'quotation_include_acceptance' => true,
