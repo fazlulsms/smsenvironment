@@ -72,8 +72,9 @@ class ChargeSyncTest extends TestCase
         ]);
         $html = $this->renderPdf($invoice);
 
-        // SERVICE label precedes CHARGE FOR label; the service title shows once.
+        // SERVICE (name + label) sits in the upper block, above the full-width CHARGE FOR.
         $this->assertLessThan(strpos($html, 'Charge For'), strpos($html, '>Service</div>'));
+        $this->assertLessThan(strpos($html, 'Charge For'), strpos($html, 'Energy Audit'));
         $this->assertSame(1, substr_count($html, 'Energy Audit'));
 
         // One-column lower flow: Payment Terms before Bank Details.

@@ -114,6 +114,16 @@
     .proforma-document .invoice-page { page-break-after: auto; }
     .proforma-document .invoice-meta { margin: 0 0 8px; border-collapse: collapse; }
     .proforma-document .invoice-meta td { border: 0; padding: 0; font-size: 9.4px; }
+    /* Upper two-column: Invoice No. + Bill To (left), Date + Service (right) */
+    .proforma-document .invoice-top { margin: 0 0 8px; border-collapse: collapse; width: 100%; }
+    .proforma-document .invoice-top td { border: 0; padding: 0; vertical-align: top; }
+    .proforma-document .invoice-top .itop-left { width: 56%; padding-right: 8mm; }
+    .proforma-document .invoice-top .itop-right { width: 44%; }
+    .proforma-document .invoice-top .label { margin-bottom: 1px; }
+    .proforma-document .itop-value { font-size: 9.4px; line-height: 1.3; }
+    .proforma-document .invoice-top .bill-to-block { margin: 8px 0 0; }
+    .proforma-document .service-block-right { margin-top: 9px; }
+    .proforma-document .service-block-right .cf-label { margin-top: 0; }
     .proforma-document .client-charge-table { margin: 0 0 8px; border-collapse: collapse; }
     .proforma-document .client-charge-table td { width: 50%; border: 0; padding: 0 10px 0 0; vertical-align: top; font-size: 9.1px; }
     .proforma-document .client-charge-table td + td { padding: 0 0 0 10px; }

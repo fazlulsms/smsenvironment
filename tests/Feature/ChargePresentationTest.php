@@ -79,8 +79,8 @@ class ChargePresentationTest extends TestCase
         $this->assertEquals(1900, (float) $invoice->subtotal);
         $this->assertEquals(1900, (float) $invoice->total);
 
+        // The partial renders the CHARGE FOR block (SERVICE lives in the PDF header).
         $html = $this->chargeTableHtml($invoice);
-        $this->assertStringContainsString('PEFC Chain of Custody Certification', $html); // SERVICE
         $this->assertStringContainsString('Charge For', $html);
         $this->assertStringContainsString('Certification Fee', $html); // CHARGE FOR = description
         $this->assertStringNotContainsString('>Rate<', $html); // no rate column in consolidated
@@ -103,8 +103,8 @@ class ChargePresentationTest extends TestCase
         $this->assertEquals(139130, (float) $invoice->subtotal);
         $this->assertEquals(139130, (float) $invoice->total);
 
+        // The partial renders the CHARGE FOR block (SERVICE lives in the PDF header).
         $html = $this->chargeTableHtml($invoice);
-        $this->assertStringContainsString('SLCP Verification Services', $html);
         $this->assertStringContainsString('Including:', $html);
         foreach ($components as $component) {
             $this->assertStringContainsString(e($component), $html);

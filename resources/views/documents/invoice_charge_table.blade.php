@@ -9,9 +9,6 @@
 @endphp
 
 <div class="commercial-block">
-    <div class="cf-label">Service</div>
-    <div class="cf-service">{{ $serviceName }}</div>
-
     <div class="cf-label">Charge For</div>
     @if ($mode === 'consolidated')
         <div class="cf-desc">{{ $firstItem?->description ?: $serviceName }}</div>
