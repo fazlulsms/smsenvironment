@@ -39,6 +39,7 @@ class ProformaInvoice extends Model
         'charge_presentation',
         'charge_title',
         'charge_for',
+        'site_name',
         'payment_terms',
         'validity_text',
         'subtotal',

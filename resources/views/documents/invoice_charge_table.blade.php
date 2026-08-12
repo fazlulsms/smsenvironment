@@ -1,46 +1,62 @@
 @php
-    // SERVICE = the saved commercial title (charge_title). CHARGE FOR = the saved
-    // description (consolidated), components (breakdown) or itemised rows.
-    // Header/totals/bank/QR/footer are shared regardless of presentation mode.
+    // DESCRIPTION | AMOUNT commercial table. Renders from the saved snapshot:
+    // Client Name / Site Name / Service / Charge For for the single-charge modes,
+    // and SL / Description / Amount for itemized. No Unit/Qty/Rate.
     $mode = $invoice->charge_presentation ?? 'itemized';
     $first = $serviceRows->first();
     $firstItem = $first['item'] ?? null;
+    $clientName = $invoice->client_snapshot['company_name'] ?? ($invoice->client?->company_name ?? '');
+    $siteName = $invoice->site_name ?: $clientName;
     $serviceName = $invoice->charge_title ?: ($first['title'] ?? 'Environmental Services');
 @endphp
 
-<div class="commercial-block">
-    <div class="cf-label">Charge For</div>
-    @if ($mode === 'consolidated')
-        <div class="cf-desc">{{ $firstItem?->description ?: $serviceName }}</div>
-    @elseif ($mode === 'component_breakdown')
-        <div class="cf-desc">Including:</div>
-        <ul class="cf-list">
-            @foreach (($first['activities'] ?? collect()) as $activity)
-                <li>{{ $activity }}</li>
+@if ($mode === 'itemized')
+    <div class="ct-info">
+        <div><span class="ct-label">Client Name:</span> {{ $clientName }}</div>
+        <div><span class="ct-label">Site Name:</span> {{ $siteName }}</div>
+        @if (filled($invoice->charge_title))<div><span class="ct-label">Service:</span> {{ $serviceName }}</div>@endif
+    </div>
+    <table class="commercial-table">
+        <thead><tr><th style="width:6%">SL</th><th>Description</th><th class="ct-amount-col text-right">Amount ({{ $currency }})</th></tr></thead>
+        <tbody>
+            @foreach ($serviceRows as $row)
+                <tr>
+                    <td class="text-center">{{ $loop->iteration }}</td>
+                    <td>
+                        <div class="service-title">{{ $row['title'] }}</div>
+                        @if ($row['activities']->isNotEmpty())
+                            <div class="ct-including">Including:</div>
+                            <ul class="ct-list">@foreach ($row['activities'] as $activity)<li>{{ $activity }}</li>@endforeach</ul>
+                        @endif
+                    </td>
+                    <td class="text-right">{{ number_format($row['item']->amount, 2) }}</td>
+                </tr>
             @endforeach
-        </ul>
-    @else
-        <table class="proposal-table invoice-service-table cf-table">
-            <thead><tr><th style="width:6%">SL</th><th>Description</th><th style="width:24%" class="text-right">Amount</th></tr></thead>
-            <tbody>
-                @foreach ($serviceRows as $row)
-                    <tr>
-                        <td class="text-center">{{ $loop->iteration }}</td>
-                        <td>
-                            <div class="service-title">{{ $row['title'] }}</div>
-                            @if ($row['activities']->isNotEmpty())
-                                <div class="scope-label">Including:</div>
-                                <ul class="scope-list">
-                                    @foreach ($row['activities'] as $activity)
-                                        <li>{{ $activity }}</li>
-                                    @endforeach
-                                </ul>
-                            @endif
-                        </td>
-                        <td class="text-right">{{ number_format($row['item']->amount, 2) }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
-</div>
+        </tbody>
+    </table>
+@else
+    <table class="commercial-table">
+        <thead><tr><th>Description</th><th class="ct-amount-col text-right">Amount ({{ $currency }})</th></tr></thead>
+        <tbody>
+            <tr>
+                <td><span class="ct-label">Client Name:</span> {{ $clientName }}</td>
+                <td rowspan="4" class="ct-amount">{{ number_format($firstItem?->amount ?? $invoice->subtotal, 2) }}</td>
+            </tr>
+            <tr><td><span class="ct-label">Site Name:</span> {{ $siteName }}</td></tr>
+            <tr><td><span class="ct-label">Service:</span> {{ $serviceName }}</td></tr>
+            <tr>
+                <td>
+                    <span class="ct-label">Charge For:</span>
+                    @if ($mode === 'consolidated')
+                        {{ $firstItem?->description ?: $serviceName }}
+                    @else
+                        <div class="ct-including">Including:</div>
+                        <ul class="ct-list">
+                            @foreach (($first['activities'] ?? collect()) as $activity)<li>{{ $activity }}</li>@endforeach
+                        </ul>
+                    @endif
+                </td>
+            </tr>
+        </tbody>
+    </table>
+@endif

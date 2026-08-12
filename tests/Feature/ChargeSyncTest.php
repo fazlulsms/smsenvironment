@@ -72,8 +72,10 @@ class ChargeSyncTest extends TestCase
         ]);
         $html = $this->renderPdf($invoice);
 
-        // SERVICE (name + label) sits in the upper block, above the full-width CHARGE FOR.
-        $this->assertLessThan(strpos($html, 'Charge For'), strpos($html, '>Service</div>'));
+        // DESCRIPTION | AMOUNT table: Client Name / Service rows precede Charge For.
+        $this->assertStringContainsString('Client Name:', $html);
+        $this->assertStringContainsString('Service:', $html);
+        $this->assertLessThan(strpos($html, 'Charge For'), strpos($html, 'Client Name:'));
         $this->assertLessThan(strpos($html, 'Charge For'), strpos($html, 'Energy Audit'));
         $this->assertSame(1, substr_count($html, 'Energy Audit'));
 
@@ -87,6 +89,26 @@ class ChargeSyncTest extends TestCase
         // Only the selected bank appears.
         $this->assertStringContainsString('Prime Bank Ltd.', $html);
         $this->assertStringNotContainsString('Mutual Trust', $html);
+    }
+
+    /** Site name is saved and used; blank falls back to the client company name. */
+    public function test_site_name_saves_and_falls_back_to_client(): void
+    {
+        $withSite = $this->store([
+            'charge_presentation' => 'consolidated', 'charge_title' => 'Energy Audit', 'site_name' => 'UNI Factory Unit 2',
+            'consolidated' => ['service_id' => $this->emp->id, 'description' => 'desc', 'amount' => 1000],
+        ]);
+        $this->assertSame('UNI Factory Unit 2', $withSite->site_name);
+        $this->assertStringContainsString('UNI Factory Unit 2', $this->renderPdf($withSite));
+
+        $noSite = $this->store([
+            'charge_presentation' => 'consolidated', 'charge_title' => 'Energy Audit',
+            'consolidated' => ['description' => 'desc', 'amount' => 1000],
+        ]);
+        $this->assertNull($noSite->site_name);
+        $html = $this->renderPdf($noSite);
+        $this->assertStringContainsString('Site Name:', $html);
+        $this->assertStringContainsString('Client Ltd.', $html); // falls back to client name
     }
 
     /** All commercial fields are consistent after a consolidated save. */

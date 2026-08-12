@@ -251,6 +251,7 @@ class ProformaInvoiceController extends Controller
             'date' => ['required', 'date'],
             'charge_presentation' => ['nullable', 'in:consolidated,component_breakdown,itemized'],
             'charge_title' => [$titleRequired ? 'required' : 'nullable', 'string', 'max:255'],
+            'site_name' => ['nullable', 'string', 'max:255'],
             'charge_for' => ['nullable', 'string', 'max:255'],
             'payment_terms' => ['nullable', 'string'],
             'validity_text' => ['nullable', 'string'],

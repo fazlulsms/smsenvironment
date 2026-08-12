@@ -92,31 +92,21 @@
 </div>
 
 <section class="invoice-page">
-    @php $serviceName = $invoice->charge_title ?: ($serviceRows->first()['title'] ?? 'Environmental Services'); @endphp
-    <table class="invoice-top">
+    <table class="invoice-meta">
         <tr>
-            <td class="itop-left">
-                <div class="label">Invoice No.</div>
-                <div class="itop-value">{{ $invoice->number }}</div>
-                <div class="bill-to-block">
-                    <div class="label">Bill To</div>
-                    @if(!empty($client['company_name']))<strong>{{ $client['company_name'] }}</strong><br>@endif
-                    @if(!empty($client['contact_person']))Attn: {{ $client['contact_person'] }}<br>@endif
-                    @if(!empty($client['designation'])){{ $client['designation'] }}<br>@endif
-                    @if(!empty($client['address'])){{ $client['address'] }}<br>@endif
-                    @if(!empty($client['email'])){{ $client['email'] }}@endif
-                </div>
-            </td>
-            <td class="itop-right">
-                <div class="label">Date</div>
-                <div class="itop-value">{{ $invoice->date->format('d M Y') }}</div>
-                <div class="service-block-right">
-                    <div class="cf-label">Service</div>
-                    <div class="cf-service">{{ $serviceName }}</div>
-                </div>
-            </td>
+            <td><div class="label">Invoice No.</div><div class="itop-value">{{ $invoice->number }}</div></td>
+            <td class="text-right"><div class="label">Date</div><div class="itop-value">{{ $invoice->date->format('d M Y') }}</div></td>
         </tr>
     </table>
+
+    <div class="bill-to-block">
+        <div class="label">Bill To</div>
+        @if(!empty($client['company_name']))<strong>{{ $client['company_name'] }}</strong><br>@endif
+        @if(!empty($client['contact_person']))Attn: {{ $client['contact_person'] }}<br>@endif
+        @if(!empty($client['designation'])){{ $client['designation'] }}<br>@endif
+        @if(!empty($client['address'])){{ $client['address'] }}<br>@endif
+        @if(!empty($client['email'])){{ $client['email'] }}@endif
+    </div>
 
     <div class="section financial-section">
         @include('documents.invoice_charge_table', ['invoice' => $invoice, 'serviceRows' => $serviceRows, 'currency' => $currency])

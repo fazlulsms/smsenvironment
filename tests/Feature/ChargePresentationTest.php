@@ -109,9 +109,9 @@ class ChargePresentationTest extends TestCase
         foreach ($components as $component) {
             $this->assertStringContainsString(e($component), $html);
         }
-        // The CHARGE FOR block lists components with no per-component price; the
-        // single total is shown once in the financial summary (not this partial).
-        $this->assertStringNotContainsString('139,130.00', $html);
+        // Components are listed with no per-component price; the single package
+        // total appears exactly once, in the AMOUNT column spanning the block.
+        $this->assertSame(1, substr_count($html, '139,130.00'));
 
         $this->assertNotEmpty(app(DocumentPdfService::class)->proformaInvoicePdf($invoice)->output());
     }

@@ -125,7 +125,7 @@
         </div>
         <div class="fs-body">
             <div class="row g-3 mb-2">
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label class="form-label">Charge Presentation</label>
                     <select class="form-select" name="charge_presentation" id="chargePresentation">
                         @foreach (\App\Models\ProformaInvoice::PRESENTATIONS as $value => $label)
@@ -133,9 +133,13 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-7" id="chargeTitleWrap">
+                <div class="col-md-4" id="chargeTitleWrap">
                     <label class="form-label">Service / Package Title</label>
-                    <input class="form-control" name="charge_title" id="chargeTitle" value="{{ old('charge_title', $document->charge_title) }}" placeholder="e.g. Energy Audit · shown as the SERVICE on the invoice">
+                    <input class="form-control" name="charge_title" id="chargeTitle" value="{{ old('charge_title', $document->charge_title) }}" placeholder="e.g. Energy Audit · the SERVICE row">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Site Name <span class="text-secondary fw-normal">(optional)</span></label>
+                    <input class="form-control" name="site_name" value="{{ old('site_name', $document->site_name) }}" placeholder="Defaults to client company name">
                 </div>
             </div>
 
