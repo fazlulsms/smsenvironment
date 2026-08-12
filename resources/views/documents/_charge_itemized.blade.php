@@ -1,6 +1,6 @@
 <div class="table-responsive">
     <table class="table align-middle" id="itemsTable">
-        <thead><tr><th style="width:20%">Service</th><th>Description / Scope</th><th style="width:9%">Unit</th><th style="width:9%">Qty</th><th style="width:14%" class="num">Rate</th><th style="width:14%" class="num">Amount</th><th></th></tr></thead>
+        <thead><tr><th style="width:22%">Service</th><th>Service / Particular</th><th style="width:18%" class="num">Amount</th><th style="width:44px"></th></tr></thead>
         <tbody>
         @foreach ($items as $index => $item)
             @include('documents.item_row', ['index' => $index, 'item' => $item])

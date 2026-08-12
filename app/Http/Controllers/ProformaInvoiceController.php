@@ -266,9 +266,8 @@ class ProformaInvoiceController extends Controller
             ProformaInvoice::PRESENTATION_CONSOLIDATED => [
                 'consolidated.service_id' => ['nullable', 'exists:services,id'],
                 'consolidated.description' => ['required', 'string'],
-                'consolidated.unit' => ['nullable', 'string', 'max:255'],
-                'consolidated.quantity' => ['nullable', 'numeric', 'min:0'],
-                'consolidated.unit_rate' => ['required', 'numeric', 'min:0'],
+                'consolidated.amount' => ['nullable', 'numeric', 'min:0'],
+                'consolidated.unit_rate' => ['nullable', 'numeric', 'min:0'], // legacy alias
             ],
             ProformaInvoice::PRESENTATION_BREAKDOWN => [
                 'breakdown.service_id' => ['nullable', 'exists:services,id'],
@@ -279,12 +278,13 @@ class ProformaInvoiceController extends Controller
             default => [
                 'items' => ['required', 'array', 'min:1'],
                 'items.*.service_id' => ['nullable', 'exists:services,id'],
-                'items.*.pricing_mode' => ['nullable', 'in:separate,consolidated'],
                 'items.*.description' => ['nullable', 'string'],
                 'items.*.scope_items' => ['nullable'],
+                'items.*.amount' => ['nullable', 'numeric', 'min:0'],
+                // Legacy fields kept optional for backward compatibility.
                 'items.*.unit' => ['nullable', 'string', 'max:255'],
-                'items.*.quantity' => ['required', 'numeric', 'min:0'],
-                'items.*.unit_rate' => ['required', 'numeric', 'min:0'],
+                'items.*.quantity' => ['nullable', 'numeric', 'min:0'],
+                'items.*.unit_rate' => ['nullable', 'numeric', 'min:0'],
             ],
         };
 
@@ -316,9 +316,8 @@ class ProformaInvoiceController extends Controller
                 'pricing_mode' => 'consolidated',
                 'description' => $c['description'] ?? '',
                 'scope_items' => '',
-                'unit' => $c['unit'] ?? null,
-                'quantity' => ($c['quantity'] ?? null) ?: 1,
-                'unit_rate' => $c['unit_rate'] ?? 0,
+                'quantity' => 1,
+                'amount' => $c['amount'] ?? $c['unit_rate'] ?? 0,
             ]];
         }
 
@@ -332,7 +331,7 @@ class ProformaInvoiceController extends Controller
                 'scope_items' => implode("\n", $this->splitLines($b['components'] ?? '')),
                 'unit' => $b['unit'] ?? null,
                 'quantity' => 1,
-                'unit_rate' => $b['amount'] ?? 0,
+                'amount' => $b['amount'] ?? 0,
             ]];
         }
 
@@ -442,16 +441,20 @@ class ProformaInvoiceController extends Controller
 
         foreach (array_values($input) as $index => $item) {
             $service = empty($item['service_id']) ? null : Service::query()->find($item['service_id']);
-            $amount = (float) $item['quantity'] * (float) $item['unit_rate'];
+            // New model: the user enters the amount directly. Legacy payloads
+            // (quantity × unit_rate) are still supported for backward safety.
+            $amount = array_key_exists('amount', $item)
+                ? (float) $item['amount']
+                : (float) ($item['quantity'] ?? 1) * (float) ($item['unit_rate'] ?? 0);
             $subtotal += $amount;
             $items[] = [
                 'service_id' => $item['service_id'] ?? null,
                 'pricing_mode' => ($item['pricing_mode'] ?? null) ?: ($service?->defaultPricingMode() ?? 'separate'),
-                'description' => $item['description'] ?: $content->serviceDescription($service, $type) ?: 'Service',
+                'description' => ($item['description'] ?? '') ?: $content->serviceDescription($service, $type) ?: 'Service',
                 'scope_items' => $this->scopeItems($item, $service),
-                'unit' => $item['unit'] ?: ($service?->default_unit),
-                'quantity' => $item['quantity'],
-                'unit_rate' => $item['unit_rate'],
+                'unit' => ($item['unit'] ?? null) ?: $service?->default_unit,
+                'quantity' => $item['quantity'] ?? 1,
+                'unit_rate' => $item['unit_rate'] ?? $amount,
                 'amount' => $amount,
                 'sort_order' => $index + 1,
             ];

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\BankAccount;
+use App\Models\BusinessEntity;
 use App\Models\Client;
 use App\Models\ProformaInvoice;
 use App\Models\Service;
@@ -10,6 +11,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Services\DocumentPdfService;
 use App\Services\ProformaInvoiceVerificationService;
+use App\Support\CurrentEntity;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -129,7 +131,8 @@ class ChargePresentationTest extends TestCase
         $this->assertEquals(2800, (float) $invoice->total);
 
         $html = $this->chargeTableHtml($invoice);
-        $this->assertStringContainsString('Rate', $html);
+        $this->assertStringContainsString('Service / Particular', $html);
+        $this->assertStringNotContainsString('Unit', $html);   // no unit/qty/rate columns
         $this->assertStringContainsString('2,400.00', $html);
         $this->assertStringContainsString('400.00', $html);
     }
@@ -185,8 +188,8 @@ class ChargePresentationTest extends TestCase
 
     public function test_charge_presentation_works_for_a_secondary_entity(): void
     {
-        $eco = \App\Models\BusinessEntity::query()->where('entity_code', 'ECOVERITAS')->firstOrFail();
-        app(\App\Support\CurrentEntity::class)->use($eco->id);
+        $eco = BusinessEntity::query()->where('entity_code', 'ECOVERITAS')->firstOrFail();
+        app(CurrentEntity::class)->use($eco->id);
         Setting::current();
         $client = Client::query()->create(['company_name' => 'Eco Client', 'address' => 'Somewhere']);
         $bank = BankAccount::query()->create(['beneficiary_name' => 'B', 'bank_name' => 'Bank', 'account_number' => '55', 'is_active' => true, 'is_default' => true]);

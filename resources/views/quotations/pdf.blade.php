@@ -228,7 +228,7 @@
 
     <div class="section financial-section">
         <table class="proposal-table">
-            <thead><tr><th style="width:6%">SL</th><th>Service / Particular</th><th style="width:14%">Unit / Qty</th><th style="width:15%" class="text-right">Unit Rate</th><th style="width:15%" class="text-right">Amount</th></tr></thead>
+            <thead><tr><th style="width:6%">SL</th><th>Service / Particular</th><th style="width:22%" class="text-right">Amount</th></tr></thead>
             <tbody>
             @foreach($serviceRows as $row)
                 <tr>
@@ -245,8 +245,6 @@
                             </ul>
                         @endif
                     </td>
-                    <td class="text-center">{{ $row['item']->unit }} / {{ number_format($row['item']->quantity, 2) }}</td>
-                    <td class="text-right">{{ number_format($row['item']->unit_rate, 2) }}</td>
                     <td class="text-right">{{ number_format($row['item']->amount, 2) }}</td>
                 </tr>
             @endforeach

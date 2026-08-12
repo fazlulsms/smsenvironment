@@ -150,11 +150,8 @@
                         </select>
                     </div>
                     <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="consolidated[description]" rows="3" placeholder="Certification Fee, including the audit, certification, licence fees and transportation costs.">{{ old('consolidated.description', $chargeMode === 'consolidated' ? $firstItem?->description : '') }}</textarea></div>
-                    <div class="col-md-4"><label class="form-label">Unit</label><input class="form-control" name="consolidated[unit]" value="{{ old('consolidated.unit', $chargeMode === 'consolidated' ? $firstItem?->unit : 'Job') }}"></div>
-                    <div class="col-md-4"><label class="form-label">Qty</label><input class="form-control num" type="number" step="0.01" name="consolidated[quantity]" value="{{ old('consolidated.quantity', $chargeMode === 'consolidated' ? ($firstItem?->quantity ?? 1) : 1) }}"></div>
-                    <div class="col-md-4"><label class="form-label">Amount ({{ $currency }})</label><input class="form-control num" type="number" step="0.01" name="consolidated[unit_rate]" value="{{ old('consolidated.unit_rate', $chargeMode === 'consolidated' ? $firstItem?->unit_rate : null) }}"></div>
+                    <div class="col-md-4"><label class="form-label">Amount ({{ $currency }})</label><input class="form-control num" type="number" step="0.01" min="0" name="consolidated[amount]" value="{{ old('consolidated.amount', $chargeMode === 'consolidated' ? $firstItem?->amount : null) }}"></div>
                 </div>
-                <div class="form-hint mt-2">Total = Qty × Amount. For a single fee, keep Qty at 1.</div>
             </div>
 
             {{-- Breakdown — one total --}}
@@ -268,13 +265,9 @@ function rowTemplate(index) {
 function recalc() {
     let subtotal = 0;
     tableBody.querySelectorAll('tr').forEach(row => {
-        const qty = parseFloat(row.querySelector('[data-qty]').value || 0);
-        const rate = parseFloat(row.querySelector('[data-rate]').value || 0);
-        const amount = qty * rate;
-        subtotal += amount;
-        row.querySelector('[data-amount]').textContent = amount.toFixed(2);
+        subtotal += parseFloat(row.querySelector('[data-amount-input]')?.value || 0);
     });
-    const adjustment = parseFloat(document.querySelector('[name="adjustment"]').value || 0);
+    const adjustment = parseFloat(document.querySelector('[name="adjustment"]')?.value || 0);
     const vatTreatment = document.querySelector('[name="vat_treatment"]')?.value || 'exclusive';
     const vatRate = parseFloat(document.querySelector('[name="vat_rate"]')?.value || 0);
     const net = subtotal + adjustment;
@@ -443,7 +436,7 @@ toggleQuickClient.addEventListener('click', () => {
 });
 
 document.addEventListener('input', event => {
-    if (event.target.matches('.calc, [name="vat_rate"]')) recalc();
+    if (event.target.matches('.calc, .amount-input, [name="vat_rate"]')) recalc();
 });
 
 document.addEventListener('change', event => {
@@ -456,21 +449,23 @@ document.addEventListener('change', event => {
     const service = services[event.target.value];
     if (! service) return;
     const row = event.target.closest('tr');
-    row.querySelector('[data-description]').value = {{ $isQuotation ? 'service.quotation_scope || service.default_description || service.name' : 'service.invoice_description || service.default_description || service.name' }};
-    row.querySelector('[data-pricing-mode]').value = service.service_type === 'standalone' ? 'separate' : 'consolidated';
-    row.querySelector('[data-scope-items]').value = (service.components || [])
+    const description = row.querySelector('[data-description]');
+    if (description) description.value = {{ $isQuotation ? 'service.quotation_scope || service.default_description || service.name' : 'service.invoice_description || service.default_description || service.name' }};
+    const scope = row.querySelector('[data-scope-items]');
+    if (scope) scope.value = (service.components || [])
         .filter(component => component.is_active)
         .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
         .map(component => component.name)
         .join("\n");
-    row.querySelector('[data-unit]').value = service.default_unit || '';
-    row.querySelector('[data-rate]').value = service.default_rate || 0;
+    const amount = row.querySelector('[data-amount-input]');
+    if (amount && !parseFloat(amount.value || 0)) amount.value = service.default_rate || 0;
     recalc();
 });
 
 document.addEventListener('click', event => {
-    if (! event.target.matches('[data-remove-row]')) return;
-    if (tableBody.querySelectorAll('tr').length > 1) event.target.closest('tr').remove();
+    const removeBtn = event.target.closest('[data-remove-row]');
+    if (! removeBtn) return;
+    if (tableBody.querySelectorAll('tr').length > 1) removeBtn.closest('tr').remove();
     recalc();
 });
 
