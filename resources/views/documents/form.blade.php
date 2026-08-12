@@ -144,9 +144,9 @@
                 <div class="row g-3">
                     <div class="col-md-5">
                         <label class="form-label">Service (optional)</label>
-                        <select class="form-select" data-charge-service>
+                        <select class="form-select" name="consolidated[service_id]" data-charge-service>
                             <option value="">— none —</option>
-                            @foreach ($serviceOptions as $opt)<option value="{{ $opt['id'] }}">{{ $opt['label'] }}</option>@endforeach
+                            @foreach ($serviceOptions as $opt)<option value="{{ $opt['id'] }}" @selected(old('consolidated.service_id', $chargeMode === 'consolidated' ? $firstItem?->service_id : null) == $opt['id'])>{{ $opt['label'] }}</option>@endforeach
                         </select>
                     </div>
                     <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="consolidated[description]" rows="3" placeholder="Certification Fee, including the audit, certification, licence fees and transportation costs.">{{ old('consolidated.description', $chargeMode === 'consolidated' ? $firstItem?->description : '') }}</textarea></div>
@@ -159,9 +159,9 @@
                 <div class="row g-3">
                     <div class="col-md-5">
                         <label class="form-label">Service (optional)</label>
-                        <select class="form-select" data-charge-service>
+                        <select class="form-select" name="breakdown[service_id]" data-charge-service>
                             <option value="">— none —</option>
-                            @foreach ($serviceOptions as $opt)<option value="{{ $opt['id'] }}">{{ $opt['label'] }}</option>@endforeach
+                            @foreach ($serviceOptions as $opt)<option value="{{ $opt['id'] }}" @selected(old('breakdown.service_id', $chargeMode === 'component_breakdown' ? $firstItem?->service_id : null) == $opt['id'])>{{ $opt['label'] }}</option>@endforeach
                         </select>
                     </div>
                     <div class="col-12"><label class="form-label">Components (one per line — no individual prices)</label><textarea class="form-control" name="breakdown[components]" rows="5" placeholder="SLCP Verification Fee (Step-03)&#10;Verification Initiation &amp; Upload Fee&#10;Administration Fee&#10;Travel &amp; Operational Cost">{{ old('breakdown.components', $chargeMode === 'component_breakdown' ? implode("\n", $firstItem?->scope_items ?? []) : '') }}</textarea></div>
@@ -494,24 +494,33 @@ if (chargePresentation) {
 
     document.querySelectorAll('[data-charge-service]').forEach(select => {
         select.addEventListener('change', () => {
-            const service = services[select.value];
-            if (!service) return;
             const panel = select.closest('[data-mode-panel]');
             const mode = panel.dataset.modePanel;
+            const service = services[select.value];
             const title = document.getElementById('chargeTitle');
-            if (title && !title.value) title.value = service.short_name || service.name || '';
+
+            // Selecting a service is an explicit request to load that service's
+            // defaults, so we OVERWRITE the title/description/components. Choosing
+            // "— none —" leaves whatever the user has typed (custom invoice).
+            if (! service) return;
+
+            if (title) title.value = service.short_name || service.name || '';
+            const defaultRate = parseFloat(service.default_rate || 0);
+
             if (mode === 'consolidated') {
                 const desc = panel.querySelector('[name="consolidated[description]"]');
-                if (desc && !desc.value) desc.value = service.invoice_description || service.default_description || service.name || '';
-                const unit = panel.querySelector('[name="consolidated[unit]"]');
-                if (unit && !unit.value) unit.value = service.default_unit || '';
+                if (desc) desc.value = service.invoice_description || service.default_description || service.name || '';
+                const amount = panel.querySelector('[name="consolidated[amount]"]');
+                if (amount && defaultRate > 0) amount.value = service.default_rate;
             } else {
                 const components = (service.components || [])
                     .filter(c => c.is_active)
                     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
                     .map(c => c.name).join('\n');
                 const textarea = panel.querySelector('[name="breakdown[components]"]');
-                if (textarea && !textarea.value) textarea.value = components;
+                if (textarea) textarea.value = components;
+                const amount = panel.querySelector('[name="breakdown[amount]"]');
+                if (amount && defaultRate > 0) amount.value = service.default_rate;
             }
         });
     });

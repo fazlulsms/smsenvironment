@@ -68,7 +68,7 @@ class ProformaInvoiceController extends Controller
         $invoice = DB::transaction(function () use ($request, $numbers, $content, $verification) {
             $data = $this->validated($request);
             $data['items'] = $this->normalizeItems($data);
-            $data['charge_for'] = ($data['charge_for'] ?? null) ?: ($data['charge_title'] ?? null);
+            $data['charge_for'] = $this->resolveChargeFor($data);
             $client = $this->resolveClient($data);
             $bank = $this->resolveBank($data);
             $this->validateBankForPdf($bank, $request->input('after_save') === 'pdf');
@@ -130,7 +130,7 @@ class ProformaInvoiceController extends Controller
         DB::transaction(function () use ($request, $proformaInvoice, $content, $verification) {
             $data = $this->validated($request);
             $data['items'] = $this->normalizeItems($data);
-            $data['charge_for'] = ($data['charge_for'] ?? null) ?: ($data['charge_title'] ?? null);
+            $data['charge_for'] = $this->resolveChargeFor($data);
             $client = $this->resolveClient($data);
             $bank = $this->resolveBank($data);
             $this->validateBankForPdf($bank, false);
@@ -336,6 +336,23 @@ class ProformaInvoiceController extends Controller
         }
 
         return $data['items'] ?? [];
+    }
+
+    /**
+     * The invoice "Charge For" summary. For the single-charge modes the commercial
+     * title is the single source of truth (no divergent charge_for/charge_title).
+     * For itemized documents an explicit override is used, otherwise invoiceDefaults
+     * fills it from the selected service names.
+     */
+    private function resolveChargeFor(array $data): ?string
+    {
+        $mode = $data['charge_presentation'] ?? ProformaInvoice::PRESENTATION_ITEMIZED;
+
+        if (in_array($mode, [ProformaInvoice::PRESENTATION_CONSOLIDATED, ProformaInvoice::PRESENTATION_BREAKDOWN], true)) {
+            return $data['charge_title'] ?? null;
+        }
+
+        return ($data['charge_for'] ?? null) ?: null;
     }
 
     private function splitLines(?string $text): array
