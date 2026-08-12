@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BusinessEntity;
 use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,6 +79,12 @@ class SettingController extends Controller
         }
 
         $settings->update($data);
+
+        // Keep the owning business entity's logo in sync so the app UI, entity
+        // switcher and future document snapshots all use the uploaded logo.
+        if (isset($data['logo_path']) && $settings->business_entity_id) {
+            BusinessEntity::query()->whereKey($settings->business_entity_id)->update(['logo_path' => $data['logo_path']]);
+        }
 
         return redirect()->route('settings.edit')->with('status', 'Settings updated.');
     }

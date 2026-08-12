@@ -62,6 +62,10 @@ class DocumentPdfService
         $profile = DocumentProfile::forInvoice($invoice);
         $money = InvoiceMoney::context($invoice, $settings);
         $entity = BusinessEntity::query()->where('entity_code', $invoice->entity_code)->first();
+        // Branding logo: prefer the immutable snapshot, but if it has none or the
+        // file is gone (e.g. an older invoice, or a logo replaced via Settings),
+        // fall back to the entity's current logo so the document is never unbranded.
+        $settings['logo_path'] = $this->resolveLogoPath($settings['logo_path'] ?? null, $entity);
 
         return PdfFacade::loadView($profile['pdf_view'], [
             'invoice' => $invoice,
@@ -91,6 +95,30 @@ class DocumentPdfService
     public function proformaInvoiceFilename(ProformaInvoice $invoice): string
     {
         return $this->filenames->proformaInvoiceFilename($invoice);
+    }
+
+    /**
+     * Resolve a usable logo path. Keeps the snapshot logo when its file still
+     * exists (historical fidelity); otherwise falls back to the entity's current
+     * settings logo, then its entity logo, so branding never silently disappears.
+     */
+    private function resolveLogoPath(?string $snapshotLogo, ?BusinessEntity $entity): ?string
+    {
+        $exists = fn (?string $path) => filled($path) && file_exists(storage_path('app/public/'.$path));
+
+        if ($exists($snapshotLogo)) {
+            return $snapshotLogo;
+        }
+
+        $liveSettingsLogo = $entity
+            ? Setting::query()->where('business_entity_id', $entity->id)->value('logo_path')
+            : null;
+
+        if ($exists($liveSettingsLogo)) {
+            return $liveSettingsLogo;
+        }
+
+        return $exists($entity?->logo_path) ? $entity->logo_path : $snapshotLogo;
     }
 
     private function ensureBankSnapshot(?array $bank): void
