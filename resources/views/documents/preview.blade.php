@@ -1,3 +1,7 @@
+@php $__isEidikos = ($type === 'invoice') && \App\Support\DocumentProfile::isEidikos($document->entity_code); @endphp
+@if ($__isEidikos)
+    @include('documents.eidikos_preview', ['document' => $document])
+@else
 @php
     // Detail/preview renders the saved snapshot with the same DESCRIPTION | AMOUNT
     // logic as the PDF. No Unit/Qty/Rate; never live service data.
@@ -102,3 +106,4 @@
         </div>
     </div>
 </div>
+@endif

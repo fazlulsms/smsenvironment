@@ -3,9 +3,12 @@
 namespace App\Services;
 
 use App\Models\BankAccount;
+use App\Models\BusinessEntity;
 use App\Models\ProformaInvoice;
 use App\Models\Quotation;
 use App\Models\Setting;
+use App\Support\DocumentProfile;
+use App\Support\InvoiceMoney;
 use Barryvdh\DomPDF\Facade\Pdf as PdfFacade;
 use Barryvdh\DomPDF\PDF;
 use Illuminate\Validation\ValidationException;
@@ -56,15 +59,24 @@ class DocumentPdfService
 
         $this->ensureBankSnapshot($bank);
 
-        return PdfFacade::loadView('proforma_invoices.pdf', [
+        $profile = DocumentProfile::forInvoice($invoice);
+        $money = InvoiceMoney::context($invoice, $settings);
+        $entity = BusinessEntity::query()->where('entity_code', $invoice->entity_code)->first();
+
+        return PdfFacade::loadView($profile['pdf_view'], [
             'invoice' => $invoice,
             'settings' => $settings,
+            'entity' => $entity,
+            'profile' => $profile,
+            'money' => $money,
             'client' => $invoice->client_snapshot ?: $this->clientSnapshot($invoice->client),
             'bank' => $bank,
-            'verificationQr' => $this->invoiceVerification->qrDataUri($invoice),
+            // Verification/QR is a per-profile decision — profiles that opt out
+            // (e.g. Eidikos) never render or even generate a QR.
+            'verificationQr' => $profile['show_verification'] ? $this->invoiceVerification->qrDataUri($invoice) : null,
             'amountInWords' => $this->words->convert(
-                $invoice->total,
-                $settings['default_currency'] ?? 'BDT',
+                $money['words_amount'],
+                $money['words_currency'],
                 $settings['currency_major_name'] ?? 'Taka',
                 $settings['currency_minor_name'] ?? 'Paisa'
             ),

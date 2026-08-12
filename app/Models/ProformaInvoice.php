@@ -32,7 +32,10 @@ class ProformaInvoice extends Model
         'bank_account_id',
         'created_by',
         'number',
+        'reference_no',
         'date',
+        'currency',
+        'conversion_rate',
         'client_snapshot',
         'bank_snapshot',
         'settings_snapshot',
@@ -59,6 +62,7 @@ class ProformaInvoice extends Model
     {
         return [
             'date' => 'date',
+            'conversion_rate' => 'decimal:4',
             'client_snapshot' => 'array',
             'bank_snapshot' => 'array',
             'settings_snapshot' => 'array',

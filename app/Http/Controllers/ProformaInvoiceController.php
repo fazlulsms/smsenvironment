@@ -249,6 +249,9 @@ class ProformaInvoiceController extends Controller
             'new_client.country' => ['nullable', 'string', 'max:255'],
             'bank_account_id' => ['nullable', 'exists:bank_accounts,id'],
             'date' => ['required', 'date'],
+            'reference_no' => ['nullable', 'string', 'max:255'],
+            'currency' => ['nullable', 'string', 'max:8'],
+            'conversion_rate' => ['nullable', 'numeric', 'min:0'],
             'charge_presentation' => ['nullable', 'in:consolidated,component_breakdown,itemized'],
             'charge_title' => [$titleRequired ? 'required' : 'nullable', 'string', 'max:255'],
             'site_name' => ['nullable', 'string', 'max:255'],
@@ -423,6 +426,7 @@ class ProformaInvoiceController extends Controller
             'organization_name', 'logo_path', 'tagline', 'office_address', 'phone', 'email', 'website',
             'default_currency', 'currency_major_name', 'currency_minor_name',
             'prepared_by_name', 'prepared_by_designation', 'footer_text', 'pdf_note',
+            'invoice_payment_terms', 'invoice_default_notes',
             'quotation_vat_treatment', 'quotation_vat_rate', 'quotation_show_vat_separately',
         ]);
     }

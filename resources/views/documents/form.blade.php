@@ -124,6 +124,23 @@
             <div><div class="fs-t">Charge Presentation</div><div class="fs-s">Choose how the charges appear on this invoice.</div></div>
         </div>
         <div class="fs-body">
+            @php $curOptions = ['BDT', 'USD', 'EUR', 'GBP']; $curValue = old('currency', $document->currency ?: ($settings->default_currency ?: 'BDT')); @endphp
+            <div class="row g-3 mb-2">
+                <div class="col-md-4">
+                    <label class="form-label">Reference No. <span class="text-secondary fw-normal">(optional)</span></label>
+                    <input class="form-control" name="reference_no" value="{{ old('reference_no', $document->reference_no) }}" placeholder="Separate from the invoice number">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Currency</label>
+                    <select class="form-select" name="currency">
+                        @foreach ($curOptions as $cur)<option value="{{ $cur }}" @selected($curValue === $cur)>{{ $cur }}</option>@endforeach
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Conversion Rate <span class="text-secondary fw-normal">(1 unit = BDT)</span></label>
+                    <input class="form-control num" type="number" step="0.0001" min="0" name="conversion_rate" value="{{ old('conversion_rate', $document->conversion_rate ? rtrim(rtrim(number_format((float) $document->conversion_rate, 4, '.', ''), '0'), '.') : null) }}" placeholder="Blank = single currency">
+                </div>
+            </div>
             <div class="row g-3 mb-2">
                 <div class="col-md-4">
                     <label class="form-label">Charge Presentation</label>

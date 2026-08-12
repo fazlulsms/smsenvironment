@@ -1,6 +1,6 @@
 @extends('layouts.app', ['title' => $invoice->number])
 
-@php $currency = \App\Models\Setting::current()->default_currency ?: 'BDT'; @endphp
+@php $currency = $invoice->currency ?: (\App\Models\Setting::current()->default_currency ?: 'BDT'); @endphp
 
 @section('content')
 <x-page-toolbar>
