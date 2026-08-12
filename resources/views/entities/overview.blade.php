@@ -31,6 +31,7 @@
                     <div class="cell-sub mb-3">
                         Quoted {{ $entity->default_currency }} {{ number_format($entity->stat_quoted_value, 0) }}
                         · Invoiced {{ $entity->default_currency }} {{ number_format($entity->stat_invoiced_value, 0) }}
+                        · {{ $entity->stat_clients }} clients · {{ $entity->stat_emails }} emails
                     </div>
                     @if ($entity->id === $currentId)
                         <a class="btn btn-outline-secondary w-100" href="{{ route('dashboard') }}">Open dashboard</a>

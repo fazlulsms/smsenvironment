@@ -12,7 +12,18 @@ class BusinessEntity extends Model
         'address', 'city', 'postal_code', 'country', 'phone', 'secondary_phone',
         'email', 'finance_email', 'website', 'default_currency', 'active', 'is_default',
         'quotation_enabled', 'proforma_invoice_enabled', 'email_enabled', 'qr_verification_enabled',
+        'primary_color', 'secondary_color', 'accent_color',
     ];
+
+    /** Theme tokens for the app UI, with a safe SMSEA-green fallback. */
+    public function theme(): array
+    {
+        return [
+            'primary' => $this->primary_color ?: '#1f6f4a',
+            'secondary' => $this->secondary_color ?: '#2da46f',
+            'accent' => $this->accent_color ?: '#46c98a',
+        ];
+    }
 
     protected function casts(): array
     {

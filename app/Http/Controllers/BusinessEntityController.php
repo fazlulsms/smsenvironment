@@ -40,6 +40,61 @@ class BusinessEntityController extends Controller
         return view('entities.overview', ['entities' => $entities]);
     }
 
+    public function index(): View
+    {
+        return view('entities.index', [
+            'entities' => BusinessEntity::query()->orderByDesc('is_default')->orderBy('name')->get(),
+        ]);
+    }
+
+    public function edit(BusinessEntity $entity): View
+    {
+        return view('entities.edit', ['entity' => $entity]);
+    }
+
+    public function update(Request $request, BusinessEntity $entity): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'short_name' => ['nullable', 'string', 'max:255'],
+            'legal_name' => ['nullable', 'string', 'max:255'],
+            'tagline' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'postal_code' => ['nullable', 'string', 'max:255'],
+            'country' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:255'],
+            'secondary_phone' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'finance_email' => ['nullable', 'email', 'max:255'],
+            'website' => ['nullable', 'string', 'max:255'],
+            'default_currency' => ['required', 'string', 'max:10'],
+            'primary_color' => ['nullable', 'string', 'max:9'],
+            'secondary_color' => ['nullable', 'string', 'max:9'],
+            'accent_color' => ['nullable', 'string', 'max:9'],
+            'active' => ['nullable', 'boolean'],
+            'quotation_enabled' => ['nullable', 'boolean'],
+            'proforma_invoice_enabled' => ['nullable', 'boolean'],
+            'email_enabled' => ['nullable', 'boolean'],
+            'qr_verification_enabled' => ['nullable', 'boolean'],
+            'logo' => ['nullable', 'image', 'max:4096'],
+        ]);
+
+        foreach (['active', 'quotation_enabled', 'proforma_invoice_enabled', 'email_enabled', 'qr_verification_enabled'] as $flag) {
+            $data[$flag] = $request->boolean($flag);
+        }
+
+        if ($request->hasFile('logo')) {
+            $data['logo_path'] = $request->file('logo')->store('logos', 'public');
+        }
+        unset($data['logo']);
+
+        // entity_code is intentionally NOT editable — it anchors historical QR verification.
+        $entity->update($data);
+
+        return redirect()->route('entities.edit', $entity)->with('status', $entity->name.' updated.');
+    }
+
     public function switch(Request $request, CurrentEntity $current): RedirectResponse
     {
         $entity = BusinessEntity::query()

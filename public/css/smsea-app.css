@@ -3,11 +3,17 @@
    App UI only. Never referenced by generated PDF templates.
    ========================================================================== */
 :root {
-    --brand: #1f6f4a;
-    --brand-600: #1b6342;
-    --brand-700: #155035;
-    --brand-050: #eaf4ef;
-    --brand-100: #d6ecdf;
+    /* Per-entity theme tokens (overridden inline per active entity); fall back to SMSEA green. */
+    --entity-primary: #1f6f4a;
+    --entity-secondary: #2da46f;
+    --entity-accent: #46c98a;
+
+    /* Brand palette derived from the active entity's primary colour. */
+    --brand: var(--entity-primary);
+    --brand-600: color-mix(in srgb, var(--entity-primary) 88%, #000);
+    --brand-700: color-mix(in srgb, var(--entity-primary) 74%, #000);
+    --brand-050: color-mix(in srgb, var(--entity-primary) 8%, #fff);
+    --brand-100: color-mix(in srgb, var(--entity-primary) 16%, #fff);
 
     --ink: #1b2a24;
     --ink-2: #47574f;
@@ -92,8 +98,10 @@ body.sidebar-collapsed .app-main { margin-left: var(--sidebar-w-collapsed); }
 .entity-switch-btn.dropdown-toggle::after { margin-left: auto; color: #7f978a; }
 .entity-switch-btn .es-avatar {
     width: 32px; height: 32px; border-radius: 8px; flex: none; display: grid; place-items: center;
-    background: linear-gradient(135deg, var(--brand), #2da46f); color: #fff; font-weight: 800; font-size: 12px;
+    background: linear-gradient(135deg, var(--entity-primary), var(--entity-accent)); color: #fff; font-weight: 800; font-size: 12px;
+    overflow: hidden;
 }
+.entity-switch-btn .es-avatar img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
 .entity-switch-btn .es-meta { line-height: 1.15; overflow: hidden; }
 .entity-switch-btn .es-label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #7f978a; display: block; }
 .entity-switch-btn .es-meta b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
@@ -103,6 +111,7 @@ body.sidebar-collapsed .app-main { margin-left: var(--sidebar-w-collapsed); }
     background: var(--brand-050); color: var(--brand); font-weight: 700; font-size: 10.5px;
 }
 .entity-switch-menu form { margin: 0; }
+.entity-switch-menu .es-color-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px rgba(0,0,0,.05); }
 .entity-switch-menu .dropdown-item.active { background: var(--brand-050); color: var(--brand-700); }
 body.sidebar-collapsed .entity-switch .es-meta,
 body.sidebar-collapsed .entity-switch-btn.dropdown-toggle::after { display: none; }
@@ -125,11 +134,11 @@ body.sidebar-collapsed .entity-switch-btn { justify-content: center; padding: 8p
 .nav-item-link .ico { flex: none; color: #8ba99a; transition: color .12s; }
 .nav-item-link:hover { background: rgba(255,255,255,.06); color: #fff; }
 .nav-item-link:hover .ico { color: #cfe6d9; }
-.nav-item-link.active { background: rgba(45,164,111,.16); color: #fff; }
-.nav-item-link.active .ico { color: #46c98a; }
+.nav-item-link.active { background: color-mix(in srgb, var(--entity-accent) 20%, transparent); color: #fff; }
+.nav-item-link.active .ico { color: var(--entity-accent); }
 .nav-item-link.active::before {
     content: ""; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
-    width: 3px; height: 22px; background: #46c98a; border-radius: 0 3px 3px 0;
+    width: 3px; height: 22px; background: var(--entity-accent); border-radius: 0 3px 3px 0;
 }
 .nav-badge {
     margin-left: auto; font-size: 11px; font-weight: 700; background: rgba(255,255,255,.1);
@@ -139,7 +148,7 @@ body.sidebar-collapsed .entity-switch-btn { justify-content: center; padding: 8p
 .side-user { display: flex; align-items: center; gap: 10px; padding: 6px; }
 .side-user .avatar {
     width: 34px; height: 34px; border-radius: 50%; flex: none;
-    background: linear-gradient(135deg, var(--brand), #2da46f); color: #fff;
+    background: linear-gradient(135deg, var(--entity-primary), var(--entity-accent)); color: #fff;
     display: grid; place-items: center; font-weight: 700; font-size: 13px;
 }
 .side-user .u-meta { line-height: 1.15; overflow: hidden; }

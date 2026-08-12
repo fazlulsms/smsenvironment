@@ -25,6 +25,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('entities/overview', [BusinessEntityController::class, 'overview'])->name('entities.overview');
     Route::post('entities/switch', [BusinessEntityController::class, 'switch'])->name('entities.switch');
+    Route::get('entities', [BusinessEntityController::class, 'index'])->name('entities.index');
+    Route::get('entities/{entity}/edit', [BusinessEntityController::class, 'edit'])->name('entities.edit');
+    Route::put('entities/{entity}', [BusinessEntityController::class, 'update'])->name('entities.update');
 
     Route::post('clients/smart-paste', [ClientController::class, 'smartPaste'])->name('clients.smart-paste');
     Route::post('clients/smart-store', [ClientController::class, 'smartStore'])->name('clients.smart-store');

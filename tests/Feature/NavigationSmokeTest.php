@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\BankAccount;
+use App\Models\BusinessEntity;
 use App\Models\Client;
 use App\Models\Service;
 use App\Models\User;
@@ -51,6 +52,11 @@ class NavigationSmokeTest extends TestCase
             route('bank-accounts.create'),
             route('bank-accounts.edit', $bank),
             route('email-deliveries.index'),
+            route('email-accounts.index'),
+            route('email-accounts.create'),
+            route('entities.index'),
+            route('entities.overview'),
+            route('entities.edit', BusinessEntity::query()->firstOrFail()),
             route('settings.edit'),
         ];
 
