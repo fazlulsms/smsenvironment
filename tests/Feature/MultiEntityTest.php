@@ -70,24 +70,22 @@ class MultiEntityTest extends TestCase
         }
     }
 
-    public function test_clients_services_and_banks_are_isolated_by_entity(): void
+    public function test_clients_and_services_are_shared_while_banks_stay_isolated(): void
     {
         $this->useEntity('SMSEA');
-        Client::query()->create(['company_name' => 'ABC Textiles Ltd.', 'address' => 'Dhaka']);
-        Service::query()->create(['name' => 'EIA', 'service_type' => 'bundle', 'is_active' => true]);
+        $client = Client::query()->create(['company_name' => 'ABC Textiles Ltd.', 'address' => 'Dhaka']);
+        $service = Service::query()->create(['name' => 'Energy Audit', 'service_type' => 'consolidated', 'is_active' => true]);
         BankAccount::query()->create(['beneficiary_name' => 'S', 'bank_name' => 'Prime', 'account_number' => '1', 'is_active' => true, 'is_default' => true]);
 
-        $this->assertSame(1, Client::query()->count());
-
+        // From a different entity, the shared masters are still visible/selectable…
         $this->useEntity('ECOVERITAS');
-        $this->assertSame(0, Client::query()->count());
-        $this->assertSame(0, Service::query()->count());
-        $this->assertSame(0, BankAccount::query()->count());
-
-        // Same company name may exist independently in a second entity.
-        Client::query()->create(['company_name' => 'ABC Textiles Ltd.', 'address' => 'Chattogram']);
         $this->assertSame(1, Client::query()->count());
-        $this->assertSame(2, Client::query()->acrossEntities()->where('company_name', 'ABC Textiles Ltd.')->count());
+        $this->assertNotNull(Client::query()->find($client->id));
+        $this->assertNotNull(Service::query()->find($service->id));
+        $this->assertTrue(Service::query()->availableForEntity($this->entity('ECOVERITAS')->id)->whereKey($service->id)->exists());
+
+        // …but banks remain entity-isolated.
+        $this->assertSame(0, BankAccount::query()->count());
     }
 
     public function test_quotation_numbering_is_isolated_per_entity(): void

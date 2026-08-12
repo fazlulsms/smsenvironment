@@ -11,6 +11,7 @@ use App\Services\DocumentContentService;
 use App\Services\DocumentNumberService;
 use App\Services\DocumentPdfService;
 use App\Services\ProformaInvoiceVerificationService;
+use App\Support\CurrentEntity;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -217,6 +218,7 @@ class ProformaInvoiceController extends Controller
             ...$extra,
             'clients' => Client::query()->orderBy('company_name')->get(),
             'services' => Service::query()
+                ->availableForEntity(app(CurrentEntity::class)->id())
                 ->with(['components' => fn ($query) => $query->orderBy('sort_order')->orderBy('id')])
                 ->where('is_active', true)
                 ->orderBy('name')

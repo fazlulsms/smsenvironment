@@ -33,7 +33,7 @@
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead>
-                <tr><th>Service</th><th>Type</th><th>Components</th><th>Unit</th><th class="num">Default Rate</th><th>Status</th><th class="text-end">Actions</th></tr>
+                <tr><th>Service</th><th>Type</th><th>Components</th><th>Enabled For</th><th>Status</th><th class="text-end">Actions</th></tr>
             </thead>
             <tbody>
             @forelse ($services as $service)
@@ -46,8 +46,19 @@
                     <td class="cell-sub">
                         @if ($service->service_type === 'standalone') — @else {{ $service->components_count }} component{{ $service->components_count === 1 ? '' : 's' }} @endif
                     </td>
-                    <td class="cell-sub">{{ $service->default_unit ?: '—' }}</td>
-                    <td class="num money">@if ((float) $service->default_rate > 0)<span class="cur">{{ $currency }}</span>{{ number_format($service->default_rate, 2) }}@else <span class="cell-sub">—</span> @endif</td>
+                    <td>
+                        @php $enabled = $service->businessEntities->where('pivot.active', true); @endphp
+                        @if ($enabled->isEmpty())
+                            <span class="badge-soft b-warn">None</span>
+                        @else
+                            <div class="d-flex flex-wrap gap-1">
+                                @foreach ($enabled->take(4) as $entity)
+                                    <span class="badge-soft b-neutral" title="{{ $entity->name }}">{{ $entity->short_name ?: $entity->entity_code }}</span>
+                                @endforeach
+                                @if ($enabled->count() > 4)<span class="cell-sub">+{{ $enabled->count() - 4 }}</span>@endif
+                            </div>
+                        @endif
+                    </td>
                     <td>
                         @if ($service->is_active)
                             <span class="badge-soft b-ok"><span class="dotmark"></span>Active</span>
@@ -62,7 +73,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="7">
+                <tr><td colspan="6">
                     <x-empty-state icon="services" title="No services yet"
                         message="Add your first environmental service, package or consolidated professional service.">
                         <a class="btn btn-primary btn-sm" href="{{ route('services.create') }}"><x-icon name="plus" :size="15" /> Add Service</a>

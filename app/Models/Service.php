@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToBusinessEntity;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Services are a GLOBAL master shared across entities. Per-entity availability
+ * is expressed through the business_entity_service pivot, not by scoping.
+ */
 class Service extends Model
 {
-    use BelongsToBusinessEntity;
-
     public const TYPE_STANDALONE = 'standalone';
 
     public const TYPE_BUNDLE = 'bundle';
@@ -60,5 +63,39 @@ class Service extends Model
     public function defaultPricingMode(): string
     {
         return $this->service_type === self::TYPE_STANDALONE ? 'separate' : 'consolidated';
+    }
+
+    public function businessEntities(): BelongsToMany
+    {
+        return $this->belongsToMany(BusinessEntity::class, 'business_entity_service')
+            ->withPivot(['active', 'default_amount'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Services available to an entity: those explicitly enabled for it, plus any
+     * service with no availability configured at all (safe default = available).
+     */
+    public function scopeAvailableForEntity(Builder $query, ?int $entityId): Builder
+    {
+        if (! $entityId) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $query) use ($entityId) {
+            $query->whereHas('businessEntities', fn ($q) => $q
+                ->where('business_entities.id', $entityId)
+                ->where('business_entity_service.active', true))
+                ->orWhereDoesntHave('businessEntities');
+        });
+    }
+
+    /** Entity ids this service is actively enabled for. */
+    public function enabledEntityIds(): array
+    {
+        return $this->businessEntities
+            ->filter(fn ($entity) => (bool) $entity->pivot->active)
+            ->pluck('id')
+            ->all();
     }
 }

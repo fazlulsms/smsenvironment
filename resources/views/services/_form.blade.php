@@ -23,6 +23,21 @@
     </div>
 </div>
 
+<div class="form-section">
+    <div class="fs-head"><span class="fs-ico"><x-icon name="dashboard" /></span><div><div class="fs-t">Available For</div><div class="fs-s">Which business entities may use this shared service.</div></div></div>
+    <div class="fs-body">
+        <div class="d-flex flex-wrap gap-3">
+            @foreach ($entities as $entity)
+                <label class="form-check">
+                    <input class="form-check-input" type="checkbox" name="entities[]" value="{{ $entity->id }}"
+                        @checked(in_array($entity->id, old('entities', $enabledEntityIds ?? []), false))>
+                    <span class="form-check-label">{{ $entity->name }}</span>
+                </label>
+            @endforeach
+        </div>
+    </div>
+</div>
+
 <details class="adv" {{ $errors->any() ? 'open' : '' }}>
     <summary><x-icon name="edit" :size="16" /> Document Wording <span class="text-secondary fw-normal ms-2" style="font-size:12px">Subject, scope, compliance &amp; invoice text</span><span class="chev"><x-icon name="chevron-left" :size="14" style="transform:rotate(-90deg)" /></span></summary>
     <div class="adv-body">

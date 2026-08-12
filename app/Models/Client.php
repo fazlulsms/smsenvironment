@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToBusinessEntity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Clients are a GLOBAL master shared across all business entities. The
+ * business_entity_id column is retained (nullable) only to preserve the
+ * original creating entity for reference; it is not used for scoping.
+ */
 class Client extends Model
 {
-    use BelongsToBusinessEntity;
-
     protected $fillable = [
         'business_entity_id',
         'company_name',

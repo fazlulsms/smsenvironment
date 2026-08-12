@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BusinessEntity;
 use App\Models\Client;
+use App\Models\ProformaInvoice;
+use App\Models\Quotation;
+use App\Models\Scopes\BusinessEntityScope;
 use App\Services\ClientInformationExtractor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -13,17 +17,24 @@ class ClientController extends Controller
 {
     public function index(Request $request): View
     {
+        // Clients are a global master — show all, with totals across every entity.
+        $globally = fn ($query) => $query->withoutGlobalScope(BusinessEntityScope::class);
+
         $clients = Client::query()
-            ->withCount(['quotations', 'proformaInvoices'])
+            ->withCount([
+                'quotations as quotations_count' => $globally,
+                'proformaInvoices as proforma_invoices_count' => $globally,
+            ])
             ->when($request->search, function ($query, string $search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('company_name', 'like', "%{$search}%")
                         ->orWhere('contact_person', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
                 });
             })
             ->latest()
-            ->paginate(12)
+            ->paginate(15)
             ->withQueryString();
 
         return view('clients.index', compact('clients'));
@@ -99,12 +110,32 @@ class ClientController extends Controller
 
     public function show(Client $client): View
     {
+        // Recent documents for the CURRENT entity only (safely clickable).
         $client->load([
             'quotations' => fn ($query) => $query->with('emailDeliveries')->latest()->limit(8),
             'proformaInvoices' => fn ($query) => $query->with('emailDeliveries')->latest()->limit(8),
-        ])->loadCount(['quotations', 'proformaInvoices']);
+        ]);
 
-        return view('clients.show', compact('client'));
+        // Business activity broken down by entity (clients are shared globally).
+        $qStats = Quotation::acrossEntities()->where('client_id', $client->id)
+            ->selectRaw('business_entity_id, count(*) c, coalesce(sum(total),0) t')->groupBy('business_entity_id')->get()->keyBy('business_entity_id');
+        $iStats = ProformaInvoice::acrossEntities()->where('client_id', $client->id)
+            ->selectRaw('business_entity_id, count(*) c, coalesce(sum(total),0) t')->groupBy('business_entity_id')->get()->keyBy('business_entity_id');
+
+        $activity = BusinessEntity::query()->orderByDesc('is_default')->orderBy('name')->get()->map(fn ($entity) => [
+            'entity' => $entity,
+            'quotations' => (int) ($qStats[$entity->id]->c ?? 0),
+            'quoted' => (float) ($qStats[$entity->id]->t ?? 0),
+            'invoices' => (int) ($iStats[$entity->id]->c ?? 0),
+            'invoiced' => (float) ($iStats[$entity->id]->t ?? 0),
+        ]);
+
+        return view('clients.show', [
+            'client' => $client,
+            'activity' => $activity,
+            'totalQuotations' => (int) $qStats->sum('c'),
+            'totalInvoices' => (int) $iStats->sum('c'),
+        ]);
     }
 
     public function edit(Client $client): View
