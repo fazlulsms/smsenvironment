@@ -51,7 +51,8 @@ class ProformaInvoiceVerificationTest extends TestCase
         $this->assertStringContainsString('Net Amount: BDT 10,000.00', $payload);
         $this->assertStringContainsString('VAT @ 15%: BDT 1,500.00', $payload);
         $this->assertStringContainsString('Total Payable: BDT 11,500.00', $payload);
-        $this->assertStringContainsString('Payload Version: SMSEA-PI-V1', $payload);
+        $this->assertStringContainsString('Payload Version: '.ProformaInvoiceVerificationService::PAYLOAD_VERSION, $payload);
+        $this->assertStringContainsString('Entity: SMSEA', $payload);
     }
 
     public function test_signature_is_deterministic_changes_with_amount_and_duplicate_gets_new_verification(): void

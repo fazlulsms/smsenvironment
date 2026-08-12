@@ -22,6 +22,14 @@ trait BelongsToBusinessEntity
             if (empty($model->business_entity_id)) {
                 $model->business_entity_id = app(CurrentEntity::class)->id();
             }
+
+            // Snapshot the entity code onto documents that carry one, so QR
+            // verification identity stays stable if the entity is later renamed.
+            if (empty($model->entity_code)
+                && in_array('entity_code', $model->getFillable(), true)
+                && $model->business_entity_id) {
+                $model->entity_code = BusinessEntity::whereKey($model->business_entity_id)->value('entity_code');
+            }
         });
     }
 

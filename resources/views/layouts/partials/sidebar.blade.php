@@ -3,16 +3,46 @@
     $counts = $sidebarCounts ?? [];
     $user = auth()->user();
     $initials = collect(explode(' ', trim($user->name ?? 'U')))->filter()->take(2)->map(fn ($p) => mb_substr($p, 0, 1))->implode('');
+    $current = app(\App\Support\CurrentEntity::class);
+    $currentEntity = $current->get();
+    $entities = $current->options();
 @endphp
 <aside class="app-sidebar">
     <a class="sidebar-brand" href="{{ route('dashboard') }}">
         <span class="brand-badge">
             @if ($navLogo)
-                <img src="{{ asset('storage/'.$navLogo) }}" alt="SMSEA">
-            @else SE @endif
+                <img src="{{ asset('storage/'.$navLogo) }}" alt="Logo">
+            @else {{ strtoupper(mb_substr($currentEntity->short_name ?? 'SE', 0, 2)) }} @endif
         </span>
-        <span class="brand-text"><b>SMSEA Office</b><span>Environmental Alliance</span></span>
+        <span class="brand-text"><b>SMSEA Office</b><span>Multi-entity workspace</span></span>
     </a>
+
+    @if ($currentEntity)
+        <div class="entity-switch dropdown">
+            <button class="entity-switch-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Switch business entity">
+                <span class="es-avatar">{{ strtoupper(mb_substr($currentEntity->short_name ?: $currentEntity->name, 0, 2)) }}</span>
+                <span class="es-meta"><span class="es-label">Business Entity</span><b>{{ $currentEntity->name }}</b></span>
+            </button>
+            <ul class="dropdown-menu shadow entity-switch-menu">
+                <li><h6 class="dropdown-header">Switch entity</h6></li>
+                @foreach ($entities as $entity)
+                    <li>
+                        <form method="post" action="{{ route('entities.switch') }}">
+                            @csrf
+                            <input type="hidden" name="entity_id" value="{{ $entity->id }}">
+                            <button class="dropdown-item d-flex align-items-center gap-2 {{ $entity->id === $currentEntity->id ? 'active' : '' }}" type="submit">
+                                <span class="es-dot">{{ strtoupper(mb_substr($entity->short_name ?: $entity->name, 0, 2)) }}</span>
+                                <span class="flex-grow-1">{{ $entity->name }}</span>
+                                @if ($entity->id === $currentEntity->id)<x-icon name="check" :size="15" />@endif
+                            </button>
+                        </form>
+                    </li>
+                @endforeach
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ route('entities.overview') }}"><x-icon name="dashboard" :size="15" class="me-2" />All entities overview</a></li>
+            </ul>
+        </div>
+    @endif
 
     <div class="sidebar-scroll">
         <div class="nav-group">

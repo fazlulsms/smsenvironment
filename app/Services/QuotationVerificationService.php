@@ -13,7 +13,11 @@ use BaconQrCode\Writer;
 
 class QuotationVerificationService
 {
-    public const PAYLOAD_VERSION = 'SMSEA-QT-V1';
+    /** Current payload version for new documents — signs the entity code. */
+    public const PAYLOAD_VERSION = 'DOC-QT-V2';
+
+    /** Original single-entity (SMSEA) payload — kept verifiable, never re-signed. */
+    public const LEGACY_PAYLOAD_VERSION = 'SMSEA-QT-V1';
 
     public function apply(Quotation $quotation): Quotation
     {
@@ -30,8 +34,10 @@ class QuotationVerificationService
 
     public function ensure(Quotation $quotation): Quotation
     {
+        $version = $quotation->verification_payload_version;
+
         if (
-            $quotation->verification_payload_version === self::PAYLOAD_VERSION
+            in_array($version, [self::PAYLOAD_VERSION, self::LEGACY_PAYLOAD_VERSION], true)
             && filled($quotation->verification_id)
             && filled($quotation->verification_signature)
         ) {
@@ -46,9 +52,10 @@ class QuotationVerificationService
         $quotation->loadMissing('items');
         $client = $quotation->client_snapshot ?: [];
         $settings = $quotation->settings_snapshot ?: [];
+        $legacy = $this->isLegacy($quotation);
 
-        return [
-            'version' => self::PAYLOAD_VERSION,
+        $data = [
+            'version' => $legacy ? self::LEGACY_PAYLOAD_VERSION : self::PAYLOAD_VERSION,
             'reference' => $this->clean($quotation->number),
             'date' => optional($quotation->date)->format('Y-m-d') ?: $this->clean((string) $quotation->date),
             'client' => $this->clean($client['company_name'] ?? ''),
@@ -61,6 +68,19 @@ class QuotationVerificationService
             'vat_amount' => $this->money((float) ($quotation->vat_amount ?? 0)),
             'total_amount' => $this->money((float) $quotation->total),
         ];
+
+        // V2 additionally signs the issuing entity so identical-looking
+        // documents from different entities never share a verification identity.
+        if (! $legacy) {
+            $data = ['entity_code' => $this->clean((string) $quotation->entity_code)] + $data;
+        }
+
+        return $data;
+    }
+
+    private function isLegacy(Quotation $quotation): bool
+    {
+        return $quotation->verification_payload_version === self::LEGACY_PAYLOAD_VERSION;
     }
 
     public function signature(Quotation $quotation): string
@@ -77,13 +97,15 @@ class QuotationVerificationService
     {
         $quotation = $this->ensure($quotation);
         $data = $this->canonicalData($quotation);
-        $client = $quotation->client_snapshot ?: [];
+        $settings = $quotation->settings_snapshot ?: [];
+        $legacy = $this->isLegacy($quotation);
+        $entityName = strtoupper($this->clean($settings['organization_name'] ?? 'SMS Environmental Alliance'));
         $serviceLines = collect($data['services'])
             ->map(fn (array $service, int $index) => ($index + 1).'. '.$service['name'])
             ->implode("\n");
 
         $lines = [
-            'SMS ENVIRONMENTAL ALLIANCE',
+            $entityName,
             'QUOTATION VERIFICATION',
             '',
             'Reference: '.$data['reference'],
@@ -99,8 +121,9 @@ class QuotationVerificationService
             $this->vatLine($data),
             'Total Payable: '.$data['currency'].' '.$this->formatAmount($data['total_amount']),
             '',
+            $legacy ? null : 'Entity: '.$this->clean((string) $quotation->entity_code),
             'Verification ID: '.$quotation->verification_id,
-            'Version: '.self::PAYLOAD_VERSION,
+            'Version: '.($legacy ? self::LEGACY_PAYLOAD_VERSION : self::PAYLOAD_VERSION),
             'Signature: '.$quotation->verification_signature,
         ];
 

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BankAccountController;
+use App\Http\Controllers\BusinessEntityController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentEmailController;
@@ -21,6 +22,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 
 Route::middleware('auth')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('entities/overview', [BusinessEntityController::class, 'overview'])->name('entities.overview');
+    Route::post('entities/switch', [BusinessEntityController::class, 'switch'])->name('entities.switch');
 
     Route::post('clients/smart-paste', [ClientController::class, 'smartPaste'])->name('clients.smart-paste');
     Route::post('clients/smart-store', [ClientController::class, 'smartStore'])->name('clients.smart-store');

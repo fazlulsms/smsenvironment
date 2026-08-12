@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ ($title ?? null) ? $title.' · SMSEA Office' : 'SMSEA Office' }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{{ asset('css/smsea-app.css') }}?v=1" rel="stylesheet">
+    <link href="{{ asset('css/smsea-app.css') }}?v=2" rel="stylesheet">
 </head>
 <body>
 <script>
