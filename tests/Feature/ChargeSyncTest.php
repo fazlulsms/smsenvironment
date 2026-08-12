@@ -48,6 +48,46 @@ class ChargeSyncTest extends TestCase
         return ProformaInvoice::query()->latest('id')->with('items')->firstOrFail();
     }
 
+    private function renderPdf(ProformaInvoice $invoice): string
+    {
+        $invoice->load('items.service', 'bankAccount', 'client');
+
+        return view('proforma_invoices.pdf', [
+            'invoice' => $invoice,
+            'settings' => $invoice->settings_snapshot,
+            'client' => $invoice->client_snapshot,
+            'bank' => $invoice->bank_snapshot,
+            'verificationQr' => '',
+            'amountInWords' => 'Fifty Thousand Taka Only',
+        ])->render();
+    }
+
+    /** PDF uses SERVICE→CHARGE FOR, one-column Payment Terms→Bank, no Unit/Qty/Rate. */
+    public function test_pdf_hierarchy_and_one_column_lower_flow(): void
+    {
+        $invoice = $this->store([
+            'charge_presentation' => 'consolidated',
+            'charge_title' => 'Energy Audit',
+            'consolidated' => ['service_id' => $this->emp->id, 'description' => 'Energy audit services including document review and reporting.', 'amount' => 50000],
+        ]);
+        $html = $this->renderPdf($invoice);
+
+        // SERVICE label precedes CHARGE FOR label; the service title shows once.
+        $this->assertLessThan(strpos($html, 'Charge For'), strpos($html, '>Service</div>'));
+        $this->assertSame(1, substr_count($html, 'Energy Audit'));
+
+        // One-column lower flow: Payment Terms before Bank Details.
+        $this->assertLessThan(strpos($html, 'Bank Details'), strpos($html, 'Payment Terms'));
+
+        // No Unit/Qty/Rate anywhere.
+        $this->assertStringNotContainsString('Qty', $html);
+        $this->assertStringNotContainsString('Unit Rate', $html);
+
+        // Only the selected bank appears.
+        $this->assertStringContainsString('Prime Bank Ltd.', $html);
+        $this->assertStringNotContainsString('Mutual Trust', $html);
+    }
+
     /** All commercial fields are consistent after a consolidated save. */
     public function test_consolidated_save_is_internally_consistent(): void
     {

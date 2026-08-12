@@ -346,13 +346,10 @@ class ProformaInvoiceController extends Controller
      */
     private function resolveChargeFor(array $data): ?string
     {
-        $mode = $data['charge_presentation'] ?? ProformaInvoice::PRESENTATION_ITEMIZED;
-
-        if (in_array($mode, [ProformaInvoice::PRESENTATION_CONSOLIDATED, ProformaInvoice::PRESENTATION_BREAKDOWN], true)) {
-            return $data['charge_title'] ?? null;
-        }
-
-        return ($data['charge_for'] ?? null) ?: null;
+        // charge_title (the SERVICE) is the single source of truth. When present it
+        // drives charge_for so the two never diverge. Itemized without a title keeps
+        // an explicit override, else invoiceDefaults fills it from the service names.
+        return ($data['charge_title'] ?? null) ?: (($data['charge_for'] ?? null) ?: null);
     }
 
     private function splitLines(?string $text): array

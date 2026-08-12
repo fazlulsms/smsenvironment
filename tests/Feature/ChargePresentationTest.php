@@ -80,9 +80,9 @@ class ChargePresentationTest extends TestCase
         $this->assertEquals(1900, (float) $invoice->total);
 
         $html = $this->chargeTableHtml($invoice);
-        $this->assertStringContainsString('PEFC Chain of Custody Certification', $html);
+        $this->assertStringContainsString('PEFC Chain of Custody Certification', $html); // SERVICE
         $this->assertStringContainsString('Charge For', $html);
-        $this->assertStringContainsString('1,900.00', $html);
+        $this->assertStringContainsString('Certification Fee', $html); // CHARGE FOR = description
         $this->assertStringNotContainsString('>Rate<', $html); // no rate column in consolidated
 
         $this->assertNotEmpty(app(DocumentPdfService::class)->proformaInvoicePdf($invoice)->output());
@@ -109,8 +109,9 @@ class ChargePresentationTest extends TestCase
         foreach ($components as $component) {
             $this->assertStringContainsString(e($component), $html);
         }
-        // Exactly one amount for the whole package — no per-component price.
-        $this->assertSame(1, substr_count($html, '139,130.00'));
+        // The CHARGE FOR block lists components with no per-component price; the
+        // single total is shown once in the financial summary (not this partial).
+        $this->assertStringNotContainsString('139,130.00', $html);
 
         $this->assertNotEmpty(app(DocumentPdfService::class)->proformaInvoicePdf($invoice)->output());
     }
@@ -131,7 +132,7 @@ class ChargePresentationTest extends TestCase
         $this->assertEquals(2800, (float) $invoice->total);
 
         $html = $this->chargeTableHtml($invoice);
-        $this->assertStringContainsString('Service / Particular', $html);
+        $this->assertStringContainsString('Description', $html);
         $this->assertStringNotContainsString('Unit', $html);   // no unit/qty/rate columns
         $this->assertStringContainsString('2,400.00', $html);
         $this->assertStringContainsString('400.00', $html);

@@ -134,8 +134,24 @@
     .proforma-document .invoice-financial-summary td:first-child { text-align: right; color: #1f2933; }
     .proforma-document .invoice-financial-summary td:last-child { width: 30mm; text-align: right; }
     .proforma-document .invoice-financial-summary .grand td { border-top: 2px solid #1f6f4a; font-weight: 700; font-size: 9.2px; padding-top: 4px; }
-    .proforma-document .invoice-amount-words { margin-top: 7px; font-size: 8.4px; line-height: 1.25; }
+    .proforma-document .invoice-amount-words { margin-top: 5px; font-size: 8.4px; line-height: 1.25; }
     .proforma-document .tax-note { margin-top: 4px; color: #4f5f58; font-size: 7.8px; text-align: left; }
+    /* SERVICE / CHARGE FOR commercial hierarchy */
+    .proforma-document .bill-to-block { margin: 0 0 9px; font-size: 9.1px; line-height: 1.35; }
+    .proforma-document .commercial-block { margin-top: 2px; page-break-inside: avoid; }
+    .proforma-document .cf-label { color: #1f6f4a; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-top: 6px; }
+    .proforma-document .cf-service { font-size: 11.5px; font-weight: 700; color: #1f2933; margin-top: 1px; }
+    .proforma-document .cf-desc { font-size: 8.9px; line-height: 1.36; color: #33413a; margin-top: 2px; }
+    .proforma-document .cf-list { margin: 2px 0 0 14px; padding: 0; }
+    .proforma-document .cf-list li { margin: 1px 0; font-size: 8.9px; line-height: 1.3; }
+    .proforma-document .cf-table { margin-top: 3px; }
+    /* One-column lower flow: payment terms, then bank, then prepared by */
+    .proforma-document .lower-block { margin-top: 9px; page-break-inside: avoid; }
+    .proforma-document .invoice-terms-full { margin: 0 0 0 15px; padding: 0; font-size: 8.6px; line-height: 1.36; }
+    .proforma-document .invoice-terms-full li { margin: 0 0 4px; padding-left: 3px; }
+    .proforma-document .invoice-bank-table-full { width: 100%; margin-top: 0; border-collapse: collapse; }
+    .proforma-document .invoice-bank-table-full td { border-bottom: 1px solid #e4ebe7; padding: 4px 6px; font-size: 8.7px; line-height: 1.3; }
+    .proforma-document .invoice-bank-table-full td:first-child { width: 27%; color: #4f5f58; font-weight: 700; }
     .proforma-document .invoice-lower-table { margin-top: 13px; border-collapse: collapse; page-break-inside: avoid; }
     .proforma-document .invoice-lower-table td { border: 0; padding: 0; vertical-align: top; }
     .proforma-document .bank-cell { width: 58%; padding-right: 8mm; }
@@ -146,11 +162,11 @@
     .proforma-document .invoice-bank-table td:first-child { width: 29%; color: #4f5f58; font-weight: 700; }
     .proforma-document .invoice-terms { margin: 0 0 0 13px; padding: 0; font-size: 8.4px; line-height: 1.32; }
     .proforma-document .invoice-terms li { margin: 0 0 5px; padding-left: 2px; }
-    .proforma-document .prepared-section { margin-top: 13px; width: 48%; page-break-inside: avoid; font-size: 8.7px; line-height: 1.32; }
+    .proforma-document .prepared-section { margin-top: 10px; width: 100%; page-break-inside: avoid; font-size: 8.7px; line-height: 1.3; }
     .proforma-document .authorization-note { margin-top: 4px; color: #4f5f58; font-size: 7.9px; }
-    .proforma-document .signature-line { width: 42mm; border-top: 1px solid #667085; margin-top: 13px; }
+    .proforma-document .signature-line { width: 42mm; border-top: 1px solid #667085; margin-top: 10px; }
     .proforma-document .signature-caption { color: #4f5f58; font-size: 7.8px; margin-top: 2px; }
-    .proforma-document .invoice-verification-strip { margin-top: 9px; border-top: 1px solid #d8e2dc; border-bottom: 1px solid #d8e2dc; page-break-inside: avoid; }
+    .proforma-document .invoice-verification-strip { margin-top: 7px; border-top: 1px solid #d8e2dc; border-bottom: 1px solid #d8e2dc; page-break-inside: avoid; }
     .proforma-document .invoice-verification-strip td { border: 0; padding: 4px 0; vertical-align: middle; }
     .proforma-document .verification-strip-qr-cell { width: 31mm; }
     .proforma-document .verification-strip-qr { width: 27mm; height: 27mm; display: block; background: #fff; }

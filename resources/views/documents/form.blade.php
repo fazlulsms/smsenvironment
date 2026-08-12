@@ -134,8 +134,8 @@
                     </select>
                 </div>
                 <div class="col-md-7" id="chargeTitleWrap">
-                    <label class="form-label">Charge / Package Title</label>
-                    <input class="form-control" name="charge_title" id="chargeTitle" value="{{ old('charge_title', $document->charge_title) }}" placeholder="e.g. PEFC Chain of Custody Certification">
+                    <label class="form-label">Service / Package Title</label>
+                    <input class="form-control" name="charge_title" id="chargeTitle" value="{{ old('charge_title', $document->charge_title) }}" placeholder="e.g. Energy Audit · shown as the SERVICE on the invoice">
                 </div>
             </div>
 
@@ -485,7 +485,6 @@ if (chargePresentation) {
             // Disable inactive inputs so hidden required fields never block submit.
             panel.querySelectorAll('input, textarea, select').forEach(el => { el.disabled = !active; });
         });
-        if (titleWrap) titleWrap.classList.toggle('d-none', mode === 'itemized');
         if (mode === 'itemized') recalc();
     }
 

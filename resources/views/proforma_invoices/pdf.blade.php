@@ -99,22 +99,14 @@
         </tr>
     </table>
 
-    <table class="client-charge-table">
-        <tr>
-            <td>
-                <div class="label">Bill To</div>
-                @if(!empty($client['company_name']))<strong>{{ $client['company_name'] }}</strong><br>@endif
-                @if(!empty($client['contact_person']))Attn: {{ $client['contact_person'] }}<br>@endif
-                @if(!empty($client['designation'])){{ $client['designation'] }}<br>@endif
-                @if(!empty($client['address'])){{ $client['address'] }}<br>@endif
-                @if(!empty($client['email'])){{ $client['email'] }}@endif
-            </td>
-            <td>
-                <div class="label">Charge For</div>
-                <strong>{{ $invoice->charge_for ?: $serviceRows->pluck('title')->filter()->implode(', ') }}</strong>
-            </td>
-        </tr>
-    </table>
+    <div class="bill-to-block">
+        <div class="label">Bill To</div>
+        @if(!empty($client['company_name']))<strong>{{ $client['company_name'] }}</strong><br>@endif
+        @if(!empty($client['contact_person']))Attn: {{ $client['contact_person'] }}<br>@endif
+        @if(!empty($client['designation'])){{ $client['designation'] }}<br>@endif
+        @if(!empty($client['address'])){{ $client['address'] }}<br>@endif
+        @if(!empty($client['email'])){{ $client['email'] }}@endif
+    </div>
 
     <div class="section financial-section">
         @include('documents.invoice_charge_table', ['invoice' => $invoice, 'serviceRows' => $serviceRows, 'currency' => $currency])
@@ -135,28 +127,25 @@
         @endif
     </div>
 
-    <table class="invoice-lower-table">
-        <tr>
-            <td class="bank-cell">
-                <h3>Bank Details</h3>
-                <table class="bank-table invoice-bank-table">
-                    @foreach($bankRows as $label => $value)
-                        @if(filled($value))
-                            <tr><td>{{ $label }}</td><td>{{ $value }}</td></tr>
-                        @endif
-                    @endforeach
-                </table>
-            </td>
-            <td class="terms-cell">
-                <h3>Payment Terms</h3>
-                <ol class="invoice-terms">
-                    @foreach($paymentTerms->take(4) as $term)
-                        <li>{{ $term }}</li>
-                    @endforeach
-                </ol>
-            </td>
-        </tr>
-    </table>
+    <div class="lower-block payment-terms-block">
+        <h3>Payment Terms</h3>
+        <ol class="invoice-terms-full">
+            @foreach($paymentTerms->take(4) as $term)
+                <li>{{ $term }}</li>
+            @endforeach
+        </ol>
+    </div>
+
+    <div class="lower-block bank-block">
+        <h3>Bank Details</h3>
+        <table class="bank-table invoice-bank-table-full">
+            @foreach($bankRows as $label => $value)
+                @if(filled($value))
+                    <tr><td>{{ $label }}</td><td>{{ $value }}</td></tr>
+                @endif
+            @endforeach
+        </table>
+    </div>
 
     <div class="prepared-section">
         <h3>Prepared By</h3>
