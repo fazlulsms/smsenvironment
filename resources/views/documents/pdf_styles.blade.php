@@ -1,5 +1,5 @@
 <style>
-    @page { margin: 32mm 19mm 23mm; }
+    @page { margin: 32mm 19mm 27mm; }
     body { font-family: DejaVu Sans, sans-serif; color: #1f2933; font-size: 10.5px; line-height: 1.42; }
     .header { border-bottom: 3px solid #1f6f4a; padding-bottom: 10px; margin-bottom: 18px; }
     .brand-line { display: table; width: 100%; }
@@ -27,7 +27,7 @@
     .scope-list { margin: 3px 0 0 13px; padding: 0; }
     .scope-list li { margin: 1px 0; }
     .signature { margin-top: 14px; page-break-inside: avoid; }
-    .footer { position: fixed; left: 0; right: 0; bottom: -17mm; height: 13mm; border-top: 1px solid #d8e2dc; padding-top: 3mm; color: #667085; font-size: 7.5px; }
+    .footer { position: fixed; left: 0; right: 0; bottom: -21mm; height: 13mm; border-top: 1px solid #d8e2dc; padding-top: 3mm; color: #667085; font-size: 7.5px; }
     .quotation-proposal { font-size: 10.2px; line-height: 1.52; }
     .quotation-proposal .running-header { position: fixed; top: -24mm; left: 0; right: 0; height: 18mm; border-bottom: 2px solid #1f6f4a; padding-bottom: 2mm; }
     .quotation-proposal .rh-table { width: 100%; margin: 0; border-collapse: collapse; }
@@ -190,12 +190,18 @@
     .proforma-document .authorization-note { margin-top: 4px; color: #4f5f58; font-size: 7.9px; }
     .proforma-document .signature-line { width: 42mm; border-top: 1px solid #667085; margin-top: 7px; }
     .proforma-document .signature-caption { color: #4f5f58; font-size: 7.8px; margin-top: 2px; }
-    .proforma-document .invoice-verification-strip { margin-top: 7px; border-top: 1px solid #d8e2dc; border-bottom: 1px solid #d8e2dc; page-break-inside: avoid; }
-    .proforma-document .invoice-verification-strip td { border: 0; padding: 4px 0; vertical-align: middle; }
-    .proforma-document .verification-strip-qr-cell { width: 27mm; }
-    .proforma-document .verification-strip-qr { width: 24mm; height: 24mm; display: block; background: #fff; }
-    .proforma-document .verification-strip-details { width: 47mm; padding-left: 5mm !important; font-size: 7.8px; line-height: 1.2; color: #4f5f58; }
-    .proforma-document .verification-strip-details h3 { margin: 0 0 2px; font-size: 8.2px; line-height: 1.05; }
-    .proforma-document .verification-strip-meta { color: #1f2933; font-size: 7.2px; margin-top: 1px; }
-    .proforma-document .verification-strip-contact { text-align: right; color: #4f5f58; font-size: 7.4px; line-height: 1.22; }
+    /* Fixed footer anchored in the reserved bottom page margin (does not add flow height). */
+    .proforma-document .invoice-footer { position: fixed; left: 0; right: 0; bottom: -25mm; height: 22mm; border-top: 2px solid #1f6f4a; padding-top: 2.5mm; }
+    .proforma-document .if-table { width: 100%; margin: 0; border-collapse: collapse; }
+    .proforma-document .if-table > tbody > tr > td { border: 0; padding: 0; vertical-align: top; }
+    .proforma-document .if-company { width: 55%; font-size: 7.6px; line-height: 1.36; color: #4f5f58; padding-right: 6mm; }
+    .proforma-document .if-company strong { display: block; color: #1f4f38; font-size: 9px; margin-bottom: 1px; }
+    .proforma-document .if-verify { width: 45%; }
+    .proforma-document .if-verify-table { width: 100%; margin: 0; border-collapse: collapse; }
+    .proforma-document .if-verify-table td { border: 0; padding: 0; vertical-align: top; }
+    .proforma-document .if-verify-text { font-size: 7.4px; line-height: 1.28; color: #4f5f58; padding-right: 3mm; }
+    .proforma-document .if-verify-text strong { display: block; color: #1f4f38; font-size: 8.4px; margin-bottom: 1px; }
+    .proforma-document .if-verify-meta { color: #1f2933; font-size: 7.2px; }
+    .proforma-document .if-qr-cell { width: 20mm; text-align: right; }
+    .proforma-document .if-qr { width: 19mm; height: 19mm; display: block; background: #fff; }
 </style>

@@ -122,11 +122,13 @@ class ProformaInvoiceVerificationTest extends TestCase
 
         $this->assertNotEmpty($invoice->verification_id);
         $this->assertStringContainsString('data:image/svg+xml;base64,', $html);
-        $this->assertStringContainsString('Invoice Verification', $html);
+        $this->assertStringContainsString('INVOICE VERIFICATION', $html);
         $this->assertStringContainsString('PROFORMA INVOICE', $html);
         $this->assertSame(1, substr_count($html, 'PROFORMA INVOICE'));
         $this->assertStringContainsString('class="invoice-financial-summary"', $html);
-        $this->assertStringContainsString('class="invoice-verification-strip"', $html);
+        // QR/verification now lives only in the fixed footer, not an in-body strip.
+        $this->assertStringContainsString('class="invoice-footer"', $html);
+        $this->assertStringNotContainsString('class="invoice-verification-strip"', $html);
         $this->assertStringNotContainsString('class="financial-verification-table"', $html);
         $this->assertStringContainsString('<ol class="invoice-terms-full">', $html);
         $this->assertStringContainsString('The client is requested to mention the Proforma Invoice reference', $html);

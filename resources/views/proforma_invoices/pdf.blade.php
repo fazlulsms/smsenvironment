@@ -16,12 +16,6 @@
         'not_applicable' => null,
         default => 'Invoice amount is exclusive of VAT. VAT/AIT or statutory deductions shall be treated according to applicable requirements.',
     };
-    $footerBits = array_filter([
-        $settings['office_address'] ?? null,
-        $settings['phone'] ?? null,
-        $settings['email'] ?? null,
-        $settings['website'] ?? null,
-    ]);
     $serviceRows = $invoice->items->map(function ($item) {
         $description = trim((string) $item->description);
         $service = $item->service;
@@ -81,12 +75,34 @@
     </table>
 </div>
 
-<div class="footer">
-    <table class="footer-table">
+{{-- Fixed footer: company info (left) + verification/QR (right). Rendered in the reserved
+     bottom page margin so it never adds document flow height or spills onto a second page. --}}
+<div class="invoice-footer">
+    <table class="if-table">
         <tr>
-            <td>{{ $settings['pdf_note'] ?? 'This is a computer-generated document and does not require a physical signature.' }}</td>
-            <td class="text-center">Invoice: {{ $invoice->number }}</td>
-            <td class="text-right">Page <span class="page-number"></span></td>
+            <td class="if-company">
+                <strong>{{ $settings['organization_name'] ?? 'SMS Environmental Alliance' }}</strong>
+                @if(!empty($settings['office_address'])){{ $settings['office_address'] }}<br>@endif
+                @php $contactBits = array_filter([$settings['phone'] ?? null, $settings['email'] ?? null, $settings['website'] ?? null]); @endphp
+                @if(!empty($contactBits)){{ implode(' | ', $contactBits) }}@endif
+            </td>
+            @if(!empty($verificationQr))
+                <td class="if-verify">
+                    <table class="if-verify-table">
+                        <tr>
+                            <td class="if-verify-text">
+                                <strong>INVOICE VERIFICATION</strong>
+                                Scan to compare recorded details.
+                                <div class="if-verify-meta">Ref: {{ $invoice->number }}</div>
+                                <div class="if-verify-meta">ID: {{ $invoice->verification_id }}</div>
+                            </td>
+                            <td class="if-qr-cell">
+                                <img class="if-qr" src="{{ $verificationQr }}" alt="Invoice verification QR code">
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            @endif
         </tr>
     </table>
 </div>
@@ -161,26 +177,6 @@
         <div class="signature-line"></div>
         <div class="signature-caption">Authorized Signature</div>
     </div>
-
-    @if(!empty($verificationQr))
-        <table class="invoice-verification-strip">
-            <tr>
-                <td class="verification-strip-qr-cell">
-                    <img class="verification-strip-qr" src="{{ $verificationQr }}" alt="Invoice verification QR code">
-                </td>
-                <td class="verification-strip-details">
-                    <h3>Invoice Verification</h3>
-                    <div>Scan to compare recorded details.</div>
-                    <div class="verification-strip-meta">Ref: {{ $invoice->number }}</div>
-                    <div class="verification-strip-meta">ID: {{ $invoice->verification_id }}</div>
-                </td>
-                <td class="verification-strip-contact">
-                    <strong>SMS Environmental Alliance</strong><br>
-                    {{ implode(' | ', $footerBits) }}
-                </td>
-            </tr>
-        </table>
-    @endif
 </section>
 </body>
 </html>
