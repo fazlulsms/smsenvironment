@@ -4,11 +4,13 @@ namespace App\Services;
 
 use App\Mail\DocumentMail;
 use App\Models\DocumentEmailDelivery;
+use App\Models\EmailAccount;
 use App\Models\ProformaInvoice;
 use App\Models\Quotation;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Throwable;
@@ -36,7 +38,9 @@ class DocumentEmailService
     public function send(string $documentType, Model $document, array $data, User $sender): DocumentEmailDelivery
     {
         $ccEmails = $this->parseCc($data['cc'] ?? null);
+        $account = $this->entityEmailAccount($document);
         $delivery = DocumentEmailDelivery::query()->create([
+            'business_entity_id' => $document->business_entity_id,
             'document_type' => $documentType,
             'document_id' => $document->id,
             'to_email' => $data['to'],
@@ -50,13 +54,17 @@ class DocumentEmailService
         try {
             [$pdf, $filename] = $this->attachment($documentType, $document);
 
-            Mail::to($data['to'])
+            $this->mailerFor($account)
+                ->to($data['to'])
                 ->cc($ccEmails)
                 ->send(new DocumentMail(
                     subjectLine: $data['subject'],
                     bodyText: $data['message'],
                     attachmentData: $pdf->output(),
-                    attachmentFilename: $filename
+                    attachmentFilename: $filename,
+                    fromAddress: $account?->from_address,
+                    fromName: $account?->from_name,
+                    replyToAddress: $account?->reply_to,
                 ));
 
             $delivery->update([
@@ -97,6 +105,39 @@ class DocumentEmailService
             ->all();
     }
 
+    /** The entity's default active outgoing email account, if configured. */
+    private function entityEmailAccount(Model $document): ?EmailAccount
+    {
+        if (blank($document->business_entity_id)) {
+            return null;
+        }
+
+        return EmailAccount::query()
+            ->where('business_entity_id', $document->business_entity_id)
+            ->where('active', true)
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->get()
+            ->first(fn (EmailAccount $account) => $account->mailerConfig() !== null);
+    }
+
+    /**
+     * Return a mailer configured for the entity account, or the application's
+     * default mailer when the entity has no usable email account configured.
+     */
+    private function mailerFor(?EmailAccount $account)
+    {
+        $config = $account?->mailerConfig();
+
+        if ($config === null) {
+            return Mail::mailer();
+        }
+
+        Config::set('mail.mailers.entity_runtime', $config);
+
+        return Mail::mailer('entity_runtime');
+    }
+
     private function attachment(string $documentType, Model $document): array
     {
         if ($documentType === 'quotation' && $document instanceof Quotation) {
@@ -129,6 +170,7 @@ class DocumentEmailService
         $contact = trim((string) ($client['contact_person'] ?? ''));
 
         return [
+            'entity_name' => $settings->organization_name ?: 'SMS Environmental Alliance',
             'client_name' => $client['company_name'] ?? 'Client',
             'contact_person' => $contact !== '' ? $contact : 'Sir / Madam',
             'service_name' => $serviceName,
@@ -176,10 +218,10 @@ class DocumentEmailService
     private function bodyTemplate(string $documentType, Setting $settings): string
     {
         if ($documentType === 'quotation') {
-            return $settings->quotation_email_body_template ?: "Dear {{contact_person}},\n\nGreetings from SMS Environmental Alliance.\n\nPlease find attached our quotation for {{service_name}} for your review and consideration.\n\nShould you require any clarification or further information regarding the scope, commercial terms or proposed service, please feel free to contact us.\n\nWe look forward to supporting your environmental assessment and compliance requirements.\n\nBest regards,\n\n{{prepared_by}}\n{{designation}}\nSMS Environmental Alliance\n{{phone}}\n{{email}}";
+            return $settings->quotation_email_body_template ?: "Dear {{contact_person}},\n\nGreetings from {{entity_name}}.\n\nPlease find attached our quotation for {{service_name}} for your review and consideration.\n\nShould you require any clarification or further information regarding the scope, commercial terms or proposed service, please feel free to contact us.\n\nWe look forward to supporting your environmental assessment and compliance requirements.\n\nBest regards,\n\n{{prepared_by}}\n{{designation}}\n{{entity_name}}\n{{phone}}\n{{email}}";
         }
 
-        return $settings->proforma_invoice_email_body_template ?: "Dear {{contact_person}},\n\nGreetings from SMS Environmental Alliance.\n\nPlease find attached the Proforma Invoice for {{service_name}}.\n\nKindly review the attached document and proceed with the payment as per the stated terms.\n\nPlease feel free to contact us if any clarification is required.\n\nBest regards,\n\n{{prepared_by}}\n{{designation}}\nSMS Environmental Alliance\n{{phone}}\n{{email}}";
+        return $settings->proforma_invoice_email_body_template ?: "Dear {{contact_person}},\n\nGreetings from {{entity_name}}.\n\nPlease find attached the Proforma Invoice for {{service_name}}.\n\nKindly review the attached document and proceed with the payment as per the stated terms.\n\nPlease feel free to contact us if any clarification is required.\n\nBest regards,\n\n{{prepared_by}}\n{{designation}}\n{{entity_name}}\n{{phone}}\n{{email}}";
     }
 
     private function renderTemplate(string $template, array $placeholders): string

@@ -6,6 +6,7 @@ use App\Http\Controllers\BusinessEntityController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentEmailController;
+use App\Http\Controllers\EmailAccountController;
 use App\Http\Controllers\ProformaInvoiceController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ServiceController;
@@ -32,6 +33,7 @@ Route::middleware('auth')->group(function () {
     Route::post('bank-accounts/{bankAccount}/default', [BankAccountController::class, 'setDefault'])->name('bank-accounts.default');
     Route::resource('bank-accounts', BankAccountController::class)->parameters(['bank-accounts' => 'bankAccount']);
     Route::get('email-deliveries', [DocumentEmailController::class, 'index'])->name('email-deliveries.index');
+    Route::resource('email-accounts', EmailAccountController::class)->parameters(['email-accounts' => 'emailAccount'])->except(['show']);
 
     Route::get('settings', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [SettingController::class, 'update'])->name('settings.update');

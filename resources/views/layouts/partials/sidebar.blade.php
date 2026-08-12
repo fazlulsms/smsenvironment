@@ -86,6 +86,9 @@
             <a class="nav-item-link {{ request()->routeIs('bank-accounts.*') ? 'active' : '' }}" href="{{ route('bank-accounts.index') }}">
                 <x-icon name="bank" /><span class="label">Bank Accounts</span>
             </a>
+            <a class="nav-item-link {{ request()->routeIs('email-accounts.*') ? 'active' : '' }}" href="{{ route('email-accounts.index') }}">
+                <x-icon name="send" /><span class="label">Email Accounts</span>
+            </a>
             <a class="nav-item-link {{ request()->routeIs('settings.*') ? 'active' : '' }}" href="{{ route('settings.edit') }}">
                 <x-icon name="settings" /><span class="label">Settings</span>
             </a>
