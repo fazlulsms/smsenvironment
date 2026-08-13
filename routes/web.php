@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\BusinessEntityController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\CommercialDraftController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentEmailController;
 use App\Http\Controllers\EmailAccountController;
@@ -28,6 +29,10 @@ Route::middleware('auth')->group(function () {
     Route::get('entities', [BusinessEntityController::class, 'index'])->name('entities.index');
     Route::get('entities/{entity}/edit', [BusinessEntityController::class, 'edit'])->name('entities.edit');
     Route::put('entities/{entity}', [BusinessEntityController::class, 'update'])->name('entities.update');
+
+    Route::get('ai-draft', [CommercialDraftController::class, 'index'])->name('ai-draft.index');
+    Route::post('ai-draft/analyze', [CommercialDraftController::class, 'analyze'])->name('ai-draft.analyze');
+    Route::post('ai-draft/apply', [CommercialDraftController::class, 'apply'])->name('ai-draft.apply');
 
     Route::post('clients/smart-paste', [ClientController::class, 'smartPaste'])->name('clients.smart-paste');
     Route::post('clients/smart-store', [ClientController::class, 'smartStore'])->name('clients.smart-store');

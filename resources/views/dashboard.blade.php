@@ -43,6 +43,7 @@
     <div class="card-head"><h2>Quick actions</h2></div>
     <div class="card-body">
         <div class="qa-grid">
+            <a class="qa qa-smart" href="{{ route('ai-draft.index') }}"><span class="qa-ico"><x-icon name="sparkles" /></span><span>AI Commercial Draft<small>Paste a WhatsApp request</small></span></a>
             <a class="qa qa-quote" href="{{ route('quotations.create') }}"><span class="qa-ico"><x-icon name="quotation" /></span><span>New Quotation<small>Draft a proposal</small></span></a>
             <a class="qa qa-invoice" href="{{ route('proforma-invoices.create') }}"><span class="qa-ico"><x-icon name="invoice" /></span><span>New Invoice<small>Proforma invoice</small></span></a>
             <a class="qa qa-client" href="{{ route('clients.create') }}"><span class="qa-ico"><x-icon name="clients" /></span><span>Add Client<small>Manual entry</small></span></a>

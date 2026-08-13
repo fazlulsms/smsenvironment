@@ -57,6 +57,19 @@
         </div>
 
         <div class="nav-group">
+            <div class="nav-group-label">Quick Actions</div>
+            <a class="nav-item-link {{ request()->routeIs('ai-draft.*') ? 'active' : '' }}" href="{{ route('ai-draft.index') }}">
+                <x-icon name="sparkles" /><span class="label">AI Draft</span>
+            </a>
+            <a class="nav-item-link" href="{{ route('quotations.create') }}">
+                <x-icon name="plus" /><span class="label">New Quotation</span>
+            </a>
+            <a class="nav-item-link" href="{{ route('proforma-invoices.create') }}">
+                <x-icon name="plus" /><span class="label">New Proforma Invoice</span>
+            </a>
+        </div>
+
+        <div class="nav-group">
             <div class="nav-group-label">Documents</div>
             <a class="nav-item-link {{ request()->routeIs('quotations.*') ? 'active' : '' }}" href="{{ route('quotations.index') }}">
                 <x-icon name="quotation" /><span class="label">Quotations</span>
