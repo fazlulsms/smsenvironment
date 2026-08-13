@@ -365,7 +365,7 @@ class ProformaInvoiceController extends Controller
             return [[
                 'service_id' => $b['service_id'] ?? null,
                 'pricing_mode' => 'consolidated',
-                'description' => '',
+                'description' => $b['description'] ?? '',
                 'scope_items' => implode("\n", $this->splitLines($b['components'] ?? '')),
                 'unit' => $b['unit'] ?? null,
                 'quantity' => 1,
@@ -446,6 +446,9 @@ class ProformaInvoiceController extends Controller
 
         if ($mode === ProformaInvoice::PRESENTATION_BREAKDOWN) {
             $data['breakdown']['components'] = implode("\n", $this->standardNames($standards));
+            if (trim((string) ($data['breakdown']['description'] ?? '')) === '') {
+                $data['breakdown']['description'] = $this->standardsChargeFor($category, $standards);
+            }
         } elseif ($mode === ProformaInvoice::PRESENTATION_CONSOLIDATED
             && trim((string) ($data['consolidated']['description'] ?? '')) === '') {
             $data['consolidated']['description'] = $this->standardsChargeFor($category, $standards);

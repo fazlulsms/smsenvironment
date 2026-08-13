@@ -102,6 +102,135 @@
     </div>
 </div>
 
+{{-- 1b · Service category & standards (global master) --}}
+@isset($serviceCategories)
+    @php
+        $selectedStandardIds = collect(old('standards', collect($document->standards_snapshot['items'] ?? [])->pluck('standard_id')))
+            ->filter()->map(fn ($i) => (int) $i)->values();
+        $categoriesJson = $serviceCategories->map(fn ($c) => [
+            'id' => $c->id,
+            'label' => $c->selectionLabel(),
+            'standards' => $c->activeStandards->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'code' => $s->shortLabel()])->values(),
+        ])->values();
+    @endphp
+    <div class="form-section" id="standardsSection">
+        <div class="fs-head">
+            <span class="fs-ico"><x-icon name="services" /></span>
+            <div><div class="fs-t">Service &amp; Standards</div><div class="fs-s">Pick a service category, then search and select one or more standards / programs. The title and charge details are generated on save (editable below).</div></div>
+        </div>
+        <div class="fs-body">
+            <div class="row g-3">
+                <div class="col-lg-5">
+                    <label class="form-label">Service Category</label>
+                    <select class="form-select" id="serviceCategory" name="service_category_id">
+                        <option value="">— none —</option>
+                        @foreach ($serviceCategories as $c)
+                            <option value="{{ $c->id }}" @selected(old('service_category_id', $document->service_category_id) == $c->id)>{{ $c->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-lg-7">
+                    <label class="form-label" id="standardsPickerLabel">Standards / Programs</label>
+                    <input class="form-control mb-2" id="standardSearch" placeholder="Search (e.g. ISO 9001, GRS, BSCI, Energy Audit)" autocomplete="off">
+                    <div id="standardOptions" style="max-height:190px;overflow:auto;border:1px solid #e6e2f5;border-radius:8px;padding:6px 8px;background:#fff"></div>
+                    <div id="standardTokens" class="d-flex flex-wrap gap-2 mt-2"></div>
+                    <div id="standardHidden"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @push('scripts')
+    <script>
+    (function () {
+        const categories = @json($categoriesJson);
+        const preselected = @json($selectedStandardIds);
+        const catSelect = document.getElementById('serviceCategory');
+        const search = document.getElementById('standardSearch');
+        const optionsBox = document.getElementById('standardOptions');
+        const tokensBox = document.getElementById('standardTokens');
+        const hiddenBox = document.getElementById('standardHidden');
+        const pickerLabel = document.getElementById('standardsPickerLabel');
+        const titleInput = document.getElementById('chargeTitle'); // invoice only
+        // Ordered selection: array of {id, name, code}
+        let selected = [];
+
+        function byId(catId) { return categories.find(c => String(c.id) === String(catId)); }
+
+        function allStandards() {
+            return categories.flatMap(c => c.standards.map(s => ({ ...s, categoryId: c.id })));
+        }
+
+        // Seed from existing snapshot (edit): resolve names from the master list.
+        (preselected || []).forEach(id => {
+            const found = allStandards().find(s => String(s.id) === String(id));
+            if (found) selected.push({ id: found.id, name: found.name, code: found.code });
+        });
+
+        function renderHidden() {
+            hiddenBox.innerHTML = selected.map(s => `<input type="hidden" name="standards[]" value="${s.id}">`).join('');
+        }
+
+        function renderTokens() {
+            tokensBox.innerHTML = '';
+            selected.forEach(s => {
+                const chip = document.createElement('span');
+                chip.className = 'badge-soft b-service d-inline-flex align-items-center gap-1';
+                chip.innerHTML = `<span>${s.code || s.name}</span>`;
+                const x = document.createElement('button');
+                x.type = 'button'; x.className = 'btn-close btn-close-sm'; x.style.fontSize = '.6rem';
+                x.addEventListener('click', () => { selected = selected.filter(v => v.id !== s.id); sync(); });
+                chip.appendChild(x);
+                tokensBox.appendChild(chip);
+            });
+        }
+
+        function currentList() {
+            const cat = byId(catSelect.value);
+            const list = cat ? cat.standards : allStandards();
+            const term = (search.value || '').toLowerCase();
+            return list.filter(s => !term || (s.name + ' ' + (s.code || '')).toLowerCase().includes(term));
+        }
+
+        function renderOptions() {
+            const list = currentList();
+            optionsBox.innerHTML = '';
+            if (!list.length) { optionsBox.innerHTML = '<div class="text-secondary small p-1">No matches.</div>'; return; }
+            list.forEach(s => {
+                const id = 'std_' + s.id;
+                const wrap = document.createElement('label');
+                wrap.className = 'd-flex align-items-start gap-2 py-1';
+                wrap.style.cursor = 'pointer';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox'; cb.className = 'form-check-input mt-1'; cb.value = s.id; cb.id = id;
+                cb.checked = selected.some(v => String(v.id) === String(s.id));
+                cb.addEventListener('change', () => {
+                    if (cb.checked) { if (!selected.some(v => v.id === s.id)) selected.push({ id: s.id, name: s.name, code: s.code }); }
+                    else { selected = selected.filter(v => String(v.id) !== String(s.id)); }
+                    renderTokens(); renderHidden();
+                });
+                const txt = document.createElement('span');
+                txt.className = 'small';
+                txt.innerHTML = s.code && s.code !== s.name ? `<strong>${s.code}</strong> — ${s.name}` : s.name;
+                wrap.appendChild(cb); wrap.appendChild(txt);
+                optionsBox.appendChild(wrap);
+            });
+        }
+
+        function updateLabel() {
+            const cat = byId(catSelect.value);
+            pickerLabel.textContent = cat ? cat.label : 'Standards / Programs';
+        }
+
+        function sync() { updateLabel(); renderOptions(); renderTokens(); renderHidden(); }
+
+        catSelect.addEventListener('change', () => { search.value = ''; sync(); });
+        search.addEventListener('input', renderOptions);
+        sync();
+    })();
+    </script>
+    @endpush
+@endisset
+
 {{-- 2 · Services & charge presentation --}}
 @php
     $chargeMode = old('charge_presentation', $document->charge_presentation ?? 'itemized');

@@ -8,6 +8,9 @@
     $clientName = $invoice->client_snapshot['company_name'] ?? ($invoice->client?->company_name ?? '');
     $siteName = $invoice->site_name ?: $clientName;
     $serviceName = $invoice->charge_title ?: ($first['title'] ?? 'Environmental Services');
+    $standards = collect($invoice->standards_snapshot['items'] ?? []);
+    $standardsLabel = $invoice->standards_snapshot['category']['selection_label'] ?? 'Standards / Scope';
+    $rowspan = $standards->isNotEmpty() ? 5 : 4;
 @endphp
 
 @if ($mode === 'itemized')
@@ -40,23 +43,35 @@
         <tbody>
             <tr>
                 <td><span class="ct-label">Client Name:</span> {{ $clientName }}</td>
-                <td rowspan="4" class="ct-amount">{{ number_format($firstItem?->amount ?? $invoice->subtotal, 2) }}</td>
+                <td rowspan="{{ $rowspan }}" class="ct-amount">{{ number_format($firstItem?->amount ?? $invoice->subtotal, 2) }}</td>
             </tr>
             <tr><td><span class="ct-label">Site Name:</span> {{ $siteName }}</td></tr>
             <tr><td><span class="ct-label">Service:</span> {{ $serviceName }}</td></tr>
-            <tr>
-                <td>
-                    <span class="ct-label">Charge For:</span>
-                    @if ($mode === 'consolidated')
-                        {{ $firstItem?->description ?: $serviceName }}
-                    @else
-                        <div class="ct-including">Including:</div>
-                        <ul class="ct-list">
-                            @foreach (($first['activities'] ?? collect()) as $activity)<li>{{ $activity }}</li>@endforeach
-                        </ul>
-                    @endif
-                </td>
-            </tr>
+            @if ($standards->isNotEmpty())
+                <tr>
+                    <td>
+                        <span class="ct-label">{{ $standardsLabel }}:</span>
+                        <ul class="ct-list">@foreach ($standards as $s)<li>{{ $s['name'] }}</li>@endforeach</ul>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="ct-label">Charge For:</span> {{ $firstItem?->description ?: $serviceName }}</td>
+                </tr>
+            @else
+                <tr>
+                    <td>
+                        <span class="ct-label">Charge For:</span>
+                        @if ($mode === 'consolidated')
+                            {{ $firstItem?->description ?: $serviceName }}
+                        @else
+                            <div class="ct-including">Including:</div>
+                            <ul class="ct-list">
+                                @foreach (($first['activities'] ?? collect()) as $activity)<li>{{ $activity }}</li>@endforeach
+                            </ul>
+                        @endif
+                    </td>
+                </tr>
+            @endif
         </tbody>
     </table>
 @endif

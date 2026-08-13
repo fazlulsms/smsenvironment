@@ -15,6 +15,9 @@
     $singleCharge = $isInvoice && ($mode === 'consolidated' || $mode === 'component_breakdown');
     $vatShown = ($document->vat_treatment ?? null) === 'add' && (float) ($document->vat_amount ?? 0) > 0 && ($document->show_vat_separately ?? true);
     $label = fn ($t) => '<span class="fw-bold" style="color:var(--brand)">'.$t.'</span>';
+    $standards = collect($document->standards_snapshot['items'] ?? []);
+    $standardsLabel = $document->standards_snapshot['category']['selection_label'] ?? 'Standards / Scope';
+    $singleRowspan = $standards->isNotEmpty() ? 5 : 4;
 @endphp
 
 <div class="card">
@@ -39,21 +42,26 @@
                     <tbody>
                         <tr>
                             <td>{!! $label('Client Name:') !!} {{ $clientName }}</td>
-                            <td class="num money" rowspan="4" style="vertical-align:middle">{{ number_format($firstItem?->amount ?? $document->subtotal, 2) }}</td>
+                            <td class="num money" rowspan="{{ $singleRowspan }}" style="vertical-align:middle">{{ number_format($firstItem?->amount ?? $document->subtotal, 2) }}</td>
                         </tr>
                         <tr><td>{!! $label('Site Name:') !!} {{ $siteName }}</td></tr>
                         <tr><td>{!! $label('Service:') !!} {{ $serviceName }}</td></tr>
-                        <tr>
-                            <td>
-                                {!! $label('Charge For:') !!}
-                                @if ($mode === 'consolidated')
-                                    {{ $firstItem?->description ?: $serviceName }}
-                                @else
-                                    <div class="cell-sub mt-1">Including:</div>
-                                    <ul class="mb-0">@foreach ($firstItem?->scope_items ?? [] as $s)<li>{{ $s }}</li>@endforeach</ul>
-                                @endif
-                            </td>
-                        </tr>
+                        @if ($standards->isNotEmpty())
+                            <tr><td>{!! $label($standardsLabel.':') !!}<ul class="mb-0">@foreach ($standards as $s)<li>{{ $s['name'] }}</li>@endforeach</ul></td></tr>
+                            <tr><td>{!! $label('Charge For:') !!} {{ $firstItem?->description ?: $serviceName }}</td></tr>
+                        @else
+                            <tr>
+                                <td>
+                                    {!! $label('Charge For:') !!}
+                                    @if ($mode === 'consolidated')
+                                        {{ $firstItem?->description ?: $serviceName }}
+                                    @else
+                                        <div class="cell-sub mt-1">Including:</div>
+                                        <ul class="mb-0">@foreach ($firstItem?->scope_items ?? [] as $s)<li>{{ $s }}</li>@endforeach</ul>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endif
                     </tbody>
                 </table>
             </div>

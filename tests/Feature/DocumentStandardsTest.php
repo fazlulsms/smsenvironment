@@ -10,6 +10,7 @@ use App\Models\ServiceCategory;
 use App\Models\Setting;
 use App\Models\Standard;
 use App\Models\User;
+use App\Services\DocumentPdfService;
 use App\Support\CurrentEntity;
 use Database\Seeders\StandardSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -168,6 +169,33 @@ class DocumentStandardsTest extends TestCase
         $this->assertEquals(3000, (float) $invoice->total);
     }
 
+    public function test_charge_table_and_pdf_render_selected_standards(): void
+    {
+        [$cat, $standards] = $this->isoStandards();
+        $this->useEntity('EIDIKOS');
+        [$client, $bank] = $this->makeClientAndBank();
+
+        $this->actingAs($this->user)->post(route('proforma-invoices.store'), [
+            'client_id' => $client->id, 'bank_account_id' => $bank->id, 'date' => '2026-08-13', 'vat_treatment' => 'exclusive',
+            'service_category_id' => $cat->id, 'standards' => [$standards[0]->id, $standards[1]->id, $standards[2]->id],
+            'charge_presentation' => 'consolidated', 'consolidated' => ['amount' => 3000],
+        ])->assertRedirect();
+        $invoice = ProformaInvoice::query()->latest('id')->with('items')->firstOrFail();
+
+        // The shared DESCRIPTION | AMOUNT table lists the standards (full names).
+        $rows = $invoice->items->map(fn ($item) => [
+            'title' => $invoice->charge_title, 'activities' => collect($item->scope_items ?: []), 'item' => $item,
+        ]);
+        $html = view('documents.invoice_charge_table', ['invoice' => $invoice, 'serviceRows' => $rows, 'currency' => 'USD'])->render();
+        $this->assertStringContainsString('Select Standards', $html);
+        $this->assertStringContainsString('ISO 9001 — Quality Management Systems', $html);
+        $this->assertStringContainsString('ISO 45001 — Occupational Health and Safety Management Systems', $html);
+
+        // The full PDF (Eidikos profile) renders without error and carries the standards.
+        $pdf = app(DocumentPdfService::class)->proformaInvoicePdf($invoice)->output();
+        $this->assertNotEmpty($pdf);
+    }
+
     public function test_search_matches_name_short_name_and_code(): void
     {
         $this->isoStandards();
@@ -175,6 +203,19 @@ class DocumentStandardsTest extends TestCase
         $this->assertSame('ISO 9001 — Quality Management Systems', Standard::search('9001')->first()->name);
         $this->assertSame('ISO 45001 — Occupational Health and Safety Management Systems', Standard::search('ISO 45001')->first()->name);
         $this->assertTrue(Standard::search('Environmental')->get()->contains('code', 'ISO 14001'));
+    }
+
+    public function test_create_forms_expose_the_standards_picker(): void
+    {
+        $this->seed(StandardSeeder::class);
+        $this->useEntity('EIDIKOS');
+
+        foreach (['proforma-invoices.create', 'quotations.create'] as $route) {
+            $response = $this->actingAs($this->user)->get(route($route))->assertOk();
+            $response->assertSee('Service &amp; Standards', false);
+            $response->assertSee('ISO Management System Certification');
+            $response->assertSee('Textile and Product Certification');
+        }
     }
 
     public function test_standard_seeder_is_idempotent(): void

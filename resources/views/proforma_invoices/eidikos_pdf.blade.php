@@ -23,6 +23,8 @@
     $firstItem = $items->first();
     $serviceName = $invoice->charge_title ?: ($firstItem?->service?->short_name ?: ($firstItem?->description ?: 'Service'));
     $singleCharge = in_array($mode, ['consolidated', 'component_breakdown'], true);
+    $standards = collect($invoice->standards_snapshot['items'] ?? []);
+    $standardsLabel = $invoice->standards_snapshot['category']['selection_label'] ?? 'Standards / Scope';
     $vatShown = ($invoice->vat_treatment ?? null) === 'add' && (float) ($invoice->vat_amount ?? 0) > 0 && ($invoice->show_vat_separately ?? true);
 
     $terms = collect(preg_split('/\r\n|\r|\n/', (string) ($settings['invoice_payment_terms'] ?? '')))
@@ -129,7 +131,11 @@
                     <td class="e-c-sn">1</td>
                     <td>
                         <div class="e-p-title">{{ $serviceName }}</div>
-                        @if ($mode === 'consolidated')
+                        @if ($standards->isNotEmpty())
+                            <div class="e-inc">{{ $standardsLabel }}:</div>
+                            <ul class="e-inc-list">@foreach ($standards as $s)<li>{{ $s['name'] }}</li>@endforeach</ul>
+                            @if (filled($firstItem?->description))<div class="e-p-desc">{{ $firstItem->description }}</div>@endif
+                        @elseif ($mode === 'consolidated')
                             @if (filled($firstItem?->description) && $firstItem->description !== $serviceName)
                                 <div class="e-p-desc">{{ $firstItem->description }}</div>
                             @endif
