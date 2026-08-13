@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesDocumentStandards;
 use App\Models\BankAccount;
 use App\Models\Client;
 use App\Models\ProformaInvoice;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\Setting;
 use App\Services\DocumentContentService;
 use App\Services\DocumentNumberService;
@@ -14,6 +16,7 @@ use App\Services\ProformaInvoiceVerificationService;
 use App\Support\CurrentEntity;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -21,6 +24,8 @@ use Illuminate\View\View;
 
 class ProformaInvoiceController extends Controller
 {
+    use HandlesDocumentStandards;
+
     public function index(): View
     {
         return view('proforma_invoices.index', [
@@ -67,6 +72,9 @@ class ProformaInvoiceController extends Controller
     ): RedirectResponse {
         $invoice = DB::transaction(function () use ($request, $numbers, $content, $verification) {
             $data = $this->validated($request);
+            $standards = $this->selectedStandards($data);
+            $category = $this->standardsCategory($data);
+            $data = $this->applyStandardsToData($data, $category, $standards);
             $data['items'] = $this->normalizeItems($data);
             $data['charge_for'] = $this->resolveChargeFor($data);
             $client = $this->resolveClient($data);
@@ -95,6 +103,7 @@ class ProformaInvoiceController extends Controller
             ]);
 
             $invoice->items()->createMany($items);
+            $this->syncDocumentStandards('proforma_invoice', $invoice, $category, $standards);
             $verification->apply($invoice->load('items'));
 
             return $invoice;
@@ -129,6 +138,9 @@ class ProformaInvoiceController extends Controller
     ): RedirectResponse {
         DB::transaction(function () use ($request, $proformaInvoice, $content, $verification) {
             $data = $this->validated($request);
+            $standards = $this->selectedStandards($data);
+            $category = $this->standardsCategory($data);
+            $data = $this->applyStandardsToData($data, $category, $standards);
             $data['items'] = $this->normalizeItems($data);
             $data['charge_for'] = $this->resolveChargeFor($data);
             $client = $this->resolveClient($data);
@@ -156,6 +168,7 @@ class ProformaInvoiceController extends Controller
 
             $proformaInvoice->items()->delete();
             $proformaInvoice->items()->createMany($items);
+            $this->syncDocumentStandards('proforma_invoice', $proformaInvoice, $category, $standards);
             $verification->apply($proformaInvoice->load('items'));
         });
 
@@ -190,6 +203,8 @@ class ProformaInvoiceController extends Controller
             foreach ($proformaInvoice->items as $item) {
                 $copy->items()->create($item->replicate(['proforma_invoice_id'])->toArray());
             }
+            [$category, $standards] = $this->standardsFromSnapshot($copy->standards_snapshot, $copy->service_category_id);
+            $this->syncDocumentStandards('proforma_invoice', $copy, $category, $standards);
             $verification->apply($copy->load('items'));
 
             return $copy;
@@ -225,13 +240,18 @@ class ProformaInvoiceController extends Controller
                 ->get(),
             'bankAccounts' => BankAccount::query()->where('is_active', true)->orderBy('bank_name')->get(),
             'settings' => Setting::current(),
+            'serviceCategories' => ServiceCategory::query()->active()->ordered()
+                ->with(['activeStandards'])->get(),
         ];
     }
 
     private function validated(Request $request): array
     {
         $mode = $request->input('charge_presentation', ProformaInvoice::PRESENTATION_ITEMIZED);
-        $titleRequired = in_array($mode, [ProformaInvoice::PRESENTATION_CONSOLIDATED, ProformaInvoice::PRESENTATION_BREAKDOWN], true);
+        // Selected standards auto-generate the title, so it is only required when the
+        // single-charge modes are used without a standards selection.
+        $titleRequired = in_array($mode, [ProformaInvoice::PRESENTATION_CONSOLIDATED, ProformaInvoice::PRESENTATION_BREAKDOWN], true)
+            && ! filled($request->input('standards'));
 
         $rules = [
             'client_id' => ['nullable', 'exists:clients,id'],
@@ -252,6 +272,9 @@ class ProformaInvoiceController extends Controller
             'reference_no' => ['nullable', 'string', 'max:255'],
             'currency' => ['nullable', 'string', 'max:8'],
             'conversion_rate' => ['nullable', 'numeric', 'min:0'],
+            'service_category_id' => ['nullable', 'exists:service_categories,id'],
+            'standards' => ['nullable', 'array'],
+            'standards.*' => ['integer', 'exists:standards,id'],
             'charge_presentation' => ['nullable', 'in:consolidated,component_breakdown,itemized'],
             'charge_title' => [$titleRequired ? 'required' : 'nullable', 'string', 'max:255'],
             'site_name' => ['nullable', 'string', 'max:255'],
@@ -269,13 +292,15 @@ class ProformaInvoiceController extends Controller
         $rules += match ($mode) {
             ProformaInvoice::PRESENTATION_CONSOLIDATED => [
                 'consolidated.service_id' => ['nullable', 'exists:services,id'],
-                'consolidated.description' => ['required', 'string'],
+                // Nullable: selected standards can supply the description instead.
+                'consolidated.description' => ['nullable', 'string'],
                 'consolidated.amount' => ['nullable', 'numeric', 'min:0'],
                 'consolidated.unit_rate' => ['nullable', 'numeric', 'min:0'], // legacy alias
             ],
             ProformaInvoice::PRESENTATION_BREAKDOWN => [
                 'breakdown.service_id' => ['nullable', 'exists:services,id'],
-                'breakdown.components' => ['required', 'string'],
+                // Nullable: selected standards can supply the component list instead.
+                'breakdown.components' => ['nullable', 'string'],
                 'breakdown.unit' => ['nullable', 'string', 'max:255'],
                 'breakdown.amount' => ['required', 'numeric', 'min:0'],
             ],
@@ -295,9 +320,18 @@ class ProformaInvoiceController extends Controller
         $validator = Validator::make($request->all(), $rules);
 
         $validator->after(function ($validator) use ($request, $mode) {
+            $hasStandards = filled($request->input('standards'));
+
             if ($mode === ProformaInvoice::PRESENTATION_BREAKDOWN
+                && ! $hasStandards
                 && $this->splitLines($request->input('breakdown.components')) === []) {
-                $validator->errors()->add('breakdown.components', 'Add at least one component.');
+                $validator->errors()->add('breakdown.components', 'Add at least one component or select standards.');
+            }
+
+            if ($mode === ProformaInvoice::PRESENTATION_CONSOLIDATED
+                && ! $hasStandards
+                && trim((string) $request->input('consolidated.description')) === '') {
+                $validator->errors()->add('consolidated.description', 'Add a description or select standards.');
             }
         });
 
@@ -389,9 +423,40 @@ class ProformaInvoiceController extends Controller
         return $activeBanks->count() === 1 ? $activeBanks->first() : null;
     }
 
+    /**
+     * When standards are selected, they become the single source of the invoice's
+     * commercial content: a generated title, and (for the single-charge modes) the
+     * "Standards / Scope" list or description. Itemized rows keep carrying their own
+     * content; standards only drive the snapshot + reporting there. The immutable
+     * standards_snapshot is always set (null when nothing is selected).
+     */
+    private function applyStandardsToData(array $data, ?ServiceCategory $category, Collection $standards): array
+    {
+        $data['standards_snapshot'] = $this->standardsSnapshot($category, $standards);
+
+        if ($standards->isEmpty()) {
+            return $data;
+        }
+
+        $mode = $data['charge_presentation'] ?? ProformaInvoice::PRESENTATION_ITEMIZED;
+
+        if (empty($data['charge_title'])) {
+            $data['charge_title'] = $this->standardsTitle($category, $standards);
+        }
+
+        if ($mode === ProformaInvoice::PRESENTATION_BREAKDOWN) {
+            $data['breakdown']['components'] = implode("\n", $this->standardNames($standards));
+        } elseif ($mode === ProformaInvoice::PRESENTATION_CONSOLIDATED
+            && trim((string) ($data['consolidated']['description'] ?? '')) === '') {
+            $data['consolidated']['description'] = $this->standardsChargeFor($category, $standards);
+        }
+
+        return $data;
+    }
+
     private function documentData(array $data): array
     {
-        return collect($data)->except(['items', 'consolidated', 'breakdown', 'new_client', 'client_id', 'after_save'])->all();
+        return collect($data)->except(['items', 'consolidated', 'breakdown', 'new_client', 'client_id', 'after_save', 'standards'])->all();
     }
 
     private function vat(float $net, array $data): float

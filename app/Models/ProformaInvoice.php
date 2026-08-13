@@ -29,6 +29,7 @@ class ProformaInvoice extends Model
         'business_entity_id',
         'entity_code',
         'client_id',
+        'service_category_id',
         'bank_account_id',
         'created_by',
         'number',
@@ -39,6 +40,7 @@ class ProformaInvoice extends Model
         'client_snapshot',
         'bank_snapshot',
         'settings_snapshot',
+        'standards_snapshot',
         'charge_presentation',
         'charge_title',
         'charge_for',
@@ -66,6 +68,7 @@ class ProformaInvoice extends Model
             'client_snapshot' => 'array',
             'bank_snapshot' => 'array',
             'settings_snapshot' => 'array',
+            'standards_snapshot' => 'array',
             'subtotal' => 'decimal:2',
             'adjustment' => 'decimal:2',
             'vat_rate' => 'decimal:3',
@@ -78,6 +81,11 @@ class ProformaInvoice extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function serviceCategory(): BelongsTo
+    {
+        return $this->belongsTo(ServiceCategory::class);
     }
 
     public function bankAccount(): BelongsTo

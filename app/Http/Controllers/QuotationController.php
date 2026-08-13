@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesDocumentStandards;
 use App\Models\BankAccount;
 use App\Models\Client;
 use App\Models\Quotation;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\Setting;
 use App\Services\DocumentContentService;
 use App\Services\DocumentNumberService;
@@ -14,12 +16,15 @@ use App\Services\QuotationVerificationService;
 use App\Support\CurrentEntity;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class QuotationController extends Controller
 {
+    use HandlesDocumentStandards;
+
     public function index(): View
     {
         return view('quotations.index', [
@@ -68,6 +73,9 @@ class QuotationController extends Controller
     ): RedirectResponse {
         $quotation = DB::transaction(function () use ($request, $numbers, $content, $verification) {
             $data = $this->validated($request);
+            $standards = $this->selectedStandards($data);
+            $category = $this->standardsCategory($data);
+            $data = $this->applyStandardsToData($data, $category, $standards);
             $client = $this->resolveClient($data);
             $bank = $this->resolveBank($data);
             $this->validateBankForPdf($bank, $request->input('after_save') === 'pdf');
@@ -94,6 +102,7 @@ class QuotationController extends Controller
             ]);
 
             $quotation->items()->createMany($items);
+            $this->syncDocumentStandards('quotation', $quotation, $category, $standards);
             $verification->apply($quotation->load('items'));
 
             return $quotation;
@@ -128,6 +137,9 @@ class QuotationController extends Controller
     ): RedirectResponse {
         DB::transaction(function () use ($request, $quotation, $content, $verification) {
             $data = $this->validated($request);
+            $standards = $this->selectedStandards($data);
+            $category = $this->standardsCategory($data);
+            $data = $this->applyStandardsToData($data, $category, $standards);
             $client = $this->resolveClient($data);
             $bank = $this->resolveBank($data);
             $this->validateBankForPdf($bank, false);
@@ -153,6 +165,7 @@ class QuotationController extends Controller
 
             $quotation->items()->delete();
             $quotation->items()->createMany($items);
+            $this->syncDocumentStandards('quotation', $quotation, $category, $standards);
             $verification->apply($quotation->load('items'));
         });
 
@@ -187,6 +200,8 @@ class QuotationController extends Controller
             foreach ($quotation->items as $item) {
                 $copy->items()->create($item->replicate(['quotation_id'])->toArray());
             }
+            [$category, $standards] = $this->standardsFromSnapshot($copy->standards_snapshot, $copy->service_category_id);
+            $this->syncDocumentStandards('quotation', $copy, $category, $standards);
             $verification->apply($copy->load('items'));
 
             return $copy;
@@ -222,13 +237,45 @@ class QuotationController extends Controller
                 ->get(),
             'bankAccounts' => BankAccount::query()->where('is_active', true)->orderBy('bank_name')->get(),
             'settings' => Setting::current(),
+            'serviceCategories' => ServiceCategory::query()->active()->ordered()
+                ->with(['activeStandards'])->get(),
         ];
+    }
+
+    /**
+     * Selected standards drive the quotation's snapshot (rendered as the Standards
+     * list) and a generated title/subject default. Quotation line items still come
+     * from the itemized form; standards only supply naming + the immutable snapshot.
+     */
+    private function applyStandardsToData(array $data, ?ServiceCategory $category, Collection $standards): array
+    {
+        $data['standards_snapshot'] = $this->standardsSnapshot($category, $standards);
+
+        if ($standards->isEmpty()) {
+            return $data;
+        }
+
+        $title = $this->standardsTitle($category, $standards);
+
+        if (empty($data['charge_title'])) {
+            $data['charge_title'] = $title;
+        }
+
+        if (empty($data['subject'])) {
+            $data['subject'] = $title;
+        }
+
+        return $data;
     }
 
     private function validated(Request $request): array
     {
         return $request->validate([
             'client_id' => ['nullable', 'exists:clients,id'],
+            'service_category_id' => ['nullable', 'exists:service_categories,id'],
+            'standards' => ['nullable', 'array'],
+            'standards.*' => ['integer', 'exists:standards,id'],
+            'charge_title' => ['nullable', 'string', 'max:255'],
             'new_client.company_name' => ['required_without:client_id', 'nullable', 'string', 'max:255'],
             'new_client.parent_company' => ['nullable', 'string', 'max:255'],
             'new_client.contact_person' => ['nullable', 'string', 'max:255'],
@@ -302,7 +349,7 @@ class QuotationController extends Controller
 
     private function documentData(array $data): array
     {
-        return collect($data)->except(['items', 'new_client', 'client_id', 'after_save'])->all();
+        return collect($data)->except(['items', 'new_client', 'client_id', 'after_save', 'standards'])->all();
     }
 
     private function vat(float $netAmount, array $data): float
