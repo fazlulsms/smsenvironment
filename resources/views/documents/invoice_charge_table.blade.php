@@ -10,13 +10,18 @@
     $serviceName = $invoice->charge_title ?: ($first['title'] ?? 'Environmental Services');
     $hasStandards = filled($invoice->standards_snapshot['items'] ?? null);
     $standardsLabel = $invoice->standards_snapshot['category']['selection_label'] ?? 'Standards / Scope';
-    // Scope list: the item's saved components when present (a package shows its own
-    // parameters), else the selected standard names from the snapshot.
-    $scopeList = collect($firstItem?->scope_items ?: [])->filter()->values();
-    if ($scopeList->isEmpty()) {
-        $scopeList = collect($invoice->standards_snapshot['items'] ?? [])->pluck('name')->filter()->values();
-    }
-    $rowspan = $hasStandards ? 5 : 4;
+    $snapItems = collect($invoice->standards_snapshot['items'] ?? []);
+    // Scope list: the item's saved components (a package shows its own parameters),
+    // else the selected standard names. A single package that expands to several
+    // components reads as "Including:"; multiple standards keep the picker's label.
+    $scopeItems = collect($firstItem?->scope_items ?: [])->filter()->values();
+    $isPackageScope = $snapItems->count() === 1 && $scopeItems->count() > 1;
+    $scopeList = $scopeItems->isNotEmpty() ? $scopeItems : $snapItems->pluck('name')->filter()->values();
+    $scopeLabel = $isPackageScope ? 'Including' : $standardsLabel;
+    // Suppress a scope row that would just repeat the service name (e.g. single EIA).
+    $showScope = $hasStandards && $scopeList->isNotEmpty()
+        && ! ($scopeList->count() === 1 && trim($scopeList->first()) === trim($serviceName));
+    $rowspan = $showScope ? 5 : 4;
 @endphp
 
 @if ($mode === 'itemized')
@@ -54,12 +59,14 @@
             <tr><td><span class="ct-label">Site Name:</span> {{ $siteName }}</td></tr>
             <tr><td><span class="ct-label">Service:</span> {{ $serviceName }}</td></tr>
             @if ($hasStandards)
-                <tr>
-                    <td>
-                        <span class="ct-label">{{ $standardsLabel }}:</span>
-                        <ul class="ct-list">@foreach ($scopeList as $s)<li>{{ $s }}</li>@endforeach</ul>
-                    </td>
-                </tr>
+                @if ($showScope)
+                    <tr>
+                        <td>
+                            <span class="ct-label">{{ $scopeLabel }}:</span>
+                            <ul class="ct-list">@foreach ($scopeList as $s)<li>{{ $s }}</li>@endforeach</ul>
+                        </td>
+                    </tr>
+                @endif
                 <tr>
                     <td><span class="ct-label">Charge For:</span> {{ $firstItem?->description ?: $serviceName }}</td>
                 </tr>

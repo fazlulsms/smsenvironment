@@ -111,6 +111,7 @@
             'id' => $c->id,
             'code' => $c->code,
             'label' => $c->selectionLabel(),
+            'noun' => $c->item_noun,
             'standards' => $c->activeStandards->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'code' => $s->shortLabel(), 'scope' => $s->defaultScope()])->values(),
         ])->values();
     @endphp
@@ -253,7 +254,9 @@
                 });
                 const txt = document.createElement('span');
                 txt.className = 'small';
-                txt.innerHTML = s.code && s.code !== s.name ? `<strong>${s.code}</strong> — ${s.name}` : s.name;
+                const noun = (byId(catSelect.value) || {}).noun;
+                const base = s.code && s.code !== s.name ? `<strong>${s.code}</strong> — ${s.name}` : s.name;
+                txt.innerHTML = noun ? `${base} <span class="text-secondary">— ${noun}</span>` : base;
                 wrap.appendChild(cb); wrap.appendChild(txt);
                 optionsBox.appendChild(wrap);
             });

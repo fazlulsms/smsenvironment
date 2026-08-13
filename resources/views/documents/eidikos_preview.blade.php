@@ -28,6 +28,9 @@
         $m['words_amount'], $m['words_currency'],
         $settings['currency_major_name'] ?? 'Taka', $settings['currency_minor_name'] ?? 'Paisa'
     );
+    $bdtWords = $m['dual']
+        ? app(\App\Services\AmountInWords::class)->convert($m['base_words_amount'], $m['base'], 'Taka', 'Paisa')
+        : null;
     $label = fn ($t) => '<span class="fw-bold" style="color:'.$blue.'">'.$t.'</span>';
 @endphp
 
@@ -110,6 +113,7 @@
         </div>
 
         <div class="mt-2"><strong>In Words:</strong> {{ $words }}</div>
+        @if ($bdtWords)<div class="small text-secondary"><strong>{{ $m['base'] }} Equivalent in Words:</strong> {{ $bdtWords }}</div>@endif
 
         <div class="mt-4 row g-4">
             <div class="col-md-6">

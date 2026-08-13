@@ -37,10 +37,12 @@ class InvoiceMoney
             'base_subtotal' => $dual ? round($subtotal * $rate, 2) : null,
             'base_vat' => $dual ? round($vat * $rate, 2) : null,
             'base_total' => $dual ? round($total * $rate, 2) : null,
-            // Amount in words follows the payable currency: the base currency when
-            // converting, otherwise the transaction currency itself.
-            'words_amount' => $dual ? round($total * $rate, 2) : $total,
-            'words_currency' => $dual ? self::BASE : $tx,
+            // Amount in words ALWAYS matches the displayed primary total + currency
+            // (never the converted value, so numbers and words can't disagree). The
+            // BDT equivalent, when converting, gets its own explicitly-labelled words.
+            'words_amount' => $total,
+            'words_currency' => $tx,
+            'base_words_amount' => $dual ? round($total * $rate, 2) : null,
         ];
     }
 }

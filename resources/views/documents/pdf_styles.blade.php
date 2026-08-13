@@ -144,6 +144,8 @@
     .proforma-document .invoice-financial-summary td:first-child { text-align: right; color: #1f2933; }
     .proforma-document .invoice-financial-summary td:last-child { width: 30mm; text-align: right; }
     .proforma-document .invoice-financial-summary .grand td { border-top: 2px solid #1f6f4a; font-weight: 700; font-size: 9.2px; padding-top: 4px; }
+    .proforma-document .invoice-financial-summary .equiv td { border-top: 1px dashed #cfe0d7; font-weight: 700; color: #1f6f4a; }
+    .proforma-document .invoice-conversion-note { margin-top: 4px; text-align: right; font-size: 8.1px; color: #4f5f58; }
     .proforma-document .invoice-amount-words { margin-top: 5px; font-size: 8.4px; line-height: 1.25; }
     .proforma-document .tax-note { margin-top: 4px; color: #4f5f58; font-size: 7.8px; text-align: left; }
     /* SERVICE / CHARGE FOR commercial hierarchy */

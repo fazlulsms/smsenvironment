@@ -10,8 +10,10 @@ use App\Models\ServiceCategory;
 use App\Models\Setting;
 use App\Models\Standard;
 use App\Models\User;
+use App\Services\AmountInWords;
 use App\Services\DocumentPdfService;
 use App\Support\CurrentEntity;
+use App\Support\InvoiceMoney;
 use Database\Seeders\StandardSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -304,6 +306,114 @@ class DocumentStandardsTest extends TestCase
             ])->assertRedirect();
             $this->assertSame($expectedTitle, ProformaInvoice::query()->latest('id')->firstOrFail()->charge_title);
         }
+    }
+
+    private function renderInvoiceHtml(ProformaInvoice $invoice): string
+    {
+        $invoice->load('items.service', 'client', 'bankAccount');
+        $settings = $invoice->settings_snapshot ?: Setting::current()->toArray();
+        $money = InvoiceMoney::context($invoice, $settings);
+        $words = app(AmountInWords::class)->convert($money['words_amount'], $money['words_currency'], 'Taka', 'Paisa');
+
+        return view('proforma_invoices.pdf', [
+            'invoice' => $invoice, 'settings' => $settings, 'money' => $money,
+            'client' => $invoice->client_snapshot ?: [], 'bank' => $invoice->bank_snapshot ?: [],
+            'verificationQr' => '', 'amountInWords' => $words,
+        ])->render();
+    }
+
+    public function test_usd_itemized_invoice_shows_currency_and_bdt_equivalent(): void
+    {
+        [$cat, $standards] = $this->isoStandards();
+        $this->useEntity('SMSEA');
+        [$client, $bank] = $this->makeClientAndBank();
+
+        $this->actingAs($this->user)->post(route('proforma-invoices.store'), [
+            'client_id' => $client->id, 'bank_account_id' => $bank->id, 'date' => '2026-08-14', 'vat_treatment' => 'exclusive',
+            'currency' => 'USD', 'conversion_rate' => 124,
+            'service_category_id' => $cat->id, 'standards' => [$standards[0]->id, $standards[1]->id],
+            'charge_presentation' => 'itemized',
+            'items' => [
+                ['description' => 'ISO 9001 Certification Fee', 'amount' => 1200],
+                ['description' => 'ISO 14001 Certification Fee', 'amount' => 1000],
+            ],
+        ])->assertRedirect();
+
+        $invoice = ProformaInvoice::query()->latest('id')->with('items')->firstOrFail();
+        $this->assertEquals(2200, (float) $invoice->total);
+
+        $money = InvoiceMoney::context($invoice, $invoice->settings_snapshot ?: []);
+        $this->assertSame('USD', $money['currency']);
+        $this->assertTrue($money['dual']);
+        $this->assertEquals(2200, $money['words_amount']);        // words follow the primary currency
+        $this->assertSame('USD', $money['words_currency']);
+        $this->assertEquals(272800, $money['base_total']);        // 2200 x 124
+
+        $html = $this->renderInvoiceHtml($invoice);
+        $this->assertStringContainsString('Amount (USD)', $html);                       // table heading in USD
+        $this->assertStringContainsString('Total Payable Amount (USD)', $html);
+        $this->assertStringContainsString('Equivalent Amount (BDT)', $html);
+        $this->assertStringContainsString('272,800.00', $html);
+        $this->assertStringContainsString('Conversion Rate: 1 USD = BDT 124.00', $html);
+        $this->assertStringContainsString('USD Two Thousand Two Hundred Only', $html);  // primary words
+        $this->assertStringContainsString('BDT Equivalent in Words:', $html);           // explicit BDT words
+    }
+
+    public function test_bdt_invoice_has_no_conversion_artifacts(): void
+    {
+        [$cat, $standards] = $this->isoStandards();
+        $this->useEntity('SMSEA');
+        [$client, $bank] = $this->makeClientAndBank();
+
+        $this->actingAs($this->user)->post(route('proforma-invoices.store'), [
+            'client_id' => $client->id, 'bank_account_id' => $bank->id, 'date' => '2026-08-14', 'vat_treatment' => 'exclusive',
+            'currency' => 'BDT',
+            'service_category_id' => $cat->id, 'standards' => [$standards[0]->id],
+            'charge_presentation' => 'consolidated', 'consolidated' => ['amount' => 50000],
+        ])->assertRedirect();
+
+        $invoice = ProformaInvoice::query()->latest('id')->firstOrFail();
+        $money = InvoiceMoney::context($invoice, $invoice->settings_snapshot ?: []);
+        $this->assertFalse($money['dual']);
+
+        $html = $this->renderInvoiceHtml($invoice);
+        $this->assertStringContainsString('Total Payable Amount (BDT)', $html);
+        $this->assertStringNotContainsString('Equivalent Amount', $html);
+        $this->assertStringNotContainsString('Conversion Rate', $html);
+        $this->assertStringContainsString('Fifty Thousand Taka Only', $html);
+    }
+
+    public function test_single_package_does_not_duplicate_service_name_but_shows_components(): void
+    {
+        $this->seed(StandardSeeder::class);
+        $this->useEntity('SMSEA');
+        [$client, $bank] = $this->makeClientAndBank();
+        $cat = ServiceCategory::query()->where('code', 'ENVIRO_SUSTAIN')->firstOrFail();
+
+        // Single EIA (no components) — no redundant "Select … : • Environmental Impact Assessment".
+        $eia = Standard::query()->where('name', 'Environmental Impact Assessment')->firstOrFail();
+        $this->actingAs($this->user)->post(route('proforma-invoices.store'), [
+            'client_id' => $client->id, 'bank_account_id' => $bank->id, 'date' => '2026-08-14', 'vat_treatment' => 'exclusive',
+            'service_category_id' => $cat->id, 'standards' => [$eia->id],
+            'charge_presentation' => 'consolidated', 'consolidated' => ['amount' => 40000],
+        ])->assertRedirect();
+        $eiaHtml = $this->renderInvoiceHtml(ProformaInvoice::query()->latest('id')->with('items')->firstOrFail());
+        $this->assertStringContainsString('Service:', $eiaHtml);
+        $this->assertStringNotContainsString('Select Services / Packages:', $eiaHtml); // no repeated scope list
+        $this->assertStringContainsString('Professional services for Environmental Impact Assessment.', $eiaHtml);
+        // Appears only as the Service line + the Charge For wording — not a third time as a scope bullet.
+        $this->assertSame(2, substr_count($eiaHtml, 'Environmental Impact Assessment'));
+
+        // Environmental Parameter Testing — its parameters render under "Including:".
+        $ept = Standard::query()->where('name', 'Environmental Parameter Testing')->firstOrFail();
+        $this->actingAs($this->user)->post(route('proforma-invoices.store'), [
+            'client_id' => $client->id, 'bank_account_id' => $bank->id, 'date' => '2026-08-14', 'vat_treatment' => 'exclusive',
+            'service_category_id' => $cat->id, 'standards' => [$ept->id],
+            'charge_presentation' => 'component_breakdown', 'breakdown' => ['amount' => 25000],
+        ])->assertRedirect();
+        $eptHtml = $this->renderInvoiceHtml(ProformaInvoice::query()->latest('id')->with('items')->firstOrFail());
+        $this->assertStringContainsString('Including:', $eptHtml);
+        $this->assertStringContainsString('Stack Emission Test', $eptHtml);
     }
 
     public function test_standard_seeder_is_idempotent(): void

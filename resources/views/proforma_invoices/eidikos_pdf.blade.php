@@ -6,7 +6,10 @@
 </head>
 <body class="eidikos-document">
 @php
-    $m = $money;
+    $m = $money ?? \App\Support\InvoiceMoney::context($invoice, (array) $settings);
+    $bdtEquivalentInWords = $bdtEquivalentInWords ?? ($m['dual']
+        ? app(\App\Services\AmountInWords::class)->convert($m['base_words_amount'], \App\Support\InvoiceMoney::BASE, 'Taka', 'Paisa')
+        : null);
     $fmt = fn ($a) => $m['currency'].' '.number_format((float) $a, 2);
     $fmtBase = fn ($a) => $m['base'].' '.number_format((float) $a, 2);
 
@@ -25,10 +28,13 @@
     $singleCharge = in_array($mode, ['consolidated', 'component_breakdown'], true);
     $hasStandards = filled($invoice->standards_snapshot['items'] ?? null);
     $standardsLabel = $invoice->standards_snapshot['category']['selection_label'] ?? 'Standards / Scope';
-    $scopeList = collect($firstItem?->scope_items ?: [])->filter()->values();
-    if ($scopeList->isEmpty()) {
-        $scopeList = collect($invoice->standards_snapshot['items'] ?? [])->pluck('name')->filter()->values();
-    }
+    $snapItems = collect($invoice->standards_snapshot['items'] ?? []);
+    $scopeItems = collect($firstItem?->scope_items ?: [])->filter()->values();
+    $isPackageScope = $snapItems->count() === 1 && $scopeItems->count() > 1;
+    $scopeList = $scopeItems->isNotEmpty() ? $scopeItems : $snapItems->pluck('name')->filter()->values();
+    $scopeLabel = $isPackageScope ? 'Including' : $standardsLabel;
+    $showScope = $hasStandards && $scopeList->isNotEmpty()
+        && ! ($scopeList->count() === 1 && trim($scopeList->first()) === trim($serviceName));
     $vatShown = ($invoice->vat_treatment ?? null) === 'add' && (float) ($invoice->vat_amount ?? 0) > 0 && ($invoice->show_vat_separately ?? true);
 
     $terms = collect(preg_split('/\r\n|\r|\n/', (string) ($settings['invoice_payment_terms'] ?? '')))
@@ -136,8 +142,10 @@
                     <td>
                         <div class="e-p-title">{{ $serviceName }}</div>
                         @if ($hasStandards)
-                            <div class="e-inc">{{ $standardsLabel }}:</div>
-                            <ul class="e-inc-list">@foreach ($scopeList as $s)<li>{{ $s }}</li>@endforeach</ul>
+                            @if ($showScope)
+                                <div class="e-inc">{{ $scopeLabel }}:</div>
+                                <ul class="e-inc-list">@foreach ($scopeList as $s)<li>{{ $s }}</li>@endforeach</ul>
+                            @endif
                             @if (filled($firstItem?->description))<div class="e-p-desc">{{ $firstItem->description }}</div>@endif
                         @elseif ($mode === 'consolidated')
                             @if (filled($firstItem?->description) && $firstItem->description !== $serviceName)
@@ -198,6 +206,9 @@
     </table>
 
     <div class="e-words"><strong>In Words:</strong> {{ $amountInWords }}</div>
+    @if ($m['dual'] && !empty($bdtEquivalentInWords))
+        <div class="e-words"><strong>{{ $m['base'] }} Equivalent in Words:</strong> {{ $bdtEquivalentInWords }}</div>
+    @endif
     @if (filled($scheduleNote))
         <div class="e-schedule">{{ $scheduleNote }}</div>
     @endif

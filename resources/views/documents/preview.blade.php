@@ -7,7 +7,8 @@
     // logic as the PDF. No Unit/Qty/Rate; never live service data.
     $isInvoice = $type === 'invoice';
     $mode = $document->charge_presentation ?? 'itemized';
-    $currency = $document->settings_snapshot['default_currency'] ?? (\App\Models\Setting::current()->default_currency ?: 'BDT');
+    $money = $isInvoice ? \App\Support\InvoiceMoney::context($document, $document->settings_snapshot ?? []) : null;
+    $currency = $money['currency'] ?? ($document->settings_snapshot['default_currency'] ?? (\App\Models\Setting::current()->default_currency ?: 'BDT'));
     $firstItem = $document->items->first();
     $clientName = $document->client_snapshot['company_name'] ?? $document->client?->company_name;
     $siteName = $isInvoice ? ($document->site_name ?: $clientName) : null;
@@ -17,11 +18,14 @@
     $label = fn ($t) => '<span class="fw-bold" style="color:var(--brand)">'.$t.'</span>';
     $hasStandards = filled($document->standards_snapshot['items'] ?? null);
     $standardsLabel = $document->standards_snapshot['category']['selection_label'] ?? 'Standards / Scope';
-    $scopeList = collect($firstItem?->scope_items ?: [])->filter()->values();
-    if ($scopeList->isEmpty()) {
-        $scopeList = collect($document->standards_snapshot['items'] ?? [])->pluck('name')->filter()->values();
-    }
-    $singleRowspan = $hasStandards ? 5 : 4;
+    $snapItems = collect($document->standards_snapshot['items'] ?? []);
+    $scopeItems = collect($firstItem?->scope_items ?: [])->filter()->values();
+    $isPackageScope = $snapItems->count() === 1 && $scopeItems->count() > 1;
+    $scopeList = $scopeItems->isNotEmpty() ? $scopeItems : $snapItems->pluck('name')->filter()->values();
+    $scopeLabel = $isPackageScope ? 'Including' : $standardsLabel;
+    $showScope = $hasStandards && $scopeList->isNotEmpty()
+        && ! ($scopeList->count() === 1 && trim($scopeList->first()) === trim($serviceName));
+    $singleRowspan = $showScope ? 5 : 4;
 @endphp
 
 <div class="card">
@@ -51,7 +55,9 @@
                         <tr><td>{!! $label('Site Name:') !!} {{ $siteName }}</td></tr>
                         <tr><td>{!! $label('Service:') !!} {{ $serviceName }}</td></tr>
                         @if ($hasStandards)
-                            <tr><td>{!! $label($standardsLabel.':') !!}<ul class="mb-0">@foreach ($scopeList as $s)<li>{{ $s }}</li>@endforeach</ul></td></tr>
+                            @if ($showScope)
+                                <tr><td>{!! $label($scopeLabel.':') !!}<ul class="mb-0">@foreach ($scopeList as $s)<li>{{ $s }}</li>@endforeach</ul></td></tr>
+                            @endif
                             <tr><td>{!! $label('Charge For:') !!} {{ $firstItem?->description ?: $serviceName }}</td></tr>
                         @else
                             <tr>
@@ -106,14 +112,18 @@
 
         <div class="d-flex justify-content-end mt-3">
             <table class="table table-sm w-auto mb-0" style="min-width:280px">
-                <tr><td class="text-end text-secondary">Net Amount</td><td class="num" style="width:110px">{{ number_format($document->subtotal, 2) }}</td></tr>
+                <tr><td class="text-end text-secondary">Net Amount ({{ $currency }})</td><td class="num" style="width:110px">{{ number_format($document->subtotal, 2) }}</td></tr>
                 @if ((float) $document->adjustment !== 0.0)
                     <tr><td class="text-end text-secondary">Adjustment</td><td class="num">{{ number_format($document->adjustment, 2) }}</td></tr>
                 @endif
                 @if ($vatShown)
                     <tr><td class="text-end text-secondary">VAT @ {{ rtrim(rtrim(number_format((float) $document->vat_rate, 3), '0'), '.') }}%</td><td class="num">{{ number_format($document->vat_amount, 2) }}</td></tr>
                 @endif
-                <tr class="fw-bold" style="border-top:2px solid var(--brand)"><td class="text-end">Total Payable</td><td class="num money"><span class="cur">{{ $currency }}</span>{{ number_format($document->total, 2) }}</td></tr>
+                <tr class="fw-bold" style="border-top:2px solid var(--brand)"><td class="text-end">Total Payable ({{ $currency }})</td><td class="num money"><span class="cur">{{ $currency }}</span>{{ number_format($document->total, 2) }}</td></tr>
+                @if ($money && $money['dual'])
+                    <tr class="fw-bold" style="color:var(--brand)"><td class="text-end">Equivalent ({{ $money['base'] }})</td><td class="num money"><span class="cur">{{ $money['base'] }}</span>{{ number_format($money['base_total'], 2) }}</td></tr>
+                    <tr><td class="text-end text-secondary" colspan="2" style="font-size:12px">Conversion Rate: 1 {{ $currency }} = {{ $money['base'] }} {{ number_format($money['rate'], 2) }}</td></tr>
+                @endif
             </table>
         </div>
     </div>

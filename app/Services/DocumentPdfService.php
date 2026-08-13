@@ -84,6 +84,10 @@ class DocumentPdfService
                 $settings['currency_major_name'] ?? 'Taka',
                 $settings['currency_minor_name'] ?? 'Paisa'
             ),
+            // Explicit BDT-equivalent-in-words, only when a foreign currency is converted.
+            'bdtEquivalentInWords' => $money['dual']
+                ? $this->words->convert($money['base_words_amount'], InvoiceMoney::BASE, 'Taka', 'Paisa')
+                : null,
         ])->setPaper('a4');
     }
 

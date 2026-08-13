@@ -24,6 +24,7 @@ class StandardSeeder extends Seeder
                     'name' => $cat['name'],
                     'short_name' => $cat['short_name'] ?? null,
                     'selection_label' => $cat['label'],
+                    'item_noun' => $cat['noun'] ?? null,
                     'active' => true,
                     'display_order' => $order + 1,
                 ]
@@ -99,7 +100,7 @@ class StandardSeeder extends Seeder
             ],
             [
                 'code' => 'WORKPLACE_LABOUR', 'name' => 'Workplace Behaviour and Labour Management Services',
-                'label' => 'Select Service', 'type' => 'Assessment Program',
+                'label' => 'Select Service', 'noun' => 'Service', 'type' => 'Assessment Program',
                 'standards' => [
                     'Workplace Behaviour Assessment',
                     'Leadership and Organizational Culture Assessment',
@@ -190,7 +191,7 @@ class StandardSeeder extends Seeder
             ],
             [
                 'code' => 'ENVIRO_SUSTAIN', 'name' => 'Environmental and Sustainability Services',
-                'label' => 'Select Service', 'type' => 'Environmental Service',
+                'label' => 'Select Services / Packages', 'noun' => 'Package', 'type' => 'Environmental Service',
                 'standards' => [
                     'Environmental Compliance Audit',
                     ['Environmental Impact Assessment', 'EIA'],
@@ -235,7 +236,7 @@ class StandardSeeder extends Seeder
             ],
             [
                 'code' => 'CHEMICAL_MGMT', 'name' => 'Chemical Management Services',
-                'label' => 'Select Service', 'type' => 'Assessment Program',
+                'label' => 'Select Service', 'noun' => 'Service', 'type' => 'Assessment Program',
                 'standards' => [
                     'Chemical Management System Development',
                     'Chemical Risk Assessment',
@@ -245,7 +246,7 @@ class StandardSeeder extends Seeder
             ],
             [
                 'code' => 'OHS', 'name' => 'Occupational Health and Safety Services',
-                'label' => 'Select Service', 'type' => 'Safety Assessment',
+                'label' => 'Select Service', 'noun' => 'Service', 'type' => 'Safety Assessment',
                 'standards' => [
                     'Occupational Health and Safety Audit',
                     'Workplace Risk Assessment',

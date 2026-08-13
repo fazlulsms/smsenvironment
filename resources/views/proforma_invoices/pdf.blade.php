@@ -6,7 +6,14 @@
 </head>
 <body class="quotation-proposal proforma-document">
 @php
-    $currency = $settings['default_currency'] ?? 'BDT';
+    // Self-sufficient when rendered directly (tests/email) without the money context.
+    $money = $money ?? \App\Support\InvoiceMoney::context($invoice, (array) $settings);
+    $bdtEquivalentInWords = $bdtEquivalentInWords ?? ($money['dual']
+        ? app(\App\Services\AmountInWords::class)->convert($money['base_words_amount'], \App\Support\InvoiceMoney::BASE, 'Taka', 'Paisa')
+        : null);
+    // Primary currency = what the amounts were entered in (from the money context),
+    // never the entity default — so USD invoices never render numbers under a BDT label.
+    $currency = $money['currency'];
     $vatTreatment = $invoice->vat_treatment ?? 'exclusive';
     $taxNote = match ($vatTreatment) {
         'included' => 'Invoice amount is inclusive of applicable VAT.',
@@ -128,16 +135,25 @@
         @include('documents.invoice_charge_table', ['invoice' => $invoice, 'serviceRows' => $serviceRows, 'currency' => $currency])
 
         <table class="invoice-financial-summary">
-            <tr><td>Net Amount</td><td class="text-right">{{ number_format($invoice->subtotal, 2) }}</td></tr>
+            <tr><td>Net Amount ({{ $currency }})</td><td class="text-right">{{ number_format($invoice->subtotal, 2) }}</td></tr>
             @if ((float) $invoice->adjustment !== 0.0)
                 <tr><td>Discount / Adjustment</td><td class="text-right">{{ number_format($invoice->adjustment, 2) }}</td></tr>
             @endif
             @if (($invoice->vat_treatment ?? null) === 'add' && (float) ($invoice->vat_amount ?? 0) > 0 && ($invoice->show_vat_separately ?? true))
                 <tr><td>VAT @ {{ rtrim(rtrim(number_format((float) $invoice->vat_rate, 3), '0'), '.') }}%</td><td class="text-right">{{ number_format($invoice->vat_amount, 2) }}</td></tr>
             @endif
-            <tr class="grand"><td>Total Payable Amount</td><td class="text-right">{{ number_format($invoice->total, 2) }}</td></tr>
+            <tr class="grand"><td>Total Payable Amount ({{ $currency }})</td><td class="text-right">{{ number_format($invoice->total, 2) }}</td></tr>
+            @if ($money['dual'])
+                <tr class="equiv"><td>Equivalent Amount ({{ $money['base'] }})</td><td class="text-right">{{ number_format($money['base_total'], 2) }}</td></tr>
+            @endif
         </table>
+        @if ($money['dual'])
+            <div class="invoice-conversion-note">Conversion Rate: 1 {{ $currency }} = {{ $money['base'] }} {{ number_format($money['rate'], 2) }}</div>
+        @endif
         <div class="invoice-amount-words"><strong>Amount in Words:</strong> {{ $amountInWords }}</div>
+        @if ($money['dual'] && !empty($bdtEquivalentInWords))
+            <div class="invoice-amount-words"><strong>{{ $money['base'] }} Equivalent in Words:</strong> {{ $bdtEquivalentInWords }}</div>
+        @endif
         @if($taxNote)
             <div class="tax-note">{{ $taxNote }}</div>
         @endif
