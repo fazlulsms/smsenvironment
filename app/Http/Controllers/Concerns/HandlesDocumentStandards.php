@@ -85,14 +85,19 @@ trait HandlesDocumentStandards
             return $category?->name ?: 'Service';
         }
 
-        $joined = $this->humanJoin($standards->map(fn (Standard $s) => $s->shortLabel())->all());
         $suffix = match ($category?->code) {
             'ISO_MGMT', 'TEXTILE_CERT', 'OEKOTEX', 'FORESTRY_PAPER', 'LEATHER_FOOTWEAR' => ' Certification',
             'SOCIAL_AUDIT' => ' Audit',
             default => '',
         };
 
-        return trim($joined.$suffix);
+        // Certification/audit families read best with short codes ("ISO 9001 … Certification");
+        // service families (EIA, Environmental Parameter Testing, Higg FEM …) use full names.
+        $labels = $suffix === ''
+            ? $standards->map(fn (Standard $s) => $s->name)
+            : $standards->map(fn (Standard $s) => $s->shortLabel());
+
+        return trim($this->humanJoin($labels->all()).$suffix);
     }
 
     /** Deterministic "Charge For" default. User may override. */
@@ -113,6 +118,20 @@ trait HandlesDocumentStandards
     protected function standardNames(Collection $standards): array
     {
         return $standards->map(fn (Standard $s) => $s->name)->all();
+    }
+
+    /**
+     * Default breakdown scope: a single package's own component list when it has
+     * one (e.g. Environmental Parameter Testing → its parameters), otherwise the
+     * selected standard names (e.g. the three ISO standards).
+     */
+    protected function standardsScope(Collection $standards): array
+    {
+        if ($standards->count() === 1 && ($scope = $standards->first()->defaultScope()) !== []) {
+            return $scope;
+        }
+
+        return $this->standardNames($standards);
     }
 
     /**

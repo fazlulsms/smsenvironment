@@ -15,7 +15,7 @@ class Standard extends Model
 {
     protected $fillable = [
         'service_category_id', 'code', 'slug', 'name', 'short_name', 'type',
-        'description', 'active', 'display_order',
+        'description', 'default_scope', 'active', 'display_order',
     ];
 
     protected function casts(): array
@@ -58,6 +58,16 @@ class Standard extends Model
     public function shortLabel(): string
     {
         return $this->short_name ?: ($this->code ?: $this->name);
+    }
+
+    /** Default scope/components (package items) as an array, newline-separated. */
+    public function defaultScope(): array
+    {
+        return collect(preg_split('/\r\n|\r|\n/', (string) $this->default_scope))
+            ->map(fn ($line) => trim($line))
+            ->filter()
+            ->values()
+            ->all();
     }
 
     /** The immutable record stored on a document. */

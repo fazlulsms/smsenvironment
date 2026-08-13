@@ -109,8 +109,9 @@
             ->filter()->map(fn ($i) => (int) $i)->values();
         $categoriesJson = $serviceCategories->map(fn ($c) => [
             'id' => $c->id,
+            'code' => $c->code,
             'label' => $c->selectionLabel(),
-            'standards' => $c->activeStandards->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'code' => $s->shortLabel()])->values(),
+            'standards' => $c->activeStandards->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'code' => $s->shortLabel(), 'scope' => $s->defaultScope()])->values(),
         ])->values();
     @endphp
     <div class="form-section" id="standardsSection">
@@ -151,24 +152,67 @@
         const hiddenBox = document.getElementById('standardHidden');
         const pickerLabel = document.getElementById('standardsPickerLabel');
         const titleInput = document.getElementById('chargeTitle'); // invoice only
-        // Ordered selection: array of {id, name, code}
+        // Ordered selection: array of {id, name, code, scope[]}
         let selected = [];
 
         function byId(catId) { return categories.find(c => String(c.id) === String(catId)); }
+        function allStandards() { return categories.flatMap(c => c.standards.map(s => ({ ...s, categoryId: c.id }))); }
+        function pick(s) { return { id: s.id, name: s.name, code: s.code, scope: s.scope || [] }; }
 
-        function allStandards() {
-            return categories.flatMap(c => c.standards.map(s => ({ ...s, categoryId: c.id })));
-        }
-
-        // Seed from existing snapshot (edit): resolve names from the master list.
+        // Seed from existing snapshot (edit): resolve from the master list.
         (preselected || []).forEach(id => {
             const found = allStandards().find(s => String(s.id) === String(id));
-            if (found) selected.push({ id: found.id, name: found.name, code: found.code });
+            if (found) selected.push(pick(found));
         });
 
-        function renderHidden() {
-            hiddenBox.innerHTML = selected.map(s => `<input type="hidden" name="standards[]" value="${s.id}">`).join('');
+        // --- Deterministic default generation (mirrors HandlesDocumentStandards) ---
+        function humanJoin(items, last) {
+            items = items.filter(v => (v || '').toString().trim() !== '');
+            if (!items.length) return '';
+            if (items.length === 1) return items[0];
+            const tail = items[items.length - 1];
+            return items.slice(0, -1).join(', ') + last + tail;
         }
+        function catCode() { return (byId(catSelect.value) || {}).code; }
+        function genTitle() {
+            const suffix = { ISO_MGMT: ' Certification', TEXTILE_CERT: ' Certification', OEKOTEX: ' Certification', FORESTRY_PAPER: ' Certification', LEATHER_FOOTWEAR: ' Certification', SOCIAL_AUDIT: ' Audit' }[catCode()] || '';
+            const labels = suffix ? selected.map(s => s.code || s.name) : selected.map(s => s.name);
+            return (humanJoin(labels, ' & ') + suffix).trim();
+        }
+        function genChargeFor() {
+            const codes = humanJoin(selected.map(s => s.code || s.name), ' and ');
+            const names = humanJoin(selected.map(s => s.name), ' and ');
+            switch (catCode()) {
+                case 'ISO_MGMT': return `Certification services for ${codes}, inclusive of applicable audit, certification and related service fees.`;
+                case 'TEXTILE_CERT': case 'OEKOTEX': case 'FORESTRY_PAPER': case 'LEATHER_FOOTWEAR': return `Audit, certification, licence and related service fees for ${codes}.`;
+                case 'SOCIAL_AUDIT': return `Social compliance audit services for ${codes}.`;
+                default: return `Professional services for ${names}.`;
+            }
+        }
+        function genComponents() {
+            if (selected.length === 1 && (selected[0].scope || []).length) return selected[0].scope.slice();
+            return selected.map(s => s.name);
+        }
+
+        // Selecting/removing a standard or changing the category deliberately
+        // refreshes the generated commercial defaults. Manual edits made afterwards
+        // stay put (the backend only fills blanks on save).
+        function regenerate() {
+            if (!selected.length) return;
+            const title = genTitle();
+            if (titleInput) titleInput.value = title;
+            const comp = document.querySelector('[name="breakdown[components]"]');
+            if (comp) comp.value = genComponents().join('\n');
+            const desc = document.querySelector('[name="consolidated[description]"]');
+            if (desc) desc.value = genChargeFor();
+            // Quotations (no charge_title field): seed the first line's particular if blank.
+            if (!titleInput) {
+                const firstDesc = document.querySelector('[data-description]');
+                if (firstDesc && !firstDesc.value.trim()) firstDesc.value = title;
+            }
+        }
+
+        function renderHidden() { hiddenBox.innerHTML = selected.map(s => `<input type="hidden" name="standards[]" value="${s.id}">`).join(''); }
 
         function renderTokens() {
             tokensBox.innerHTML = '';
@@ -178,7 +222,7 @@
                 chip.innerHTML = `<span>${s.code || s.name}</span>`;
                 const x = document.createElement('button');
                 x.type = 'button'; x.className = 'btn-close btn-close-sm'; x.style.fontSize = '.6rem';
-                x.addEventListener('click', () => { selected = selected.filter(v => v.id !== s.id); sync(); });
+                x.addEventListener('click', () => { selected = selected.filter(v => v.id !== s.id); changed(); });
                 chip.appendChild(x);
                 tokensBox.appendChild(chip);
             });
@@ -196,17 +240,16 @@
             optionsBox.innerHTML = '';
             if (!list.length) { optionsBox.innerHTML = '<div class="text-secondary small p-1">No matches.</div>'; return; }
             list.forEach(s => {
-                const id = 'std_' + s.id;
                 const wrap = document.createElement('label');
                 wrap.className = 'd-flex align-items-start gap-2 py-1';
                 wrap.style.cursor = 'pointer';
                 const cb = document.createElement('input');
-                cb.type = 'checkbox'; cb.className = 'form-check-input mt-1'; cb.value = s.id; cb.id = id;
+                cb.type = 'checkbox'; cb.className = 'form-check-input mt-1'; cb.value = s.id;
                 cb.checked = selected.some(v => String(v.id) === String(s.id));
                 cb.addEventListener('change', () => {
-                    if (cb.checked) { if (!selected.some(v => v.id === s.id)) selected.push({ id: s.id, name: s.name, code: s.code }); }
+                    if (cb.checked) { if (!selected.some(v => v.id === s.id)) selected.push(pick(s)); }
                     else { selected = selected.filter(v => String(v.id) !== String(s.id)); }
-                    renderTokens(); renderHidden();
+                    changed();
                 });
                 const txt = document.createElement('span');
                 txt.className = 'small';
@@ -221,11 +264,14 @@
             pickerLabel.textContent = cat ? cat.label : 'Standards / Programs';
         }
 
-        function sync() { updateLabel(); renderOptions(); renderTokens(); renderHidden(); }
+        function renderAll() { updateLabel(); renderOptions(); renderTokens(); renderHidden(); }
+        // User-driven change: refresh UI AND regenerate commercial defaults.
+        function changed() { renderAll(); regenerate(); }
 
-        catSelect.addEventListener('change', () => { search.value = ''; sync(); });
+        catSelect.addEventListener('change', () => { search.value = ''; changed(); });
         search.addEventListener('input', renderOptions);
-        sync();
+        // Initial load renders the UI only — never overwrites saved wording on edit.
+        renderAll();
     })();
     </script>
     @endpush
@@ -280,8 +326,8 @@
                     </select>
                 </div>
                 <div class="col-md-4" id="chargeTitleWrap">
-                    <label class="form-label">Service / Package Title</label>
-                    <input class="form-control" name="charge_title" id="chargeTitle" value="{{ old('charge_title', $document->charge_title) }}" placeholder="e.g. Energy Audit · the SERVICE row">
+                    <label class="form-label">Service / Particular</label>
+                    <input class="form-control" name="charge_title" id="chargeTitle" value="{{ old('charge_title', $document->charge_title) }}" placeholder="Auto-filled from the selected service/standards — editable">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Site Name <span class="text-secondary fw-normal">(optional)</span></label>
@@ -292,30 +338,15 @@
             {{-- Consolidated --}}
             <div data-mode-panel="consolidated" class="mode-panel {{ $chargeMode === 'consolidated' ? '' : 'd-none' }}">
                 <div class="row g-3">
-                    <div class="col-md-5">
-                        <label class="form-label">Service (optional)</label>
-                        <select class="form-select" name="consolidated[service_id]" data-charge-service>
-                            <option value="">— none —</option>
-                            @foreach ($serviceOptions as $opt)<option value="{{ $opt['id'] }}" @selected(old('consolidated.service_id', $chargeMode === 'consolidated' ? $firstItem?->service_id : null) == $opt['id'])>{{ $opt['label'] }}</option>@endforeach
-                        </select>
-                    </div>
-                    <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="consolidated[description]" rows="3" placeholder="Certification Fee, including the audit, certification, licence fees and transportation costs.">{{ old('consolidated.description', $chargeMode === 'consolidated' ? $firstItem?->description : '') }}</textarea></div>
-                    <div class="col-md-4"><label class="form-label">Amount ({{ $currency }})</label><input class="form-control num" type="number" step="0.01" min="0" name="consolidated[amount]" value="{{ old('consolidated.amount', $chargeMode === 'consolidated' ? $firstItem?->amount : null) }}"></div>
+                    <div class="col-12"><label class="form-label">Description / Charge For</label><textarea class="form-control" name="consolidated[description]" rows="3" placeholder="Auto-filled from the selected service/standards — editable.">{{ old('consolidated.description', $chargeMode === 'consolidated' ? $firstItem?->description : '') }}</textarea></div>
+                    <div class="col-md-4"><label class="form-label">Total Amount ({{ $currency }})</label><input class="form-control num" type="number" step="0.01" min="0" name="consolidated[amount]" value="{{ old('consolidated.amount', $chargeMode === 'consolidated' ? $firstItem?->amount : null) }}"></div>
                 </div>
             </div>
 
             {{-- Breakdown — one total --}}
             <div data-mode-panel="component_breakdown" class="mode-panel {{ $chargeMode === 'component_breakdown' ? '' : 'd-none' }}">
                 <div class="row g-3">
-                    <div class="col-md-5">
-                        <label class="form-label">Service (optional)</label>
-                        <select class="form-select" name="breakdown[service_id]" data-charge-service>
-                            <option value="">— none —</option>
-                            @foreach ($serviceOptions as $opt)<option value="{{ $opt['id'] }}" @selected(old('breakdown.service_id', $chargeMode === 'component_breakdown' ? $firstItem?->service_id : null) == $opt['id'])>{{ $opt['label'] }}</option>@endforeach
-                        </select>
-                    </div>
-                    <div class="col-12"><label class="form-label">Components (one per line — no individual prices)</label><textarea class="form-control" name="breakdown[components]" rows="5" placeholder="SLCP Verification Fee (Step-03)&#10;Verification Initiation &amp; Upload Fee&#10;Administration Fee&#10;Travel &amp; Operational Cost">{{ old('breakdown.components', $chargeMode === 'component_breakdown' ? implode("\n", $firstItem?->scope_items ?? []) : '') }}</textarea></div>
-                    <div class="col-md-4"><label class="form-label">Unit (optional)</label><input class="form-control" name="breakdown[unit]" value="{{ old('breakdown.unit', $chargeMode === 'component_breakdown' ? $firstItem?->unit : '') }}"></div>
+                    <div class="col-12"><label class="form-label">Components / Included Services (one per line — no individual prices)</label><textarea class="form-control" name="breakdown[components]" rows="5" placeholder="Auto-filled from the selected standards/services — editable.&#10;e.g. Certification Audit Fee&#10;Licence Fee&#10;Transportation / Operational Cost">{{ old('breakdown.components', $chargeMode === 'component_breakdown' ? implode("\n", $firstItem?->scope_items ?? []) : '') }}</textarea></div>
                     <div class="col-md-4"><label class="form-label">Total Amount ({{ $currency }})</label><input class="form-control num" type="number" step="0.01" name="breakdown[amount]" value="{{ old('breakdown.amount', $chargeMode === 'component_breakdown' ? $firstItem?->amount : null) }}"></div>
                 </div>
                 <div class="form-hint mt-2">One consolidated amount applies to the whole package.</div>

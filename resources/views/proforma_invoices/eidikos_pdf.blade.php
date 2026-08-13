@@ -23,8 +23,12 @@
     $firstItem = $items->first();
     $serviceName = $invoice->charge_title ?: ($firstItem?->service?->short_name ?: ($firstItem?->description ?: 'Service'));
     $singleCharge = in_array($mode, ['consolidated', 'component_breakdown'], true);
-    $standards = collect($invoice->standards_snapshot['items'] ?? []);
+    $hasStandards = filled($invoice->standards_snapshot['items'] ?? null);
     $standardsLabel = $invoice->standards_snapshot['category']['selection_label'] ?? 'Standards / Scope';
+    $scopeList = collect($firstItem?->scope_items ?: [])->filter()->values();
+    if ($scopeList->isEmpty()) {
+        $scopeList = collect($invoice->standards_snapshot['items'] ?? [])->pluck('name')->filter()->values();
+    }
     $vatShown = ($invoice->vat_treatment ?? null) === 'add' && (float) ($invoice->vat_amount ?? 0) > 0 && ($invoice->show_vat_separately ?? true);
 
     $terms = collect(preg_split('/\r\n|\r|\n/', (string) ($settings['invoice_payment_terms'] ?? '')))
@@ -131,9 +135,9 @@
                     <td class="e-c-sn">1</td>
                     <td>
                         <div class="e-p-title">{{ $serviceName }}</div>
-                        @if ($standards->isNotEmpty())
+                        @if ($hasStandards)
                             <div class="e-inc">{{ $standardsLabel }}:</div>
-                            <ul class="e-inc-list">@foreach ($standards as $s)<li>{{ $s['name'] }}</li>@endforeach</ul>
+                            <ul class="e-inc-list">@foreach ($scopeList as $s)<li>{{ $s }}</li>@endforeach</ul>
                             @if (filled($firstItem?->description))<div class="e-p-desc">{{ $firstItem->description }}</div>@endif
                         @elseif ($mode === 'consolidated')
                             @if (filled($firstItem?->description) && $firstItem->description !== $serviceName)

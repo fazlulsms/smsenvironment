@@ -216,6 +216,94 @@ class DocumentStandardsTest extends TestCase
             $response->assertSee('ISO Management System Certification');
             $response->assertSee('Textile and Product Certification');
         }
+
+        // The invoice form exposes ONE commercial title and no duplicate service fields.
+        $invoiceForm = $this->actingAs($this->user)->get(route('proforma-invoices.create'))->assertOk();
+        $invoiceForm->assertSee('Service / Particular');
+        $invoiceForm->assertDontSee('Service / Package Title');
+        $invoiceForm->assertDontSee('name="consolidated[service_id]"', false);
+        $invoiceForm->assertDontSee('name="breakdown[service_id]"', false);
+    }
+
+    public function test_environmental_parameter_testing_breakdown_uses_package_scope(): void
+    {
+        $this->seed(StandardSeeder::class);
+        $this->useEntity('EIDIKOS');
+        [$client, $bank] = $this->makeClientAndBank();
+        $cat = ServiceCategory::query()->where('code', 'ENVIRO_SUSTAIN')->firstOrFail();
+        $ept = Standard::query()->where('name', 'Environmental Parameter Testing')->firstOrFail();
+
+        // No components supplied — the package contributes its own parameter list.
+        $this->actingAs($this->user)->post(route('proforma-invoices.store'), [
+            'client_id' => $client->id, 'bank_account_id' => $bank->id, 'date' => '2026-08-14', 'vat_treatment' => 'exclusive',
+            'service_category_id' => $cat->id, 'standards' => [$ept->id],
+            'charge_presentation' => 'component_breakdown', 'breakdown' => ['amount' => 25000],
+        ])->assertRedirect();
+
+        $invoice = ProformaInvoice::query()->latest('id')->with('items')->firstOrFail();
+        $this->assertSame('Environmental Parameter Testing', $invoice->charge_title);
+        $scope = $invoice->items->first()->scope_items;
+        $this->assertCount(7, $scope);
+        $this->assertContains('Stack Emission Test', $scope);
+        $this->assertContains('ODS Assessment / Inventory', $scope);
+        $this->assertEquals(25000, (float) $invoice->total);
+    }
+
+    public function test_manual_component_edits_survive_save(): void
+    {
+        [$cat, $standards] = $this->isoStandards();
+        $this->useEntity('EIDIKOS');
+        [$client, $bank] = $this->makeClientAndBank();
+
+        // User typed their own fee breakdown; it must not be replaced by standard names.
+        $this->actingAs($this->user)->post(route('proforma-invoices.store'), [
+            'client_id' => $client->id, 'bank_account_id' => $bank->id, 'date' => '2026-08-14', 'vat_treatment' => 'exclusive',
+            'service_category_id' => $cat->id, 'standards' => [$standards[0]->id, $standards[1]->id, $standards[2]->id],
+            'charge_presentation' => 'component_breakdown',
+            'breakdown' => ['components' => "Certification Audit Fee\nLicence Fee\nTransportation Cost", 'amount' => 1200],
+        ])->assertRedirect();
+
+        $invoice = ProformaInvoice::query()->latest('id')->with('items')->firstOrFail();
+        $this->assertSame(['Certification Audit Fee', 'Licence Fee', 'Transportation Cost'], $invoice->items->first()->scope_items);
+        // The standards are still recorded in the snapshot for the PDF + reporting.
+        $this->assertCount(3, $invoice->standards_snapshot['items']);
+    }
+
+    public function test_custom_manual_service_without_standards(): void
+    {
+        $this->useEntity('EIDIKOS');
+        [$client, $bank] = $this->makeClientAndBank();
+
+        $this->actingAs($this->user)->post(route('proforma-invoices.store'), [
+            'client_id' => $client->id, 'bank_account_id' => $bank->id, 'date' => '2026-08-14', 'vat_treatment' => 'exclusive',
+            'charge_presentation' => 'consolidated', 'charge_title' => 'Bespoke Advisory Service',
+            'consolidated' => ['description' => 'Custom advisory assignment as agreed.', 'amount' => 5000],
+        ])->assertRedirect();
+
+        $invoice = ProformaInvoice::query()->latest('id')->firstOrFail();
+        $this->assertSame('Bespoke Advisory Service', $invoice->charge_title);
+        $this->assertNull($invoice->standards_snapshot);
+        $this->assertNull($invoice->service_category_id);
+        $this->assertEquals(5000, (float) $invoice->total);
+    }
+
+    public function test_service_family_titles_use_full_names(): void
+    {
+        $this->seed(StandardSeeder::class);
+        $this->useEntity('EIDIKOS');
+        [$client, $bank] = $this->makeClientAndBank();
+        $cat = ServiceCategory::query()->where('code', 'ENVIRO_SUSTAIN')->firstOrFail();
+
+        // EIA + Higg FEM are selectable from the same picker and title by full name.
+        foreach ([['Environmental Impact Assessment', 'Environmental Impact Assessment'], ['Higg FEM Verification', 'Higg FEM Verification']] as [$name, $expectedTitle]) {
+            $std = Standard::query()->where('name', $name)->firstOrFail();
+            $this->actingAs($this->user)->post(route('proforma-invoices.store'), [
+                'client_id' => $client->id, 'bank_account_id' => $bank->id, 'date' => '2026-08-14', 'vat_treatment' => 'exclusive',
+                'service_category_id' => $cat->id, 'standards' => [$std->id],
+                'charge_presentation' => 'consolidated', 'consolidated' => ['amount' => 40000],
+            ])->assertRedirect();
+            $this->assertSame($expectedTitle, ProformaInvoice::query()->latest('id')->firstOrFail()->charge_title);
+        }
     }
 
     public function test_standard_seeder_is_idempotent(): void

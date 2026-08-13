@@ -8,9 +8,15 @@
     $clientName = $invoice->client_snapshot['company_name'] ?? ($invoice->client?->company_name ?? '');
     $siteName = $invoice->site_name ?: $clientName;
     $serviceName = $invoice->charge_title ?: ($first['title'] ?? 'Environmental Services');
-    $standards = collect($invoice->standards_snapshot['items'] ?? []);
+    $hasStandards = filled($invoice->standards_snapshot['items'] ?? null);
     $standardsLabel = $invoice->standards_snapshot['category']['selection_label'] ?? 'Standards / Scope';
-    $rowspan = $standards->isNotEmpty() ? 5 : 4;
+    // Scope list: the item's saved components when present (a package shows its own
+    // parameters), else the selected standard names from the snapshot.
+    $scopeList = collect($firstItem?->scope_items ?: [])->filter()->values();
+    if ($scopeList->isEmpty()) {
+        $scopeList = collect($invoice->standards_snapshot['items'] ?? [])->pluck('name')->filter()->values();
+    }
+    $rowspan = $hasStandards ? 5 : 4;
 @endphp
 
 @if ($mode === 'itemized')
@@ -47,11 +53,11 @@
             </tr>
             <tr><td><span class="ct-label">Site Name:</span> {{ $siteName }}</td></tr>
             <tr><td><span class="ct-label">Service:</span> {{ $serviceName }}</td></tr>
-            @if ($standards->isNotEmpty())
+            @if ($hasStandards)
                 <tr>
                     <td>
                         <span class="ct-label">{{ $standardsLabel }}:</span>
-                        <ul class="ct-list">@foreach ($standards as $s)<li>{{ $s['name'] }}</li>@endforeach</ul>
+                        <ul class="ct-list">@foreach ($scopeList as $s)<li>{{ $s }}</li>@endforeach</ul>
                     </td>
                 </tr>
                 <tr>

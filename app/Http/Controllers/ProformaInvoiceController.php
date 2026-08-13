@@ -445,7 +445,11 @@ class ProformaInvoiceController extends Controller
         }
 
         if ($mode === ProformaInvoice::PRESENTATION_BREAKDOWN) {
-            $data['breakdown']['components'] = implode("\n", $this->standardNames($standards));
+            // Fill-if-empty so manual component edits survive a save; a single package
+            // (e.g. Environmental Parameter Testing) contributes its own parameter list.
+            if (trim((string) ($data['breakdown']['components'] ?? '')) === '') {
+                $data['breakdown']['components'] = implode("\n", $this->standardsScope($standards));
+            }
             if (trim((string) ($data['breakdown']['description'] ?? '')) === '') {
                 $data['breakdown']['description'] = $this->standardsChargeFor($category, $standards);
             }

@@ -15,9 +15,13 @@
     $singleCharge = $isInvoice && ($mode === 'consolidated' || $mode === 'component_breakdown');
     $vatShown = ($document->vat_treatment ?? null) === 'add' && (float) ($document->vat_amount ?? 0) > 0 && ($document->show_vat_separately ?? true);
     $label = fn ($t) => '<span class="fw-bold" style="color:var(--brand)">'.$t.'</span>';
-    $standards = collect($document->standards_snapshot['items'] ?? []);
+    $hasStandards = filled($document->standards_snapshot['items'] ?? null);
     $standardsLabel = $document->standards_snapshot['category']['selection_label'] ?? 'Standards / Scope';
-    $singleRowspan = $standards->isNotEmpty() ? 5 : 4;
+    $scopeList = collect($firstItem?->scope_items ?: [])->filter()->values();
+    if ($scopeList->isEmpty()) {
+        $scopeList = collect($document->standards_snapshot['items'] ?? [])->pluck('name')->filter()->values();
+    }
+    $singleRowspan = $hasStandards ? 5 : 4;
 @endphp
 
 <div class="card">
@@ -46,8 +50,8 @@
                         </tr>
                         <tr><td>{!! $label('Site Name:') !!} {{ $siteName }}</td></tr>
                         <tr><td>{!! $label('Service:') !!} {{ $serviceName }}</td></tr>
-                        @if ($standards->isNotEmpty())
-                            <tr><td>{!! $label($standardsLabel.':') !!}<ul class="mb-0">@foreach ($standards as $s)<li>{{ $s['name'] }}</li>@endforeach</ul></td></tr>
+                        @if ($hasStandards)
+                            <tr><td>{!! $label($standardsLabel.':') !!}<ul class="mb-0">@foreach ($scopeList as $s)<li>{{ $s }}</li>@endforeach</ul></td></tr>
                             <tr><td>{!! $label('Charge For:') !!} {{ $firstItem?->description ?: $serviceName }}</td></tr>
                         @else
                             <tr>

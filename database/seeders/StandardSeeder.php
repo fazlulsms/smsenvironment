@@ -30,7 +30,13 @@ class StandardSeeder extends Seeder
             );
 
             foreach ($cat['standards'] as $i => $entry) {
-                [$name, $code] = is_array($entry) ? [$entry[0], $entry[1]] : [$entry, null];
+                if (is_string($entry)) {
+                    [$name, $code, $scope] = [$entry, null, null];
+                } elseif (array_is_list($entry)) {
+                    [$name, $code, $scope] = [$entry[0], $entry[1] ?? null, null];
+                } else {
+                    [$name, $code, $scope] = [$entry['name'], $entry['code'] ?? null, $entry['scope'] ?? null];
+                }
                 $slug = Str::slug($code ?: $name);
 
                 Standard::query()->firstOrCreate(
@@ -40,6 +46,7 @@ class StandardSeeder extends Seeder
                         'code' => $code,
                         'short_name' => $code,
                         'type' => $cat['type'],
+                        'default_scope' => $scope ? implode("\n", $scope) : null,
                         'active' => true,
                         'display_order' => $i + 1,
                     ]
@@ -187,6 +194,18 @@ class StandardSeeder extends Seeder
                 'standards' => [
                     'Environmental Compliance Audit',
                     ['Environmental Impact Assessment', 'EIA'],
+                    [
+                        'name' => 'Environmental Parameter Testing', 'code' => null,
+                        'scope' => [
+                            'Ambient Air Quality Assessment',
+                            'Stack Emission Test',
+                            'Noise Level Assessment',
+                            'Light Level Assessment',
+                            'Temperature Assessment',
+                            'Humidity Assessment',
+                            'ODS Assessment / Inventory',
+                        ],
+                    ],
                     ['Initial Environmental Examination', 'IEE'],
                     ['Environmental and Social Impact Assessment', 'ESIA'],
                     ['Environmental Management Plan', 'EMP'],
