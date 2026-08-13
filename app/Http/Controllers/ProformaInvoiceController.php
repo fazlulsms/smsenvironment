@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HandlesDocumentStandards;
 use App\Models\BankAccount;
+use App\Models\ChargeParticular;
 use App\Models\Client;
 use App\Models\ProformaInvoice;
 use App\Models\Service;
@@ -242,6 +243,8 @@ class ProformaInvoiceController extends Controller
             'settings' => Setting::current(),
             'serviceCategories' => ServiceCategory::query()->active()->ordered()
                 ->with(['activeStandards'])->get(),
+            'chargeParticulars' => ChargeParticular::query()->active()->ordered()
+                ->get(['id', 'name', 'category', 'search_keywords']),
         ];
     }
 

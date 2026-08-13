@@ -285,6 +285,8 @@
     $chargeMode = old('charge_presentation', $document->charge_presentation ?? 'itemized');
     $firstItem = $document->items?->first();
     $serviceOptions = $services->map(fn ($s) => ['id' => $s->id, 'label' => ($s->short_name ?: $s->name)])->values();
+    $chargeParticularsJson = collect($chargeParticulars ?? [])
+        ->map(fn ($p) => ['name' => $p->name, 'kw' => (string) $p->search_keywords, 'cat' => (string) $p->category])->values();
 @endphp
 @if ($isQuotation)
     <div class="form-section">
@@ -349,10 +351,19 @@
             {{-- Breakdown — one total --}}
             <div data-mode-panel="component_breakdown" class="mode-panel {{ $chargeMode === 'component_breakdown' ? '' : 'd-none' }}">
                 <div class="row g-3">
-                    <div class="col-12"><label class="form-label">Components / Included Services (one per line — no individual prices)</label><textarea class="form-control" name="breakdown[components]" rows="5" placeholder="Auto-filled from the selected standards/services — editable.&#10;e.g. Certification Audit Fee&#10;Licence Fee&#10;Transportation / Operational Cost">{{ old('breakdown.components', $chargeMode === 'component_breakdown' ? implode("\n", $firstItem?->scope_items ?? []) : '') }}</textarea></div>
+                    <div class="col-12" data-cp-widget>
+                        <label class="form-label">Charge Particulars</label>
+                        <div style="position:relative">
+                            <input class="form-control mb-2" data-cp-search placeholder="Search the library or type a particular (audit, travel, license, SLCP…)" autocomplete="off">
+                            <div data-cp-suggest style="position:absolute;z-index:30;left:0;right:0;max-height:220px;overflow:auto;background:#fff;border:1px solid #e6e2f5;border-radius:8px;display:none"></div>
+                        </div>
+                        <div data-cp-list></div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-1" data-cp-add><x-icon name="plus" :size="14" /> Add Particular</button>
+                        <textarea name="breakdown[components]" data-cp-hidden class="d-none">{{ old('breakdown.components', $chargeMode === 'component_breakdown' ? implode("\n", $firstItem?->scope_items ?? []) : '') }}</textarea>
+                        <div class="form-hint mt-1">Many components, one total. Pick from the library or type your own — the edited wording is saved on this document only.</div>
+                    </div>
                     <div class="col-md-4"><label class="form-label">Total Amount ({{ $currency }})</label><input class="form-control num" type="number" step="0.01" name="breakdown[amount]" value="{{ old('breakdown.amount', $chargeMode === 'component_breakdown' ? $firstItem?->amount : null) }}"></div>
                 </div>
-                <div class="form-hint mt-2">One consolidated amount applies to the whole package.</div>
             </div>
 
             {{-- Itemized --}}
@@ -365,6 +376,96 @@
         </div>
     </div>
 @endif
+
+@isset($chargeParticulars)
+@push('scripts')
+<script>
+(function () {
+    const PARTICULARS = @json($chargeParticularsJson);
+    function matches(term) {
+        term = term.trim().toLowerCase();
+        if (!term) return [];
+        return PARTICULARS.filter(p => (p.name + ' ' + (p.kw || '') + ' ' + (p.cat || '')).toLowerCase().includes(term)).slice(0, 10);
+    }
+    // Breakdown "Charge Particulars" chip/list widget → serialises to breakdown[components].
+    document.querySelectorAll('[data-cp-widget]').forEach(widget => {
+        const search = widget.querySelector('[data-cp-search]');
+        const suggest = widget.querySelector('[data-cp-suggest]');
+        const list = widget.querySelector('[data-cp-list]');
+        const hidden = widget.querySelector('[data-cp-hidden]');
+        const addBtn = widget.querySelector('[data-cp-add]');
+
+        function serialise() {
+            hidden.value = [...list.querySelectorAll('[data-cp-input]')].map(i => i.value.trim()).filter(Boolean).join('\n');
+        }
+        function addRow(text) {
+            const row = document.createElement('div');
+            row.className = 'd-flex gap-2 mb-2 align-items-center';
+            const input = document.createElement('input');
+            input.className = 'form-control form-control-sm'; input.setAttribute('data-cp-input', ''); input.value = text || '';
+            input.addEventListener('input', serialise);
+            const rm = document.createElement('button');
+            rm.type = 'button'; rm.className = 'btn-icon'; rm.title = 'Remove'; rm.textContent = '×'; rm.style.fontSize = '18px';
+            rm.addEventListener('click', () => { row.remove(); serialise(); });
+            row.appendChild(input); row.appendChild(rm); list.appendChild(row); serialise();
+            return input;
+        }
+        function hideSuggest() { suggest.style.display = 'none'; suggest.innerHTML = ''; }
+        function renderSuggest() {
+            const found = matches(search.value);
+            suggest.innerHTML = '';
+            if (!found.length) { hideSuggest(); return; }
+            found.forEach(p => {
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'dropdown-item small text-wrap'; b.style.width = '100%'; b.style.textAlign = 'left';
+                b.innerHTML = `${p.name}${p.cat ? ` <span class="text-secondary">· ${p.cat}</span>` : ''}`;
+                b.addEventListener('click', () => { addRow(p.name); search.value = ''; hideSuggest(); search.focus(); });
+                suggest.appendChild(b);
+            });
+            suggest.style.display = 'block';
+        }
+        // Seed rows from existing components (edit) — never overwrite on load.
+        (hidden.value || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach(addRow);
+        search.addEventListener('input', renderSuggest);
+        search.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); if (search.value.trim()) { addRow(search.value.trim()); search.value = ''; hideSuggest(); } }
+        });
+        search.addEventListener('blur', () => setTimeout(hideSuggest, 150));
+        addBtn.addEventListener('click', () => { addRow('').focus(); });
+    });
+    // Itemized "add from library" → appends a priced row using the existing Add-Row flow.
+    document.querySelectorAll('[data-cpi-widget]').forEach(widget => {
+        const search = widget.querySelector('[data-cpi-search]');
+        const suggest = widget.querySelector('[data-cpi-suggest]');
+        if (!search) return;
+        function hideSuggest() { suggest.style.display = 'none'; suggest.innerHTML = ''; }
+        function fillLastDescription(text) {
+            const addBtn = document.getElementById('addItem');
+            if (addBtn) addBtn.click();
+            const rows = document.querySelectorAll('#itemsTable tbody tr');
+            const last = rows[rows.length - 1];
+            const desc = last && last.querySelector('[data-description]');
+            if (desc) desc.value = text;
+        }
+        search.addEventListener('input', () => {
+            const found = matches(search.value);
+            suggest.innerHTML = '';
+            if (!found.length) { hideSuggest(); return; }
+            found.forEach(p => {
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'dropdown-item small text-wrap'; b.style.width = '100%'; b.style.textAlign = 'left';
+                b.textContent = p.name;
+                b.addEventListener('click', () => { fillLastDescription(p.name); search.value = ''; hideSuggest(); });
+                suggest.appendChild(b);
+            });
+            suggest.style.display = 'block';
+        });
+        search.addEventListener('blur', () => setTimeout(hideSuggest, 150));
+    });
+})();
+</script>
+@endpush
+@endisset
 
 {{-- 3 · Advanced document content --}}
 <details class="adv" {{ $showAdvanced ? 'open' : '' }} id="advancedWrap">
@@ -624,26 +725,7 @@ document.addEventListener('input', event => {
 });
 
 document.addEventListener('change', event => {
-    if (event.target.matches('[name="vat_treatment"], [name="show_vat_separately"]')) {
-        recalc();
-        return;
-    }
-
-    if (! event.target.matches('[data-service-select]')) return;
-    const service = services[event.target.value];
-    if (! service) return;
-    const row = event.target.closest('tr');
-    const description = row.querySelector('[data-description]');
-    if (description) description.value = {{ $isQuotation ? 'service.quotation_scope || service.default_description || service.name' : 'service.invoice_description || service.default_description || service.name' }};
-    const scope = row.querySelector('[data-scope-items]');
-    if (scope) scope.value = (service.components || [])
-        .filter(component => component.is_active)
-        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-        .map(component => component.name)
-        .join("\n");
-    const amount = row.querySelector('[data-amount-input]');
-    if (amount && !parseFloat(amount.value || 0)) amount.value = service.default_rate || 0;
-    recalc();
+    if (event.target.matches('[name="vat_treatment"], [name="show_vat_separately"]')) recalc();
 });
 
 document.addEventListener('click', event => {
