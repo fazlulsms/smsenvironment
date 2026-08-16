@@ -132,7 +132,7 @@ class ProformaInvoiceVerificationTest extends TestCase
         $this->assertStringNotContainsString('class="financial-verification-table"', $html);
         $this->assertStringContainsString('<ol class="invoice-terms-full">', $html);
         $this->assertStringContainsString('Please mention the Proforma Invoice reference', $html);
-        $this->assertStringContainsString('class="prepared-section"', $html);
+        $this->assertStringContainsString('prepared-section', $html);
         $this->assertStringContainsString('Authorized Signature', $html);
     }
 
@@ -205,7 +205,7 @@ class ProformaInvoiceVerificationTest extends TestCase
         $this->assertDatabaseHas('bank_accounts', [
             'beneficiary_name' => 'SMS Environmental Alliance',
             'bank_name' => 'Prime Bank Ltd.',
-            'branch' => 'Garib E Newaj Avenue, Uttara, Dhaka, Bangladesh',
+            'branch' => 'Garib E Newaj Avenue, Uttara, Dhaka',
             'account_number' => '2170316017001',
             'swift_code' => 'PRBLBDDH',
         ]);
@@ -285,7 +285,7 @@ class ProformaInvoiceVerificationTest extends TestCase
         $bank = BankAccount::query()->create([
             'beneficiary_name' => 'SMS Environmental Alliance',
             'bank_name' => 'Prime Bank Ltd.',
-            'branch' => 'Garib E Newaj Avenue, Uttara, Dhaka, Bangladesh',
+            'branch' => 'Garib E Newaj Avenue, Uttara, Dhaka',
             'account_number' => '2170316017001',
             'swift_code' => 'PRBLBDDH',
             'is_active' => true,

@@ -58,7 +58,7 @@
     $bankRows = [
         'Beneficiary' => $bank['beneficiary_name'] ?? null,
         'Bank' => isset($bank['bank_name']) ? preg_replace('/\.+$/', '.', trim((string) $bank['bank_name'])) : null,
-        'Branch' => $bank['branch'] ?? null,
+        'Branch' => isset($bank['branch']) ? preg_replace('/,\s*Bangladesh\.?\s*$/i', '', trim((string) $bank['branch'])) : null,
         'Account No.' => $bank['account_number'] ?? null,
         'SWIFT' => $bank['swift_code'] ?? null,
     ];
@@ -88,12 +88,13 @@
         <tr>
             <td class="if-company">
                 <strong>{{ $settings['organization_name'] ?? 'SMS Environmental Alliance' }}</strong>
-                @if(!empty($settings['office_address'])){{ $settings['office_address'] }}<br>@endif
+                @if(!empty($settings['office_address']))<span class="if-address">{{ $settings['office_address'] }}</span>@endif
                 @php $contactBits = array_filter([$settings['phone'] ?? null, $settings['email'] ?? null, $settings['website'] ?? null]); @endphp
-                @if(!empty($contactBits)){{ implode(' | ', $contactBits) }}@endif
+                @if(!empty($contactBits))<span class="if-contact">{{ implode(' | ', $contactBits) }}</span>@endif
             </td>
-            @if(!empty($verificationQr))
-                <td class="if-verify">
+            <td class="if-gap"></td>
+            <td class="if-verify">
+                @if(!empty($verificationQr))
                     <table class="if-verify-table">
                         <tr>
                             <td class="if-verify-text">
@@ -107,8 +108,8 @@
                             </td>
                         </tr>
                     </table>
-                </td>
-            @endif
+                @endif
+            </td>
         </tr>
     </table>
 </div>
@@ -175,19 +176,22 @@
     <table class="invoice-lower-table">
         <tr>
             <td class="bank-cell">
-                <h3>Bank Details</h3>
-                <table class="bank-table invoice-bank-table-full">
-                    @foreach($bankRows as $label => $value)
-                        @if(filled($value))<tr><td>{{ $label }}</td><td>{{ $value }}</td></tr>@endif
-                    @endforeach
-                </table>
+                <div class="lower-card">
+                    <h3>Bank Details</h3>
+                    <table class="bank-table invoice-bank-table-full">
+                        @foreach($bankRows as $label => $value)
+                            @if(filled($value))<tr><td>{{ $label }}</td><td>{{ $value }}</td></tr>@endif
+                        @endforeach
+                    </table>
+                </div>
             </td>
+            <td class="lower-gutter"></td>
             <td class="prepared-cell">
-                <div class="prepared-section">
+                <div class="lower-card prepared-section">
                     <h3>Prepared By</h3>
                     @if (!empty($settings['prepared_by_name']))<strong>{{ $settings['prepared_by_name'] }}</strong><br>@endif
                     @php $preparedDesignation = $settings['prepared_by_designation'] ?? 'Authorized Representative'; @endphp
-                    {{ $preparedDesignation }}<br>
+                    <strong>{{ $preparedDesignation }}</strong><br>
                     @if(trim((string) $preparedDesignation) !== 'SMS Environmental Alliance')SMS Environmental Alliance<br>@endif
                     <div class="authorization-note">Electronically generated and authorized through the SMSEA Office system.</div>
                     <div class="signature-line"></div>

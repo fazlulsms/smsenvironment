@@ -37,7 +37,7 @@ class BankAccountSeeder extends Seeder
         $accounts = [[
             'beneficiary_name' => 'SMS Environmental Alliance',
             'bank_name' => 'Prime Bank Ltd.',
-            'branch' => 'Garib E Newaj Avenue, Uttara, Dhaka, Bangladesh',
+            'branch' => 'Garib E Newaj Avenue, Uttara, Dhaka',
             'account_number' => '2170316017001',
             'routing_number' => null,
             'swift_code' => 'PRBLBDDH',

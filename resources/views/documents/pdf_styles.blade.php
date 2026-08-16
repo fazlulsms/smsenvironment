@@ -153,35 +153,43 @@
     .proforma-document .commercial-table .ct-list li { margin: 0 0 1px; line-height: 1.3; }
     .proforma-document .ct-info { margin: 5px 0 0; font-size: 10.4px; line-height: 1.5; }
     .proforma-document .ct-info div { margin: 0; }
-    /* Lower flow: terms (full width), then bank + prepared-by side by side */
+    /* Lower flow: compact terms → controlled gap → two info cards → footer strip.
+       Secondary/legal info is intentionally a step smaller than the commercial table. */
     .proforma-document .lower-block { margin-top: 9px; page-break-inside: avoid; }
-    .proforma-document .invoice-terms-full { margin: 0 0 0 16px; padding: 0; font-size: 10.1px; line-height: 1.36; }
-    .proforma-document .invoice-terms-full li { margin: 0 0 5px; padding-left: 3px; }
-    .proforma-document .invoice-bank-table-full { width: 100%; margin-top: 0; border-collapse: collapse; }
-    .proforma-document .invoice-bank-table-full td { border-bottom: 1px solid #e4ebe7; padding: 4px 7px; font-size: 10.1px; line-height: 1.3; }
-    .proforma-document .invoice-bank-table-full td:first-child { width: 30%; color: #4f5f58; font-weight: 700; }
-    .proforma-document .invoice-lower-table { width: 100%; margin-top: 10px; border-collapse: collapse; page-break-inside: avoid; }
+    .proforma-document .invoice-terms-full { margin: 0 0 0 15px; padding: 0; font-size: 9px; line-height: 1.18; }
+    .proforma-document .invoice-terms-full li { margin: 0 0 2px; padding-left: 3px; }
+    /* Bank + Prepared-by info cards, separated by a clear gutter column */
+    .proforma-document .invoice-lower-table { width: 100%; margin-top: 16px; border-collapse: collapse; page-break-inside: avoid; }
     .proforma-document .invoice-lower-table > tbody > tr > td { border: 0; padding: 0; vertical-align: top; }
-    .proforma-document .bank-cell { width: 62%; padding-right: 8mm; }
-    .proforma-document .prepared-cell { width: 38%; font-size: 10.1px; line-height: 1.32; }
-    .proforma-document h3 { margin: 0 0 6px; font-size: 10.6px; color: #1f4f38; text-transform: uppercase; }
-    .proforma-document .prepared-cell strong { font-size: 10.8px; }
-    .proforma-document .prepared-section { page-break-inside: avoid; }
-    .proforma-document .authorization-note { margin-top: 4px; color: #4f5f58; font-size: 9.3px; line-height: 1.28; }
-    .proforma-document .signature-line { width: 44mm; border-top: 1px solid #667085; margin-top: 10px; }
-    .proforma-document .signature-caption { color: #4f5f58; font-size: 9.2px; margin-top: 2px; }
-    /* Fixed footer anchored in the reserved bottom page margin (does not add flow height). */
+    .proforma-document .bank-cell { width: 57%; }
+    .proforma-document .lower-gutter { width: 5%; }
+    .proforma-document .prepared-cell { width: 38%; }
+    .proforma-document .lower-card { background: #f7faf8; border: 1px solid #eaf1ec; border-radius: 6px; padding: 9px 12px; }
+    .proforma-document h3 { margin: 0 0 6px; font-size: 10px; color: #1f4f38; text-transform: uppercase; }
+    .proforma-document .invoice-bank-table-full { width: 100%; margin-top: 0; border-collapse: collapse; }
+    .proforma-document .invoice-bank-table-full td { border-bottom: 1px solid #e9efeb; padding: 3px 4px; font-size: 9px; line-height: 1.28; }
+    .proforma-document .invoice-bank-table-full tr:last-child td { border-bottom: 0; }
+    .proforma-document .invoice-bank-table-full td:first-child { width: 32%; color: #4f5f58; font-weight: 700; }
+    .proforma-document .prepared-section { page-break-inside: avoid; font-size: 9px; line-height: 1.3; }
+    .proforma-document .prepared-cell strong { font-size: 9.4px; color: #1f2933; }
+    .proforma-document .authorization-note { margin-top: 5px; color: #667085; font-size: 8.3px; line-height: 1.28; }
+    .proforma-document .signature-line { width: 40mm; border-top: 1px solid #8a968f; margin-top: 12px; }
+    .proforma-document .signature-caption { color: #667085; font-size: 8.3px; margin-top: 2px; }
+    /* Fixed footer strip: company/address (wide) — gap — verification — QR. */
     .proforma-document .invoice-footer { position: fixed; left: 0; right: 0; bottom: -25mm; height: 22mm; border-top: 2px solid #1f6f4a; padding-top: 2.5mm; }
     .proforma-document .if-table { width: 100%; margin: 0; border-collapse: collapse; }
     .proforma-document .if-table > tbody > tr > td { border: 0; padding: 0; vertical-align: top; }
-    .proforma-document .if-company { width: 55%; font-size: 8.4px; line-height: 1.38; color: #4f5f58; padding-right: 6mm; }
-    .proforma-document .if-company strong { display: block; color: #1f4f38; font-size: 9.6px; margin-bottom: 1px; }
-    .proforma-document .if-verify { width: 45%; }
+    .proforma-document .if-company { width: 61%; font-size: 7.6px; line-height: 1.4; color: #4f5f58; padding-right: 4mm; }
+    .proforma-document .if-company strong { display: block; color: #1f4f38; font-size: 9px; margin-bottom: 1px; }
+    .proforma-document .if-company .if-address { display: block; margin-bottom: 1px; }
+    .proforma-document .if-company .if-contact { display: block; }
+    .proforma-document .if-gap { width: 2%; }
+    .proforma-document .if-verify { width: 37%; }
     .proforma-document .if-verify-table { width: 100%; margin: 0; border-collapse: collapse; }
     .proforma-document .if-verify-table td { border: 0; padding: 0; vertical-align: top; }
-    .proforma-document .if-verify-text { font-size: 8px; line-height: 1.3; color: #4f5f58; padding-right: 3mm; }
-    .proforma-document .if-verify-text strong { display: block; color: #1f4f38; font-size: 9px; margin-bottom: 1px; }
-    .proforma-document .if-verify-meta { color: #1f2933; font-size: 7.8px; }
+    .proforma-document .if-verify-text { font-size: 7.6px; line-height: 1.3; color: #4f5f58; padding-right: 2.5mm; }
+    .proforma-document .if-verify-text strong { display: block; color: #1f4f38; font-size: 8.4px; margin-bottom: 1px; }
+    .proforma-document .if-verify-meta { color: #1f2933; font-size: 7.4px; }
     .proforma-document .if-qr-cell { width: 20mm; text-align: right; }
     .proforma-document .if-qr { width: 19mm; height: 19mm; display: block; background: #fff; }
 </style>
