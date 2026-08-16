@@ -50,10 +50,10 @@
         ->values();
     if ($paymentTerms->isEmpty() || $paymentTerms->count() < 4) {
         $paymentTerms = collect([
-            'Payment shall be made by account payee cheque or bank transfer in favour of SMS Environmental Alliance.',
-            'Where advance payment is applicable, the assignment will commence or be scheduled following confirmation of the applicable payment.',
-            'VAT, AIT/withholding tax and other statutory deductions, where applicable, shall be treated according to the stated invoice tax treatment and prevailing statutory requirements.',
-            'The client is requested to mention the Proforma Invoice reference when making payment or sending payment confirmation.',
+            '100% advance payment is required before scheduling or commencing the assignment.',
+            'Payment shall be made by cash, account payee cheque, pay order or bank transfer in favour of SMS Environmental Alliance.',
+            'VAT and AIT shall be applied as stated in the Proforma Invoice. Where not included, applicable VAT shall be added to the payable amount, and AIT shall be deducted at source in accordance with prevailing laws.',
+            'Please mention the Proforma Invoice reference when making payment or sharing payment confirmation.',
         ]);
     }
     $bankRows = [

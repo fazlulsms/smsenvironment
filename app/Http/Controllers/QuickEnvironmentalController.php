@@ -6,6 +6,7 @@ use App\Models\BankAccount;
 use App\Models\BusinessEntity;
 use App\Models\Client;
 use App\Models\ServiceCategory;
+use App\Models\Setting;
 use App\Models\Standard;
 use App\Support\CurrentEntity;
 use Illuminate\Http\RedirectResponse;
@@ -43,6 +44,7 @@ class QuickEnvironmentalController extends Controller
             : 'eia';
 
         $default = $this->defaultBank($entity->id);
+        $settings = Setting::current();
 
         return view('quick_document.index', [
             'entity' => $entity,
@@ -53,6 +55,9 @@ class QuickEnvironmentalController extends Controller
             'defaultBankId' => $default?->id,
             'hasBank' => (bool) $default,
             'currencies' => ['BDT', 'USD', 'EUR', 'GBP'],
+            // Remembered defaults, prefilled and updatable via a "set as default" tick.
+            'defaultConversionRate' => $this->trimRate($settings->default_conversion_rate),
+            'defaultVatRate' => $this->trimRate($settings->quotation_vat_rate),
         ]);
     }
 
@@ -72,11 +77,25 @@ class QuickEnvironmentalController extends Controller
             'reference_no' => ['nullable', 'string', 'max:255'],
             'vat_treatment' => ['nullable', 'in:exclusive,included,add,not_applicable'],
             'vat_rate' => ['nullable', 'numeric', 'min:0'],
+            'set_default_conversion_rate' => ['nullable', 'boolean'],
+            'set_default_vat_rate' => ['nullable', 'boolean'],
         ]);
 
         $entity = $this->entity();
         // The entity is authoritative — numbering, banks and settings follow SMSEA.
         app(CurrentEntity::class)->switchTo($entity->id);
+
+        // Remembered conversion / VAT defaults: fall back to the stored value, and
+        // persist a freshly entered one when "set as default" is ticked.
+        $settings = Setting::current();
+        $conversionRate = $this->resolveDefault(
+            $data['conversion_rate'] ?? null, $settings->default_conversion_rate,
+            $request->boolean('set_default_conversion_rate'), $settings, 'default_conversion_rate'
+        );
+        $vatRate = $this->resolveDefault(
+            $data['vat_rate'] ?? null, $settings->quotation_vat_rate,
+            $request->boolean('set_default_vat_rate'), $settings, 'quotation_vat_rate'
+        );
 
         $service = $this->services()[$data['service']];
         // The toggle decides how the chosen service is shown; each service has a
@@ -122,11 +141,11 @@ class QuickEnvironmentalController extends Controller
             $payload['charge_presentation'] = $breakdown ? 'component_breakdown' : 'consolidated';
             $payload += array_filter([
                 'currency' => $data['currency'] ?? null,
-                'conversion_rate' => $data['conversion_rate'] ?? null,
+                'conversion_rate' => $conversionRate,
                 'site_name' => $data['site_name'] ?? null,
                 'reference_no' => $data['reference_no'] ?? null,
                 'vat_treatment' => $data['vat_treatment'] ?? null,
-                'vat_rate' => $data['vat_rate'] ?? null,
+                'vat_rate' => $vatRate,
             ], fn ($v) => filled($v));
 
             if ($breakdown) { // one package, its parameters, one consolidated total.
@@ -186,6 +205,34 @@ class QuickEnvironmentalController extends Controller
                 'hint' => 'Testing package (configured parameters).',
             ],
         ];
+    }
+
+    /**
+     * Resolve a rate for this document: use the entered value, else the stored
+     * default. When "set as default" is ticked and a value was entered, persist it
+     * to settings so it sticks until the next update.
+     */
+    private function resolveDefault(?string $entered, $stored, bool $setDefault, Setting $settings, string $column): ?string
+    {
+        $value = filled($entered) ? $entered : ($stored !== null ? (string) $stored : null);
+
+        if ($setDefault && filled($entered)) {
+            $settings->forceFill([$column => $entered])->save();
+        }
+
+        return $value;
+    }
+
+    /** Trim trailing zeros from a stored decimal for clean form prefilling. */
+    private function trimRate($rate): ?string
+    {
+        if ($rate === null || $rate === '') {
+            return null;
+        }
+
+        $s = rtrim(rtrim((string) $rate, '0'), '.');
+
+        return $s === '' ? '0' : $s;
     }
 
     private function entity(): BusinessEntity

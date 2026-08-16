@@ -111,7 +111,8 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Conversion Rate <span class="text-secondary fw-normal">(→ BDT)</span></label>
-                            <input class="form-control" type="number" step="0.0001" min="0" name="conversion_rate" value="{{ old('conversion_rate') }}" placeholder="e.g. 118">
+                            <input class="form-control" type="number" step="0.0001" min="0" name="conversion_rate" value="{{ old('conversion_rate', $defaultConversionRate) }}" placeholder="e.g. 118">
+                            <label class="form-check mt-1 small"><input class="form-check-input" type="checkbox" name="set_default_conversion_rate" value="1" @checked(old('set_default_conversion_rate'))> <span class="form-check-label">Set as default</span></label>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Bank Account</label>
@@ -141,10 +142,11 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">VAT Rate (%)</label>
-                            <input class="form-control" type="number" step="0.001" min="0" name="vat_rate" value="{{ old('vat_rate') }}" placeholder="e.g. 15">
+                            <input class="form-control" type="number" step="0.001" min="0" name="vat_rate" value="{{ old('vat_rate', $defaultVatRate) }}" placeholder="e.g. 15">
+                            <label class="form-check mt-1 small"><input class="form-check-input" type="checkbox" name="set_default_vat_rate" value="1" @checked(old('set_default_vat_rate'))> <span class="form-check-label">Set as default</span></label>
                         </div>
                     </div>
-                    <div class="form-hint mt-2">Leave blank to use the SMSEA defaults. Currency defaults to BDT.</div>
+                    <div class="form-hint mt-2">Conversion rate &amp; VAT rate are prefilled from your saved defaults. Tick <strong>Set as default</strong> to remember a new value until you change it again. Currency defaults to BDT.</div>
                 </div>
             </div></div>
 

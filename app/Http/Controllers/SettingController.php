@@ -28,6 +28,7 @@ class SettingController extends Controller
             'email' => ['nullable', 'email', 'max:255'],
             'website' => ['nullable', 'string', 'max:255'],
             'default_currency' => ['required', 'string', 'max:20'],
+            'default_conversion_rate' => ['nullable', 'numeric', 'min:0'],
             'currency_major_name' => ['required', 'string', 'max:50'],
             'currency_minor_name' => ['required', 'string', 'max:50'],
             'prepared_by_name' => ['nullable', 'string', 'max:255'],

@@ -368,7 +368,8 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Conversion Rate <span class="text-secondary fw-normal">(1 unit = BDT)</span></label>
-                    <input class="form-control num" type="number" step="0.0001" min="0" name="conversion_rate" value="{{ old('conversion_rate', $document->conversion_rate ? rtrim(rtrim(number_format((float) $document->conversion_rate, 4, '.', ''), '0'), '.') : null) }}" placeholder="Blank = single currency">
+                    @php $convDefault = $document->conversion_rate ?: ($settings->default_conversion_rate ?: null); @endphp
+                    <input class="form-control num" type="number" step="0.0001" min="0" name="conversion_rate" value="{{ old('conversion_rate', $convDefault ? rtrim(rtrim(number_format((float) $convDefault, 4, '.', ''), '0'), '.') : null) }}" placeholder="Blank = single currency">
                 </div>
             </div>
             <div class="row g-3 mb-2">

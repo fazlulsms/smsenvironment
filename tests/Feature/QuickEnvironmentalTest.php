@@ -8,8 +8,10 @@ use App\Models\Client;
 use App\Models\ProformaInvoice;
 use App\Models\Quotation;
 use App\Models\ServiceCategory;
+use App\Models\Setting;
 use App\Models\Standard;
 use App\Models\User;
+use App\Support\CurrentEntity;
 use Database\Seeders\StandardSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -301,5 +303,77 @@ class QuickEnvironmentalTest extends TestCase
         $this->assertSame('Bhaluka Plant', $invoice->site_name);
         $this->assertSame('REF-9', $invoice->reference_no);
         $this->assertSame('add', $invoice->vat_treatment);
+    }
+
+    private function setDefaults(?string $conversion, ?string $vat): void
+    {
+        app(CurrentEntity::class)->use($this->smseaId());
+        Setting::current()->forceFill(array_filter([
+            'default_conversion_rate' => $conversion,
+            'quotation_vat_rate' => $vat,
+        ], fn ($v) => $v !== null))->save();
+    }
+
+    private function smseaSettings(): Setting
+    {
+        app(CurrentEntity::class)->use($this->smseaId());
+
+        return Setting::current();
+    }
+
+    // 22 — the index prefills the saved conversion / VAT defaults
+    public function test_index_prefills_the_saved_rate_defaults(): void
+    {
+        $this->setDefaults('118', '15');
+
+        $this->actingAs($this->user)->get(route('quick-env.index'))->assertOk()
+            ->assertSee('value="118"', false)
+            ->assertSee('value="15"', false);
+    }
+
+    // 23 — ticking "set as default" persists a new conversion rate
+    public function test_ticking_set_default_persists_the_conversion_rate(): void
+    {
+        $this->prepare(['service' => 'ept', 'currency' => 'USD', 'conversion_rate' => '120', 'set_default_conversion_rate' => '1'])
+            ->assertRedirect();
+
+        $this->assertEquals(120, (float) $this->smseaSettings()->default_conversion_rate);
+    }
+
+    // 24 — ticking "set as default" persists a new VAT rate
+    public function test_ticking_set_default_persists_the_vat_rate(): void
+    {
+        $this->prepare(['service' => 'ept', 'vat_rate' => '7.5', 'set_default_vat_rate' => '1'])
+            ->assertRedirect();
+
+        $this->assertEquals(7.5, (float) $this->smseaSettings()->quotation_vat_rate);
+    }
+
+    // 25 — a stored conversion default is applied when the field is left blank
+    public function test_stored_conversion_default_is_applied_when_blank(): void
+    {
+        $this->setDefaults('118', null);
+
+        $this->prepare(['service' => 'ept', 'currency' => 'USD', 'amount' => '1000'])->assertRedirect();
+
+        $this->assertEquals(118, (float) $this->latestInvoice()->conversion_rate);
+    }
+
+    // 26 — without the tick, the stored default is never overwritten
+    public function test_default_is_unchanged_without_the_tick(): void
+    {
+        $this->setDefaults('118', null);
+
+        $this->prepare(['service' => 'ept', 'currency' => 'USD', 'conversion_rate' => '999'])->assertRedirect();
+
+        $this->assertEquals(118, (float) $this->smseaSettings()->default_conversion_rate);
+    }
+
+    // 27 — new invoices carry the current four-point SMSEA payment terms
+    public function test_created_invoice_uses_the_updated_payment_terms(): void
+    {
+        $this->prepare(['service' => 'eia'])->assertRedirect();
+
+        $this->assertStringContainsString('100% advance payment is required', $this->latestInvoice()->payment_terms);
     }
 }

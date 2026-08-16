@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBusinessEntity;
+use App\Support\CurrentEntity;
 use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
@@ -19,6 +20,7 @@ class Setting extends Model
         'email',
         'website',
         'default_currency',
+        'default_conversion_rate',
         'currency_major_name',
         'currency_minor_name',
         'prepared_by_name',
@@ -62,7 +64,7 @@ class Setting extends Model
         // Seed a new entity's settings from its BusinessEntity identity so it is
         // usable immediately (own name, currency and numbering) before manual
         // configuration. The global scope keeps this row bound to the entity.
-        $entity = app(\App\Support\CurrentEntity::class)->get();
+        $entity = app(CurrentEntity::class)->get();
         $code = $entity?->entity_code ?: 'SMSEA';
 
         return self::query()->firstOrCreate([], [
@@ -88,6 +90,7 @@ class Setting extends Model
     {
         return [
             'quotation_vat_rate' => 'decimal:3',
+            'default_conversion_rate' => 'decimal:4',
             'quotation_show_vat_separately' => 'boolean',
             'quotation_include_acceptance' => 'boolean',
         ];
