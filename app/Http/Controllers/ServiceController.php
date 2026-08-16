@@ -4,28 +4,42 @@ namespace App\Http\Controllers;
 
 use App\Models\BusinessEntity;
 use App\Models\Service;
+use App\Support\ServiceCatalogue;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
 
 class ServiceController extends Controller
 {
+    /**
+     * Unified Service Catalogue: the global standards/programs/packages plus the
+     * legacy services, browsable in one place (the tables stay normalized).
+     */
     public function index(Request $request): View
     {
-        // Global service master (not entity-scoped).
-        $services = Service::query()
-            ->withCount('components')
-            ->with('businessEntities')
-            ->when($request->search, fn ($query, string $search) => $query->where('name', 'like', "%{$search}%"))
-            ->when($request->input('type'), fn ($query, string $type) => $query->where('service_type', $type))
-            ->when($request->input('status') === 'active', fn ($query) => $query->where('is_active', true))
-            ->when($request->input('status') === 'inactive', fn ($query) => $query->where('is_active', false))
-            ->orderByDesc('is_active')
-            ->orderBy('name')
-            ->paginate(12)
-            ->withQueryString();
+        $all = ServiceCatalogue::all();
+        $categoryCounts = ServiceCatalogue::categoryCounts($all);
 
-        return view('services.index', compact('services'));
+        $filters = $request->only(['search', 'category', 'type', 'status']);
+        $filtered = ServiceCatalogue::filter($all, $filters);
+
+        $perPage = 20;
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $items = new LengthAwarePaginator(
+            $filtered->forPage($page, $perPage)->values(),
+            $filtered->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return view('services.index', [
+            'items' => $items,
+            'categoryCounts' => $categoryCounts,
+            'total' => $all->count(),
+            'types' => ServiceCatalogue::TYPES,
+        ]);
     }
 
     public function create(): View

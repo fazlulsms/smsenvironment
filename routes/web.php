@@ -12,6 +12,7 @@ use App\Http\Controllers\ProformaInvoiceController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\StandardController;
 use App\Http\Controllers\TestEmailController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +39,10 @@ Route::middleware('auth')->group(function () {
     Route::post('clients/smart-store', [ClientController::class, 'smartStore'])->name('clients.smart-store');
     Route::resource('clients', ClientController::class);
     Route::resource('services', ServiceController::class);
+    Route::get('catalogue/standards/create', [StandardController::class, 'create'])->name('catalogue-standards.create');
+    Route::post('catalogue/standards', [StandardController::class, 'store'])->name('catalogue-standards.store');
+    Route::get('catalogue/standards/{standard}/edit', [StandardController::class, 'edit'])->name('catalogue-standards.edit');
+    Route::put('catalogue/standards/{standard}', [StandardController::class, 'update'])->name('catalogue-standards.update');
     Route::post('bank-accounts/{bankAccount}/default', [BankAccountController::class, 'setDefault'])->name('bank-accounts.default');
     Route::resource('bank-accounts', BankAccountController::class)->parameters(['bank-accounts' => 'bankAccount']);
     Route::get('email-deliveries', [DocumentEmailController::class, 'index'])->name('email-deliveries.index');
