@@ -130,6 +130,17 @@ class QuotationVerificationService
         return collect($lines)->filter(fn ($line) => $line !== null)->implode("\n");
     }
 
+    /**
+     * A short link to the public verification page — kept tiny so the QR scans
+     * reliably; the page shows the authoritative details from our records.
+     */
+    public function verificationUrl(Quotation $quotation): string
+    {
+        $quotation = $this->ensure($quotation);
+
+        return rtrim((string) config('app.url'), '/').'/verify/'.$quotation->verification_id;
+    }
+
     public function qrSvg(Quotation $quotation): string
     {
         $renderer = new ImageRenderer(
@@ -140,13 +151,13 @@ class QuotationVerificationService
                 null,
                 Fill::uniformColor(new Rgb(255, 255, 255), new Rgb(31, 111, 74))
             ),
-            new SvgImageBackEnd()
+            new SvgImageBackEnd
         );
 
         return (new Writer($renderer))->writeString(
-            $this->payloadText($quotation),
+            $this->verificationUrl($quotation),
             'UTF-8',
-            ErrorCorrectionLevel::M()
+            ErrorCorrectionLevel::Q()
         );
     }
 

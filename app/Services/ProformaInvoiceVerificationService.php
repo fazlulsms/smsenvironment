@@ -150,6 +150,18 @@ class ProformaInvoiceVerificationService
         return collect($lines)->filter(fn ($line) => $line !== null)->implode("\n");
     }
 
+    /**
+     * The scannable content of the QR: a short link to the public verification
+     * page. Keeping the QR tiny (a URL, not the whole invoice) makes it reliably
+     * scannable; the page then shows the authoritative details from our records.
+     */
+    public function verificationUrl(ProformaInvoice $invoice): string
+    {
+        $invoice = $this->ensure($invoice);
+
+        return rtrim((string) config('app.url'), '/').'/verify/'.$invoice->verification_id;
+    }
+
     public function qrSvg(ProformaInvoice $invoice): string
     {
         $renderer = new ImageRenderer(
@@ -163,10 +175,12 @@ class ProformaInvoiceVerificationService
             new SvgImageBackEnd
         );
 
+        // A short URL keeps the module count low, so higher error correction (Q)
+        // still scans easily even at small print sizes.
         return (new Writer($renderer))->writeString(
-            $this->payloadText($invoice),
+            $this->verificationUrl($invoice),
             'UTF-8',
-            ErrorCorrectionLevel::M()
+            ErrorCorrectionLevel::Q()
         );
     }
 

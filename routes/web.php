@@ -15,7 +15,12 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StandardController;
 use App\Http\Controllers\TestEmailController;
+use App\Http\Controllers\VerificationController;
 use Illuminate\Support\Facades\Route;
+
+// Public document verification portal (QR target + lookup by number).
+Route::get('verify', [VerificationController::class, 'index'])->name('verify.index');
+Route::get('verify/{code}', [VerificationController::class, 'show'])->name('verify.show');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
