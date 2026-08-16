@@ -135,7 +135,7 @@ class PackageScopeTest extends TestCase
 
         $item = $invoice->items->first();
         $this->assertCount(1, $invoice->items);
-        $this->assertSame('Environmental Impact Assessment', $item->description); // not the literal "Service"
+        $this->assertSame('Environmental Impact Assessment (Single)', $item->description); // the selected service name, not the literal "Service"
         $this->assertSame([], $item->scope_items ?? []);
         $this->assertEquals(20000, (float) $item->amount);
     }
@@ -157,7 +157,27 @@ class PackageScopeTest extends TestCase
         $this->assertSame('Environmental Impact Assessment', $invoice->items->first()->description);
     }
 
-    public function test_eia_itemized_gets_no_manufactured_scope(): void
+    public function test_two_eia_variants_exist_single_without_scope_and_package_with_seven(): void
+    {
+        $single = Standard::query()->where('code', 'EIA')->firstOrFail();
+        $this->assertSame('Environmental Impact Assessment (Single)', $single->name);
+        $this->assertSame([], $single->defaultScope());
+
+        $package = Standard::query()->where('service_category_id', $this->envCategory()->id)
+            ->where('slug', 'environmental-impact-assessment')->firstOrFail();
+        $this->assertSame('Environmental Impact Assessment', $package->name);
+        $this->assertCount(7, $package->defaultScope());
+
+        // The package variant attaches its scope on a document (breakdown, one total).
+        $invoice = $this->store([
+            'service_category_id' => $this->envCategory()->id, 'standards' => [$package->id],
+            'charge_presentation' => 'component_breakdown', 'breakdown' => ['amount' => 25000],
+        ]);
+        $this->assertCount(7, $invoice->items->first()->scope_items);
+        $this->assertContains('Stack Emission Test', $invoice->items->first()->scope_items);
+    }
+
+    public function test_eia_single_itemized_gets_no_manufactured_scope(): void
     {
         $eia = Standard::query()->where('code', 'EIA')->firstOrFail();
         $this->assertSame([], $eia->defaultScope());

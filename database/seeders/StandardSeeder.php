@@ -194,7 +194,19 @@ class StandardSeeder extends Seeder
                 'label' => 'Select Services / Packages', 'noun' => 'Package', 'type' => 'Environmental Service',
                 'standards' => [
                     'Environmental Compliance Audit',
-                    ['Environmental Impact Assessment', 'EIA'],
+                    ['Environmental Impact Assessment (Single)', 'EIA'],
+                    [
+                        'name' => 'Environmental Impact Assessment', 'code' => null,
+                        'scope' => [
+                            'Ambient Air Quality Assessment',
+                            'Stack Emission Test',
+                            'Noise Level Assessment',
+                            'Light Level Assessment',
+                            'Temperature Assessment',
+                            'Humidity Assessment',
+                            'ODS Assessment / Inventory',
+                        ],
+                    ],
                     [
                         'name' => 'Environmental Parameter Testing', 'code' => null,
                         'scope' => [
