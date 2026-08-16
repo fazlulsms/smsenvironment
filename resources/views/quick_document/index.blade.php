@@ -29,7 +29,7 @@
                     @foreach ($services as $key => $svc)
                         <div class="col-md-6">
                             <label class="qsvc @error('service') is-invalid @enderror">
-                                <input type="radio" name="service" value="{{ $key }}" @checked(old('service', $selectedService) === $key) required>
+                                <input type="radio" name="service" value="{{ $key }}" data-default-presentation="{{ $svc['default_presentation'] }}" @checked(old('service', $selectedService) === $key) required>
                                 <span class="qsvc-body">
                                     <span class="qsvc-title">{{ $svc['label'] }}</span>
                                     <span class="qsvc-hint">{{ $svc['hint'] }}</span>
@@ -39,6 +39,24 @@
                     @endforeach
                 </div>
                 @error('service')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
+
+                {{-- Presentation toggle: how the chosen service is shown --}}
+                @php $defaultPresentation = old('presentation', $services[$selectedService]['default_presentation'] ?? 'consolidated'); @endphp
+                <label class="form-label fw-semibold">Presentation</label>
+                <div class="row g-2 mb-3" data-presentation-group>
+                    @foreach (['consolidated' => ['One professional fee', 'No itemised scope on the document.'], 'component_breakdown' => ['Package breakdown', 'Show the configured parameters, one total.']] as $value => $copy)
+                        <div class="col-md-6">
+                            <label class="qsvc">
+                                <input type="radio" name="presentation" value="{{ $value }}" @checked($defaultPresentation === $value)>
+                                <span class="qsvc-body">
+                                    <span class="qsvc-title">{{ $copy[0] }}</span>
+                                    <span class="qsvc-hint">{{ $copy[1] }}</span>
+                                </span>
+                            </label>
+                        </div>
+                    @endforeach
+                </div>
+                @error('presentation')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
 
                 <div class="row g-3">
                     {{-- Client --}}
@@ -155,6 +173,24 @@
         if (sel && prefix) {
             sel.addEventListener('change', () => { prefix.textContent = sel.value; });
         }
+    })();
+
+    // When the service changes, move the presentation toggle to that service's
+    // recommended default — unless the user has already chosen one themselves.
+    (function () {
+        const group = document.querySelector('[data-presentation-group]');
+        if (!group) return;
+        let userPicked = false;
+        group.addEventListener('change', () => { userPicked = true; });
+
+        document.querySelectorAll('input[name="service"]').forEach((radio) => {
+            radio.addEventListener('change', () => {
+                if (userPicked) return;
+                const preset = radio.getAttribute('data-default-presentation');
+                const target = group.querySelector(`input[name="presentation"][value="${preset}"]`);
+                if (target) target.checked = true;
+            });
+        });
     })();
 </script>
 @endpush

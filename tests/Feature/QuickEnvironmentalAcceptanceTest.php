@@ -94,6 +94,31 @@ class QuickEnvironmentalAcceptanceTest extends TestCase
         $this->actingAs($this->user)->get(route('proforma-invoices.pdf', $invoice))->assertOk();
     }
 
+    public function test_case_d_eia_as_a_package_saves_a_breakdown_with_its_parameters(): void
+    {
+        $client = Client::query()->create(['company_name' => 'P.A. Knit Composite Ltd.', 'address' => 'Bhaluka']);
+
+        // The toggle turns EIA into a package presentation.
+        $old = $this->prepared([
+            'client_id' => $client->id, 'service' => 'eia', 'presentation' => 'component_breakdown',
+            'amount' => '50000', 'document_type' => 'proforma_invoice',
+        ]);
+
+        $this->actingAs($this->user)->post(route('proforma-invoices.store'), array_merge($old, ['date' => '2026-08-16']))->assertRedirect();
+
+        $invoice = ProformaInvoice::query()->latest('id')->with('items')->firstOrFail();
+        $item = $invoice->items->first();
+        $this->assertSame('component_breakdown', $invoice->charge_presentation);
+        $this->assertEquals(50000, (float) $item->amount);               // one total
+        $this->assertCount(7, $item->scope_items);                       // EIA package parameters
+
+        $this->actingAs($this->user)->get(route('proforma-invoices.show', $invoice))->assertOk()
+            ->assertSee('Environmental Impact Assessment')
+            ->assertSee('Stack Emission Test');
+
+        $this->actingAs($this->user)->get(route('proforma-invoices.pdf', $invoice))->assertOk();
+    }
+
     public function test_case_c_ept_quotation_saves_the_same_package_as_a_quotation(): void
     {
         $client = Client::query()->create(['company_name' => 'Green Textiles Ltd.', 'address' => 'Gazipur']);

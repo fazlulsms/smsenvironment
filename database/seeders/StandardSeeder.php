@@ -215,6 +215,7 @@ class StandardSeeder extends Seeder
                     ],
                     [
                         'name' => 'Environmental Parameter Testing', 'code' => null,
+                        'description' => 'Professional services for Environmental Parameter Testing, including on-site sampling, laboratory analysis and reporting.',
                         'scope' => [
                             'Ambient Air Quality Assessment',
                             'Stack Emission Test',

@@ -91,11 +91,11 @@ class QuickEnvironmentalTest extends TestCase
     public function test_index_preselects_the_service_from_the_query(): void
     {
         $this->actingAs($this->user)->get(route('quick-env.index', ['service' => 'ept']))->assertOk()
-            ->assertSee('value="ept" checked', false);
+            ->assertSee('value="ept" data-default-presentation="component_breakdown" checked', false);
 
         // Default (no query) preselects EIA.
         $this->actingAs($this->user)->get(route('quick-env.index'))->assertOk()
-            ->assertSee('value="eia" checked', false);
+            ->assertSee('value="eia" data-default-presentation="consolidated" checked', false);
     }
 
     // 4
@@ -268,6 +268,51 @@ class QuickEnvironmentalTest extends TestCase
         $old = $response->getSession()->get('_old_input');
         $this->assertArrayNotHasKey('bank_account_id', $old);
         $this->assertStringContainsString('select a bank', $response->getSession()->get('status'));
+    }
+
+    // 21 — toggle override: EIA shown as a package (breakdown) attaches its scope
+    public function test_eia_can_be_prepared_as_a_package_breakdown(): void
+    {
+        $eiaPackage = $this->standard('environmental-impact-assessment');
+        $response = $this->prepare(['service' => 'eia', 'presentation' => 'component_breakdown', 'amount' => '50000'])
+            ->assertRedirect(route('proforma-invoices.create'));
+
+        $old = $response->getSession()->get('_old_input');
+        $this->assertSame('component_breakdown', $old['charge_presentation']);
+        $this->assertSame([$eiaPackage->id], $old['standards']);      // package variant (with scope) attached
+        $this->assertEquals(50000.0, $old['breakdown']['amount']);
+        $this->assertArrayNotHasKey('consolidated', $old);
+    }
+
+    // 22 — toggle override: EPT shown as one consolidated fee (no scope, master wording)
+    public function test_ept_can_be_prepared_as_a_consolidated_fee(): void
+    {
+        $response = $this->prepare(['service' => 'ept', 'presentation' => 'consolidated', 'amount' => '30000'])
+            ->assertRedirect(route('proforma-invoices.create'));
+
+        $old = $response->getSession()->get('_old_input');
+        $this->assertSame('consolidated', $old['charge_presentation']);
+        $this->assertArrayNotHasKey('standards', $old);               // no package attached → no scope list
+        $this->assertSame($this->standard('environmental-parameter-testing')->description, $old['consolidated']['description']);
+        $this->assertEquals(30000.0, $old['consolidated']['amount']);
+    }
+
+    // 23 — presentation must be a known mode when supplied
+    public function test_presentation_must_be_a_valid_mode(): void
+    {
+        $this->prepare(['presentation' => 'invoice'])->assertSessionHasErrors('presentation');
+    }
+
+    // 24 — EIA-as-package quotation carries the package standard on its row
+    public function test_eia_package_quotation_attaches_the_standard(): void
+    {
+        $eiaPackage = $this->standard('environmental-impact-assessment');
+        $response = $this->prepare(['service' => 'eia', 'presentation' => 'component_breakdown', 'document_type' => 'quotation', 'amount' => '50000'])
+            ->assertRedirect(route('quotations.create'));
+
+        $old = $response->getSession()->get('_old_input');
+        $this->assertSame([$eiaPackage->id], $old['standards']);
+        $this->assertSame('Environmental Impact Assessment', $old['items'][0]['description']);
     }
 
     // 20
