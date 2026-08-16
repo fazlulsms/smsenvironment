@@ -62,7 +62,7 @@ class DocumentContentService
 
     private function defaultInvoicePaymentTerms(): string
     {
-        return "100% advance payment is required before scheduling or commencing the assignment.\nPayment shall be made by cash, account payee cheque, pay order or bank transfer in favour of SMS Environmental Alliance.\nVAT and AIT shall be applied as stated in the Proforma Invoice. Where not included, applicable VAT shall be added to the payable amount, and AIT shall be deducted at source in accordance with prevailing laws.\nPlease mention the Proforma Invoice reference when making payment or sharing payment confirmation.";
+        return "100% advance payment is required before scheduling or commencing the assignment. Payment may be made by cash, account payee cheque, pay order or bank transfer in favour of SMS Environmental Alliance.\nVAT and AIT shall be treated as stated in the Proforma Invoice. Where not included, applicable VAT shall be added to the payable amount and AIT shall be deducted at source in accordance with prevailing laws.\nPlease mention the Proforma Invoice reference when making payment or sharing payment confirmation.";
     }
 
     public function serviceDescription(?Service $service, string $type): ?string
