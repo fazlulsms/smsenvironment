@@ -122,6 +122,41 @@ class PackageScopeTest extends TestCase
         $this->assertEquals(32000, (float) $item->amount);
     }
 
+    public function test_itemized_blank_row_inherits_the_service_name_not_the_service_placeholder(): void
+    {
+        $eia = Standard::query()->where('code', 'EIA')->firstOrFail();
+
+        // Mirrors the reported bug: EIA selected, one blank default row priced.
+        $invoice = $this->store([
+            'service_category_id' => $this->envCategory()->id, 'standards' => [$eia->id],
+            'charge_presentation' => 'itemized',
+            'items' => [['description' => '', 'amount' => 20000]],
+        ]);
+
+        $item = $invoice->items->first();
+        $this->assertCount(1, $invoice->items);
+        $this->assertSame('Environmental Impact Assessment', $item->description); // not the literal "Service"
+        $this->assertSame([], $item->scope_items ?? []);
+        $this->assertEquals(20000, (float) $item->amount);
+    }
+
+    public function test_empty_junk_itemized_rows_are_dropped(): void
+    {
+        $eia = Standard::query()->where('code', 'EIA')->firstOrFail();
+
+        $invoice = $this->store([
+            'service_category_id' => $this->envCategory()->id, 'standards' => [$eia->id],
+            'charge_presentation' => 'itemized',
+            'items' => [
+                ['description' => 'Environmental Impact Assessment', 'amount' => 20000],
+                ['description' => '', 'amount' => 0], // junk blank row
+            ],
+        ]);
+
+        $this->assertCount(1, $invoice->items);
+        $this->assertSame('Environmental Impact Assessment', $invoice->items->first()->description);
+    }
+
     public function test_eia_itemized_gets_no_manufactured_scope(): void
     {
         $eia = Standard::query()->where('code', 'EIA')->firstOrFail();

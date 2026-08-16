@@ -121,29 +121,44 @@ trait HandlesDocumentStandards
     }
 
     /**
-     * Package-aware itemized rows: a row whose description names a selected package
-     * inherits that package's default scope (initialised once, fill-if-empty). The
-     * saved scope_items then becomes authoritative — later master edits never change
-     * historical documents, and the row stays a single priced commercial line.
+     * Package-aware itemized rows. Two things, both fill-if-empty so nothing already
+     * typed/saved is overwritten:
+     *  - A blank row inherits the selected standard/package NAME (so it never saves
+     *    as the literal "Service"); with a single selection the name is unambiguous.
+     *  - A row naming a package inherits that package's default scope, once. The
+     *    saved scope_items then becomes authoritative — later master edits never
+     *    change historical documents, and the row stays one priced commercial line.
+     * Genuinely empty junk rows (no description, no amount, no scope) are dropped.
      */
     protected function attachPackageScopeToItems(array $items, Collection $standards): array
     {
-        $packages = $standards->filter(fn (Standard $s) => $s->defaultScope() !== []);
-
-        if ($packages->isEmpty()) {
+        if ($standards->isEmpty()) {
             return $items;
         }
 
-        return collect($items)->map(function ($item) use ($packages) {
-            if (trim((string) ($item['scope_items'] ?? '')) !== '') {
-                return $item; // already carries its own (edited/saved) scope
+        $packages = $standards->filter(fn (Standard $s) => $s->defaultScope() !== []);
+        $sole = $standards->count() === 1 ? $standards->first() : null;
+
+        $rows = collect($items)->reject(fn ($item) => trim((string) ($item['description'] ?? '')) === ''
+            && (float) ($item['amount'] ?? $item['unit_rate'] ?? 0) <= 0
+            && trim((string) ($item['scope_items'] ?? '')) === '')->values();
+
+        if ($rows->isEmpty()) {
+            $rows = collect($items)->take(1)->values();
+        }
+
+        return $rows->map(function ($item) use ($packages, $sole) {
+            $description = trim((string) ($item['description'] ?? ''));
+
+            if ($description === '' && $sole) {
+                $item['description'] = $description = $sole->name;
             }
 
-            $description = trim((string) ($item['description'] ?? ''));
-            $package = $packages->first(fn (Standard $s) => strcasecmp($s->name, $description) === 0);
-
-            if ($package) {
-                $item['scope_items'] = implode("\n", $package->defaultScope());
+            if (trim((string) ($item['scope_items'] ?? '')) === '') {
+                $package = $packages->first(fn (Standard $s) => strcasecmp($s->name, $description) === 0);
+                if ($package) {
+                    $item['scope_items'] = implode("\n", $package->defaultScope());
+                }
             }
 
             return $item;

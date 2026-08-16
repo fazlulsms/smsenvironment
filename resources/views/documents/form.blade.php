@@ -298,6 +298,16 @@
                     `<td><button class="btn-icon" type="button" data-remove-row title="Remove">&times;</button></td>`;
                 tbody.appendChild(tr);
             });
+
+            // When package rows exist, drop leftover blank default rows (no description, no amount)
+            // so a package never appears alongside an empty "Service" line.
+            if (tbody.querySelector('tr[data-pkg]')) {
+                tbody.querySelectorAll('tr:not([data-pkg])').forEach(tr => {
+                    const desc = tr.querySelector('[data-description]');
+                    const amt = tr.querySelector('[data-amount-input]');
+                    if (tbody.querySelectorAll('tr').length > 1 && desc && !desc.value.trim() && (!amt || !parseFloat(amt.value || 0))) tr.remove();
+                });
+            }
         }
 
         function renderAll() { updateLabel(); renderOptions(); renderTokens(); renderHidden(); }
