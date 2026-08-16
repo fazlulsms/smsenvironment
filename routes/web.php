@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentEmailController;
 use App\Http\Controllers\EmailAccountController;
 use App\Http\Controllers\ProformaInvoiceController;
+use App\Http\Controllers\QuickEnvironmentalController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SettingController;
@@ -30,6 +31,9 @@ Route::middleware('auth')->group(function () {
     Route::get('entities', [BusinessEntityController::class, 'index'])->name('entities.index');
     Route::get('entities/{entity}/edit', [BusinessEntityController::class, 'edit'])->name('entities.edit');
     Route::put('entities/{entity}', [BusinessEntityController::class, 'update'])->name('entities.update');
+
+    Route::get('quick-environmental', [QuickEnvironmentalController::class, 'index'])->name('quick-env.index');
+    Route::post('quick-environmental/prepare', [QuickEnvironmentalController::class, 'prepare'])->name('quick-env.prepare');
 
     Route::get('ai-draft', [CommercialDraftController::class, 'index'])->name('ai-draft.index');
     Route::post('ai-draft/analyze', [CommercialDraftController::class, 'analyze'])->name('ai-draft.analyze');

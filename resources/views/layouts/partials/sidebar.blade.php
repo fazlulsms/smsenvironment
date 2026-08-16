@@ -58,6 +58,9 @@
 
         <div class="nav-group">
             <div class="nav-group-label">Quick Actions</div>
+            <a class="nav-item-link {{ request()->routeIs('quick-env.*') ? 'active' : '' }}" href="{{ route('quick-env.index') }}">
+                <x-icon name="invoice" /><span class="label">Quick Environmental</span>
+            </a>
             <a class="nav-item-link {{ request()->routeIs('ai-draft.*') ? 'active' : '' }}" href="{{ route('ai-draft.index') }}">
                 <x-icon name="sparkles" /><span class="label">AI Draft</span>
             </a>

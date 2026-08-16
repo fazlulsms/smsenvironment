@@ -43,6 +43,9 @@
     <div class="card-head"><h2>Quick actions</h2></div>
     <div class="card-body">
         <div class="qa-grid">
+            <a class="qa qa-invoice" href="{{ route('quick-env.index') }}"><span class="qa-ico"><x-icon name="invoice" /></span><span>Quick Environmental Document<small>EIA / Parameter — fast prep</small></span></a>
+            <a class="qa qa-service" href="{{ route('quick-env.index', ['service' => 'eia']) }}"><span class="qa-ico"><x-icon name="services" /></span><span>EIA Invoice<small>Impact Assessment</small></span></a>
+            <a class="qa qa-service" href="{{ route('quick-env.index', ['service' => 'ept']) }}"><span class="qa-ico"><x-icon name="services" /></span><span>Parameter Test Invoice<small>Environmental testing</small></span></a>
             <a class="qa qa-smart" href="{{ route('ai-draft.index') }}"><span class="qa-ico"><x-icon name="sparkles" /></span><span>AI Commercial Draft<small>Paste a WhatsApp request</small></span></a>
             <a class="qa qa-quote" href="{{ route('quotations.create') }}"><span class="qa-ico"><x-icon name="quotation" /></span><span>New Quotation<small>Draft a proposal</small></span></a>
             <a class="qa qa-invoice" href="{{ route('proforma-invoices.create') }}"><span class="qa-ico"><x-icon name="invoice" /></span><span>New Invoice<small>Proforma invoice</small></span></a>

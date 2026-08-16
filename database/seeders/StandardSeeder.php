@@ -33,10 +33,11 @@ class StandardSeeder extends Seeder
             foreach ($cat['standards'] as $i => $entry) {
                 if (is_string($entry)) {
                     [$name, $code, $scope] = [$entry, null, null];
+                    $description = null;
                 } elseif (array_is_list($entry)) {
-                    [$name, $code, $scope] = [$entry[0], $entry[1] ?? null, null];
+                    [$name, $code, $scope, $description] = [$entry[0], $entry[1] ?? null, null, null];
                 } else {
-                    [$name, $code, $scope] = [$entry['name'], $entry['code'] ?? null, $entry['scope'] ?? null];
+                    [$name, $code, $scope, $description] = [$entry['name'], $entry['code'] ?? null, $entry['scope'] ?? null, $entry['description'] ?? null];
                 }
                 $slug = Str::slug($code ?: $name);
 
@@ -47,6 +48,7 @@ class StandardSeeder extends Seeder
                         'code' => $code,
                         'short_name' => $code,
                         'type' => $cat['type'],
+                        'description' => $description,
                         'default_scope' => $scope ? implode("\n", $scope) : null,
                         'active' => true,
                         'display_order' => $i + 1,
@@ -194,9 +196,13 @@ class StandardSeeder extends Seeder
                 'label' => 'Select Services / Packages', 'noun' => 'Package', 'type' => 'Environmental Service',
                 'standards' => [
                     'Environmental Compliance Audit',
-                    ['Environmental Impact Assessment (Single)', 'EIA'],
+                    [
+                        'name' => 'Environmental Impact Assessment (Single)', 'code' => 'EIA',
+                        'description' => 'Professional services for Environmental Impact Assessment, including assessment, relevant documentation review, data analysis and reporting.',
+                    ],
                     [
                         'name' => 'Environmental Impact Assessment', 'code' => null,
+                        'description' => 'Professional services for Environmental Impact Assessment, including assessment, relevant documentation review, data analysis and reporting.',
                         'scope' => [
                             'Ambient Air Quality Assessment',
                             'Stack Emission Test',
