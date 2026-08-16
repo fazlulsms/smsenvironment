@@ -2,14 +2,14 @@
 
 @section('content')
 <x-page-toolbar title="Quick Environmental Document"
-    subtitle="Fast input for EIA & Environmental Parameter Testing under SMS Environmental Alliance. Prepare opens the normal form, fully prefilled — nothing is saved or numbered until you Save there.">
+    subtitle="Fast input for EIA & Environmental Parameter Testing under SMS Environmental Alliance. Prepare & View creates the document and opens it — edit from there if anything needs a change.">
     <a class="btn btn-outline-secondary btn-sm mb-1" href="{{ route('proforma-invoices.create') }}"><x-icon name="plus" :size="15" /> New Invoice</a>
     <a class="btn btn-outline-secondary btn-sm mb-1" href="{{ route('quotations.create') }}"><x-icon name="plus" :size="15" /> New Quotation</a>
 </x-page-toolbar>
 
 @if (session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif
 @if (! $hasBank)
-    <div class="alert alert-warning"><strong>No active SMSEA bank found.</strong> The document can still be prepared, but you must select a bank on the create form before saving.</div>
+    <div class="alert alert-warning"><strong>No active SMSEA bank found.</strong> The document will still be created, but you must add a bank before downloading its PDF.</div>
 @endif
 
 <div class="row justify-content-center">
@@ -23,8 +23,31 @@
                     <span class="badge-soft b-neutral">Entity: {{ $entity->name }}</span>
                 </div>
 
-                {{-- Service --}}
-                <label class="form-label fw-semibold">Service</label>
+                {{-- 1) Client & document type first --}}
+                <div class="row g-3 mb-3">
+                    <div class="col-md-7">
+                        <label class="form-label fw-semibold">Client <span class="text-secondary fw-normal">(step 1)</span></label>
+                        <select class="form-select" name="client_id" required data-quick-client>
+                            <option value="">— search / select client —</option>
+                            @foreach ($clients as $c)
+                                <option value="{{ $c->id }}" @selected(old('client_id') == $c->id)>{{ $c->company_name }}</option>
+                            @endforeach
+                        </select>
+                        @error('client_id')<div class="text-danger small">{{ $message }}</div>@enderror
+                        <div class="form-hint mt-1"><a href="{{ route('clients.create') }}" target="_blank">+ Add a new client</a></div>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold">Document Type</label>
+                        <select class="form-select" name="document_type" required>
+                            <option value="proforma_invoice" @selected(old('document_type', 'proforma_invoice') === 'proforma_invoice')>Proforma Invoice</option>
+                            <option value="quotation" @selected(old('document_type') === 'quotation')>Quotation</option>
+                        </select>
+                        @error('document_type')<div class="text-danger small">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+
+                {{-- 2) Service (package) --}}
+                <label class="form-label fw-semibold">Service / Package <span class="text-secondary fw-normal">(step 2)</span></label>
                 <div class="row g-2 mb-3">
                     @foreach ($services as $key => $svc)
                         <div class="col-md-6">
@@ -58,33 +81,10 @@
                 </div>
                 @error('presentation')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
 
+                {{-- 3) Amount --}}
                 <div class="row g-3">
-                    {{-- Client --}}
-                    <div class="col-md-7">
-                        <label class="form-label fw-semibold">Client</label>
-                        <select class="form-select" name="client_id" required data-quick-client>
-                            <option value="">— search / select client —</option>
-                            @foreach ($clients as $c)
-                                <option value="{{ $c->id }}" @selected(old('client_id') == $c->id)>{{ $c->company_name }}</option>
-                            @endforeach
-                        </select>
-                        @error('client_id')<div class="text-danger small">{{ $message }}</div>@enderror
-                        <div class="form-hint mt-1"><a href="{{ route('clients.create') }}" target="_blank">+ Add a new client</a></div>
-                    </div>
-
-                    {{-- Document type --}}
                     <div class="col-md-5">
-                        <label class="form-label fw-semibold">Document Type</label>
-                        <select class="form-select" name="document_type" required>
-                            <option value="proforma_invoice" @selected(old('document_type', 'proforma_invoice') === 'proforma_invoice')>Proforma Invoice</option>
-                            <option value="quotation" @selected(old('document_type') === 'quotation')>Quotation</option>
-                        </select>
-                        @error('document_type')<div class="text-danger small">{{ $message }}</div>@enderror
-                    </div>
-
-                    {{-- Amount --}}
-                    <div class="col-md-5">
-                        <label class="form-label fw-semibold">Amount</label>
+                        <label class="form-label fw-semibold">Amount <span class="text-secondary fw-normal">(step 3)</span></label>
                         <div class="input-group">
                             <span class="input-group-text" data-currency-prefix>{{ old('currency', 'BDT') }}</span>
                             <input class="form-control" type="number" step="0.01" min="0" name="amount" value="{{ old('amount') }}" required placeholder="0.00">
@@ -149,9 +149,9 @@
             </div></div>
 
             <div class="d-flex justify-content-end gap-2">
-                <button class="btn btn-primary" type="submit"><x-icon name="check" :size="16" /> Prepare Document</button>
+                <button class="btn btn-primary" type="submit"><x-icon name="check" :size="16" /> Prepare &amp; View</button>
             </div>
-            <div class="form-hint text-end mt-2">Prepare opens the normal create form with everything filled in. No number is consumed and nothing is saved until you Save/Preview there.</div>
+            <div class="form-hint text-end mt-2">Creates the document under SMSEA and opens its view page. Need a change? Use Edit from there.</div>
         </form>
     </div>
 </div>

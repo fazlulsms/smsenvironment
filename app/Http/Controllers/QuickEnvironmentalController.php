@@ -15,10 +15,12 @@ use Illuminate\View\View;
 /**
  * Quick Environmental Document shortcut. A faster INPUT path for the two most-used
  * SMSEA services — Environmental Impact Assessment and Environmental Parameter
- * Testing. It never saves, issues, emails or numbers anything: "Prepare" only
- * resolves the service against the existing master data, builds a prefill and
- * flashes it as old input, then redirects to the NORMAL create form where the
- * usual validation / snapshot / numbering / PDF / QR workflow takes over.
+ * Testing. It resolves the chosen service against the existing master data, builds
+ * the exact payload the normal create form would submit, then hands it to the
+ * normal ProformaInvoice/Quotation store — so numbering, validation, snapshots,
+ * QR, verification and the redirect to the document's view page all come from the
+ * deterministic workflow, never a parallel engine. "Prepare & View" saves the
+ * document and opens it; editing afterwards is the normal Edit button.
  *
  * The entity is fixed to SMSEA; no cross-entity records are ever created, and no
  * arbitrary IDs from the browser are trusted (client / bank are re-validated
@@ -100,23 +102,25 @@ class QuickEnvironmentalController extends Controller
         $amount = round((float) $data['amount'], 2);
         $isInvoice = $data['document_type'] === 'proforma_invoice';
 
-        $prefill = array_filter([
+        // The exact field set the normal create form submits.
+        $payload = array_filter([
             'client_id' => $data['client_id'],
             'service_category_id' => $category?->id,
             'charge_title' => $service['title'],
             'bank_account_id' => $bankId,
+            'date' => now()->toDateString(),
         ], fn ($v) => filled($v));
 
         // Breakdown attaches the master package so the standards backend loads its
         // configured parameters. Consolidated attaches no standard — a single
         // standard would print a redundant one-line scope.
         if ($breakdown && $package) {
-            $prefill['standards'] = [$package->id];
+            $payload['standards'] = [$package->id];
         }
 
         if ($isInvoice) {
-            $prefill['charge_presentation'] = $breakdown ? 'component_breakdown' : 'consolidated';
-            $prefill += array_filter([
+            $payload['charge_presentation'] = $breakdown ? 'component_breakdown' : 'consolidated';
+            $payload += array_filter([
                 'currency' => $data['currency'] ?? null,
                 'conversion_rate' => $data['conversion_rate'] ?? null,
                 'site_name' => $data['site_name'] ?? null,
@@ -126,9 +130,9 @@ class QuickEnvironmentalController extends Controller
             ], fn ($v) => filled($v));
 
             if ($breakdown) { // one package, its parameters, one consolidated total.
-                $prefill['breakdown'] = ['amount' => $amount];
+                $payload['breakdown'] = ['amount' => $amount];
             } else { // single professional fee; wording from the master record.
-                $prefill['consolidated'] = array_filter([
+                $payload['consolidated'] = array_filter([
                     'description' => $descStandard?->description ?: $service['description_fallback'],
                     'amount' => $amount,
                 ], fn ($v) => $v !== null);
@@ -136,22 +140,18 @@ class QuickEnvironmentalController extends Controller
         } else {
             // Quotations are itemized-only: a single service line. In breakdown the
             // package scope is attached to that row by the standards backend on save.
-            $prefill['items'] = [[
+            $payload['items'] = [[
                 'description' => $service['title'],
                 'amount' => $amount,
             ]];
         }
 
-        $request->session()->flashInput($prefill);
+        // Hand the payload to the NORMAL store — same validation, numbering,
+        // snapshots, QR and verification — and let it redirect to the view page.
+        $request->replace($payload);
+        $controller = $isInvoice ? ProformaInvoiceController::class : QuotationController::class;
 
-        $status = 'Environmental document prepared — review every field, then Save or Preview to issue it.';
-        if (! $bankId) {
-            $status .= ' No active SMSEA bank was found; select a bank before saving.';
-        }
-
-        return redirect()
-            ->route($isInvoice ? 'proforma-invoices.create' : 'quotations.create')
-            ->with('status', $status);
+        return app()->call([app($controller), 'store'], ['request' => $request]);
     }
 
     /**
@@ -169,7 +169,7 @@ class QuickEnvironmentalController extends Controller
                 'key' => 'eia',
                 'label' => 'Environmental Impact Assessment (EIA)',
                 'title' => 'Environmental Impact Assessment',
-                'default_presentation' => 'consolidated',
+                'default_presentation' => 'component_breakdown',
                 'desc_slug' => 'eia',
                 'package_slug' => 'environmental-impact-assessment',
                 'description_fallback' => 'Professional services for Environmental Impact Assessment, including assessment, relevant documentation review, data analysis and reporting.',

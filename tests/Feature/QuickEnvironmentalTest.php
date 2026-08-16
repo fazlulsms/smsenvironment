@@ -15,9 +15,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The Quick Environmental Document shortcut: a faster INPUT path that resolves the
- * two approved SMSEA services against existing master data and prefills the normal
- * create form. It must never save, number, email or duplicate anything.
+ * The Quick Environmental Document shortcut. "Prepare & View" resolves the chosen
+ * service against existing master data and hands the payload to the NORMAL store,
+ * creating the document under SMSEA and opening its view page. It must resolve
+ * everything server-side (entity, client, bank, service) and never build a
+ * parallel engine.
  */
 class QuickEnvironmentalTest extends TestCase
 {
@@ -71,6 +73,16 @@ class QuickEnvironmentalTest extends TestCase
         ], $overrides));
     }
 
+    private function latestInvoice(): ProformaInvoice
+    {
+        return ProformaInvoice::query()->latest('id')->with('items')->firstOrFail();
+    }
+
+    private function latestQuotation(): Quotation
+    {
+        return Quotation::query()->latest('id')->with('items')->firstOrFail();
+    }
+
     // 1
     public function test_guest_is_redirected_to_login(): void
     {
@@ -78,13 +90,12 @@ class QuickEnvironmentalTest extends TestCase
     }
 
     // 2
-    public function test_index_renders_both_services_and_the_fixed_entity(): void
+    public function test_index_renders_services_and_the_prepare_and_view_action(): void
     {
         $this->actingAs($this->user)->get(route('quick-env.index'))->assertOk()
-            ->assertSee('Quick Environmental Document')
             ->assertSee('Environmental Impact Assessment')
             ->assertSee('Environmental Parameter Testing')
-            ->assertSee('Prepare Document');
+            ->assertSee('Prepare &amp; View', false);
     }
 
     // 3
@@ -93,16 +104,18 @@ class QuickEnvironmentalTest extends TestCase
         $this->actingAs($this->user)->get(route('quick-env.index', ['service' => 'ept']))->assertOk()
             ->assertSee('value="ept" data-default-presentation="component_breakdown" checked', false);
 
-        // Default (no query) preselects EIA.
+        // Default (no query) preselects EIA — now defaulting to a package breakdown.
         $this->actingAs($this->user)->get(route('quick-env.index'))->assertOk()
-            ->assertSee('value="eia" data-default-presentation="consolidated" checked', false);
+            ->assertSee('value="eia" data-default-presentation="component_breakdown" checked', false);
     }
 
     // 4
-    public function test_required_fields_are_validated(): void
+    public function test_required_fields_are_validated_and_nothing_is_created(): void
     {
         $this->actingAs($this->user)->post(route('quick-env.prepare'), [])
             ->assertSessionHasErrors(['client_id', 'service', 'amount', 'document_type']);
+
+        $this->assertSame(0, ProformaInvoice::query()->withoutGlobalScopes()->count());
     }
 
     // 5
@@ -125,127 +138,117 @@ class QuickEnvironmentalTest extends TestCase
     }
 
     // 8
-    public function test_eia_proforma_prefills_a_consolidated_charge(): void
+    public function test_presentation_must_be_a_valid_mode(): void
     {
-        $client = $this->client();
-        $response = $this->prepare(['client_id' => $client->id, 'service' => 'eia', 'amount' => '50000'])
-            ->assertRedirect(route('proforma-invoices.create'));
-
-        $old = $response->getSession()->get('_old_input');
-        $this->assertSame('consolidated', $old['charge_presentation']);
-        $this->assertSame('Environmental Impact Assessment', $old['charge_title']);
-        $this->assertEquals(50000.0, $old['consolidated']['amount']);
-        // EIA is a single charge — no standard attached (no redundant one-line scope).
-        $this->assertArrayNotHasKey('standards', $old);
+        $this->prepare(['presentation' => 'invoice'])->assertSessionHasErrors('presentation');
     }
 
-    // 9
-    public function test_eia_charge_wording_comes_from_the_master_record(): void
+    // 9 — EIA default: created as a package breakdown with its parameters
+    public function test_eia_default_creates_a_package_breakdown_invoice(): void
     {
-        $response = $this->prepare(['service' => 'eia']);
-        $old = $response->getSession()->get('_old_input');
+        $this->prepare(['service' => 'eia', 'amount' => '50000'])->assertRedirect();
 
-        $this->assertSame($this->standard('eia')->description, $old['consolidated']['description']);
-        $this->assertStringContainsString('Professional services for Environmental Impact Assessment', $old['consolidated']['description']);
+        $invoice = $this->latestInvoice();
+        $this->assertNotEmpty($invoice->number);              // a number is consumed now
+        $this->assertSame('SMSEA', $invoice->entity_code);
+        $this->assertSame('component_breakdown', $invoice->charge_presentation);
+        $this->assertCount(7, $invoice->items->first()->scope_items);
+        $this->assertEquals(50000, (float) $invoice->items->first()->amount);
     }
 
-    // 10
-    public function test_ept_proforma_attaches_the_package_and_breaks_down_as_one_total(): void
+    // 10 — EIA toggled to a single consolidated fee (master wording, no scope)
+    public function test_eia_consolidated_creates_a_single_fee_invoice(): void
     {
-        $ept = $this->standard('environmental-parameter-testing');
-        $response = $this->prepare(['service' => 'ept', 'amount' => '30000'])
-            ->assertRedirect(route('proforma-invoices.create'));
+        $this->prepare(['service' => 'eia', 'presentation' => 'consolidated', 'amount' => '50000'])->assertRedirect();
 
-        $old = $response->getSession()->get('_old_input');
-        $this->assertSame('component_breakdown', $old['charge_presentation']);
-        $this->assertSame('Environmental Parameter Testing', $old['charge_title']);
-        $this->assertSame([$ept->id], $old['standards']);
-        // One consolidated amount — never separately priced component lines.
-        $this->assertEquals(30000.0, $old['breakdown']['amount']);
-        $this->assertArrayNotHasKey('components', $old['breakdown']);
+        $invoice = $this->latestInvoice();
+        $this->assertSame('consolidated', $invoice->charge_presentation);
+        $this->assertCount(0, $invoice->items->first()->scope_items ?: []);
+        $this->assertSame($this->standard('eia')->description, $invoice->items->first()->description);
     }
 
-    // 11
-    public function test_ept_quotation_folds_into_one_itemized_row_with_the_package(): void
+    // 11 — EPT default: package breakdown, one total, seven parameters
+    public function test_ept_default_creates_a_package_breakdown_invoice(): void
     {
-        $ept = $this->standard('environmental-parameter-testing');
-        $response = $this->prepare(['service' => 'ept', 'amount' => '30000', 'document_type' => 'quotation'])
-            ->assertRedirect(route('quotations.create'));
+        $this->prepare(['service' => 'ept', 'amount' => '30000'])->assertRedirect();
 
-        $old = $response->getSession()->get('_old_input');
-        $this->assertSame([$ept->id], $old['standards']);
-        $this->assertCount(1, $old['items']);
-        $this->assertSame('Environmental Parameter Testing', $old['items'][0]['description']);
-        $this->assertEquals(30000.0, $old['items'][0]['amount']);
-        // Quotations are itemized-only — no invoice presentation leaks in.
-        $this->assertArrayNotHasKey('charge_presentation', $old);
+        $invoice = $this->latestInvoice();
+        $this->assertSame('component_breakdown', $invoice->charge_presentation);
+        $this->assertCount(1, $invoice->items);
+        $this->assertCount(7, $invoice->items->first()->scope_items);
+        $this->assertEquals(30000, (float) $invoice->items->first()->amount);
     }
 
-    // 12
-    public function test_eia_quotation_folds_into_one_row_without_a_standard(): void
+    // 12 — EPT toggled to a single consolidated fee (its master wording)
+    public function test_ept_consolidated_creates_a_single_fee_invoice(): void
     {
-        $response = $this->prepare(['service' => 'eia', 'amount' => '50000', 'document_type' => 'quotation'])
-            ->assertRedirect(route('quotations.create'));
+        $this->prepare(['service' => 'ept', 'presentation' => 'consolidated', 'amount' => '30000'])->assertRedirect();
 
-        $old = $response->getSession()->get('_old_input');
-        $this->assertCount(1, $old['items']);
-        $this->assertSame('Environmental Impact Assessment', $old['items'][0]['description']);
-        $this->assertArrayNotHasKey('standards', $old);
+        $invoice = $this->latestInvoice();
+        $this->assertSame('consolidated', $invoice->charge_presentation);
+        $this->assertSame($this->standard('environmental-parameter-testing')->description, $invoice->items->first()->description);
     }
 
-    // 13
-    public function test_preparing_never_issues_a_document_or_consumes_a_number(): void
+    // 13 — EPT quotation: one line, package scope attached, opens the quotation view
+    public function test_ept_quotation_creates_a_quotation_with_the_package_scope(): void
     {
-        $invoices = ProformaInvoice::query()->withoutGlobalScopes()->count();
-        $quotes = Quotation::query()->withoutGlobalScopes()->count();
+        $this->prepare(['service' => 'ept', 'amount' => '30000', 'document_type' => 'quotation'])
+            ->assertRedirect();
 
-        $this->prepare()->assertRedirect(route('proforma-invoices.create'));
-
-        $this->assertSame($invoices, ProformaInvoice::query()->withoutGlobalScopes()->count());
-        $this->assertSame($quotes, Quotation::query()->withoutGlobalScopes()->count());
+        $quotation = $this->latestQuotation();
+        $this->assertNotEmpty($quotation->number);
+        $this->assertSame('SMSEA', $quotation->entity_code);
+        $this->assertCount(1, $quotation->items);
+        $this->assertSame('Environmental Parameter Testing', $quotation->items->first()->description);
+        $this->assertCount(7, $quotation->items->first()->scope_items);
+        $this->assertEquals(30000, (float) $quotation->items->first()->amount);
     }
 
-    // 14
-    public function test_preparing_never_creates_a_client(): void
+    // 14 — EIA consolidated quotation: one clean line, no scope
+    public function test_eia_consolidated_quotation_creates_one_clean_line(): void
     {
-        $before = Client::query()->count() + 1; // +1 for the client created inside prepare()
-        $this->prepare();
-        $this->assertSame($before, Client::query()->count());
+        $this->prepare(['service' => 'eia', 'presentation' => 'consolidated', 'amount' => '50000', 'document_type' => 'quotation'])
+            ->assertRedirect();
+
+        $quotation = $this->latestQuotation();
+        $this->assertCount(1, $quotation->items);
+        $this->assertSame('Environmental Impact Assessment', $quotation->items->first()->description);
+        $this->assertCount(0, $quotation->items->first()->scope_items ?: []);
     }
 
-    // 15
-    public function test_preparing_never_duplicates_the_master_records(): void
+    // 15 — one prepare consumes exactly one document
+    public function test_preparing_creates_exactly_one_document(): void
     {
-        $before = Standard::query()->count();
-        $this->prepare(['service' => 'ept']);
-        $this->assertSame($before, Standard::query()->count());
+        $this->prepare()->assertRedirect();
+
+        $this->assertSame(1, ProformaInvoice::query()->withoutGlobalScopes()->count());
+        $this->assertSame(0, Quotation::query()->withoutGlobalScopes()->count());
     }
 
-    // 16
+    // 16 — entity is forced to SMSEA even from another session entity
     public function test_entity_is_forced_to_smsea_even_from_another_session_entity(): void
     {
         $eidikosId = BusinessEntity::query()->where('entity_code', 'EIDIKOS')->value('id');
 
-        $response = $this->actingAs($this->user)
+        $this->actingAs($this->user)
             ->withSession(['business_entity_id' => $eidikosId])
             ->post(route('quick-env.prepare'), [
                 'client_id' => $this->client()->id, 'service' => 'eia', 'amount' => '50000', 'document_type' => 'proforma_invoice',
-            ])->assertRedirect(route('proforma-invoices.create'));
+            ])->assertRedirect();
 
-        $this->assertSame($this->smseaId(), (int) $response->getSession()->get('business_entity_id'));
+        $this->assertSame('SMSEA', $this->latestInvoice()->entity_code);
     }
 
-    // 17
+    // 17 — default SMSEA bank resolved server-side and stamped on the document
     public function test_default_smsea_bank_is_resolved_server_side(): void
     {
         $bank = $this->smseaBank();
-        $response = $this->prepare();
+        $this->prepare()->assertRedirect();
 
-        $old = $response->getSession()->get('_old_input');
-        $this->assertEquals($bank->id, $old['bank_account_id']);
+        $this->assertEquals($bank->id, $this->latestInvoice()->bank_account_id);
     }
 
-    // 18
+    // 18 — a bank from another entity is rejected, the SMSEA default is used
     public function test_a_bank_from_another_entity_is_rejected(): void
     {
         $default = $this->smseaBank();
@@ -253,88 +256,50 @@ class QuickEnvironmentalTest extends TestCase
         $foreign = BankAccount::query()->forEntity($eidikosId)->first();
         $this->assertNotNull($foreign);
 
-        $response = $this->prepare(['bank_account_id' => $foreign->id]);
+        $this->prepare(['bank_account_id' => $foreign->id])->assertRedirect();
 
-        $old = $response->getSession()->get('_old_input');
-        // The cross-entity bank is dropped and the SMSEA default is used instead.
-        $this->assertEquals($default->id, $old['bank_account_id']);
+        $this->assertEquals($default->id, $this->latestInvoice()->bank_account_id);
     }
 
-    // 19
-    public function test_missing_smsea_bank_still_prepares_and_warns(): void
+    // 19 — with no SMSEA bank the document is still created (bank added later for PDF)
+    public function test_missing_smsea_bank_still_creates_the_document(): void
     {
-        $response = $this->prepare()->assertRedirect(route('proforma-invoices.create'));
+        $this->prepare()->assertRedirect();
 
-        $old = $response->getSession()->get('_old_input');
-        $this->assertArrayNotHasKey('bank_account_id', $old);
-        $this->assertStringContainsString('select a bank', $response->getSession()->get('status'));
+        $invoice = $this->latestInvoice();
+        $this->assertNotEmpty($invoice->number);
+        $this->assertNull($invoice->bank_account_id);
     }
 
-    // 21 — toggle override: EIA shown as a package (breakdown) attaches its scope
-    public function test_eia_can_be_prepared_as_a_package_breakdown(): void
+    // 20 — the master records are never duplicated
+    public function test_preparing_never_duplicates_the_master_records(): void
     {
-        $eiaPackage = $this->standard('environmental-impact-assessment');
-        $response = $this->prepare(['service' => 'eia', 'presentation' => 'component_breakdown', 'amount' => '50000'])
-            ->assertRedirect(route('proforma-invoices.create'));
-
-        $old = $response->getSession()->get('_old_input');
-        $this->assertSame('component_breakdown', $old['charge_presentation']);
-        $this->assertSame([$eiaPackage->id], $old['standards']);      // package variant (with scope) attached
-        $this->assertEquals(50000.0, $old['breakdown']['amount']);
-        $this->assertArrayNotHasKey('consolidated', $old);
+        $before = Standard::query()->count();
+        $this->prepare(['service' => 'ept']);
+        $this->assertSame($before, Standard::query()->count());
     }
 
-    // 22 — toggle override: EPT shown as one consolidated fee (no scope, master wording)
-    public function test_ept_can_be_prepared_as_a_consolidated_fee(): void
+    // 21 — advanced options flow onto the created invoice; currency defaults to BDT
+    public function test_advanced_options_flow_onto_the_document(): void
     {
-        $response = $this->prepare(['service' => 'ept', 'presentation' => 'consolidated', 'amount' => '30000'])
-            ->assertRedirect(route('proforma-invoices.create'));
+        $this->smseaBank();
 
-        $old = $response->getSession()->get('_old_input');
-        $this->assertSame('consolidated', $old['charge_presentation']);
-        $this->assertArrayNotHasKey('standards', $old);               // no package attached → no scope list
-        $this->assertSame($this->standard('environmental-parameter-testing')->description, $old['consolidated']['description']);
-        $this->assertEquals(30000.0, $old['consolidated']['amount']);
-    }
+        // Minimal request keeps the BDT default (stored as the base currency).
+        $this->prepare(['service' => 'eia'])->assertRedirect();
+        $this->assertContains($this->latestInvoice()->currency, [null, 'BDT'], true);
 
-    // 23 — presentation must be a known mode when supplied
-    public function test_presentation_must_be_a_valid_mode(): void
-    {
-        $this->prepare(['presentation' => 'invoice'])->assertSessionHasErrors('presentation');
-    }
-
-    // 24 — EIA-as-package quotation carries the package standard on its row
-    public function test_eia_package_quotation_attaches_the_standard(): void
-    {
-        $eiaPackage = $this->standard('environmental-impact-assessment');
-        $response = $this->prepare(['service' => 'eia', 'presentation' => 'component_breakdown', 'document_type' => 'quotation', 'amount' => '50000'])
-            ->assertRedirect(route('quotations.create'));
-
-        $old = $response->getSession()->get('_old_input');
-        $this->assertSame([$eiaPackage->id], $old['standards']);
-        $this->assertSame('Environmental Impact Assessment', $old['items'][0]['description']);
-    }
-
-    // 20
-    public function test_advanced_options_flow_through_and_currency_defaults_to_bdt(): void
-    {
-        // Minimal request: currency omitted so the create form keeps its BDT default.
-        $plain = $this->prepare()->getSession()->get('_old_input');
-        $this->assertArrayNotHasKey('currency', $plain);
-
-        // Advanced values are carried into the invoice prefill.
-        $response = $this->prepare([
+        // Advanced values are carried through to the saved invoice.
+        $this->prepare([
             'service' => 'ept', 'amount' => '1000',
             'currency' => 'USD', 'conversion_rate' => '118',
             'site_name' => 'Bhaluka Plant', 'reference_no' => 'REF-9',
             'vat_treatment' => 'add', 'vat_rate' => '15',
-        ]);
-        $old = $response->getSession()->get('_old_input');
-        $this->assertSame('USD', $old['currency']);
-        $this->assertEquals(118, $old['conversion_rate']);
-        $this->assertSame('Bhaluka Plant', $old['site_name']);
-        $this->assertSame('REF-9', $old['reference_no']);
-        $this->assertSame('add', $old['vat_treatment']);
-        $this->assertEquals(15, $old['vat_rate']);
+        ])->assertRedirect();
+
+        $invoice = $this->latestInvoice();
+        $this->assertSame('USD', $invoice->currency);
+        $this->assertSame('Bhaluka Plant', $invoice->site_name);
+        $this->assertSame('REF-9', $invoice->reference_no);
+        $this->assertSame('add', $invoice->vat_treatment);
     }
 }

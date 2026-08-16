@@ -21,6 +21,16 @@
     </div>
     <div class="topbar-spacer"></div>
 
+    {{-- Most-used shortcuts, always one click away --}}
+    <a class="btn btn-sm me-2 d-inline-flex align-items-center gap-1 {{ request()->routeIs('ai-draft.*') ? 'btn-primary' : 'btn-outline-primary' }}"
+        href="{{ route('ai-draft.index') }}" title="Smart Paste — paste a request, get a draft">
+        <x-icon name="sparkles" :size="16" /> <span class="d-none d-lg-inline">Smart Paste</span>
+    </a>
+    <a class="btn btn-sm me-2 d-inline-flex align-items-center gap-1 {{ request()->routeIs('quick-env.*') ? 'btn-primary' : 'btn-outline-primary' }}"
+        href="{{ route('quick-env.index') }}" title="Quick Environmental Document — EIA / Parameter Testing">
+        <x-icon name="invoice" :size="16" /> <span class="d-none d-lg-inline">Quick Env</span>
+    </a>
+
     <div class="dropdown">
         <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
             <x-icon name="plus" :size="16" /> New
