@@ -268,6 +268,9 @@ class QuotationController extends Controller
             $data['subject'] = $title;
         }
 
+        // Quotations are itemized — a row naming a selected package inherits its scope.
+        $data['items'] = $this->attachPackageScopeToItems($data['items'] ?? [], $standards);
+
         return $data;
     }
 

@@ -459,6 +459,8 @@ class ProformaInvoiceController extends Controller
         } elseif ($mode === ProformaInvoice::PRESENTATION_CONSOLIDATED
             && trim((string) ($data['consolidated']['description'] ?? '')) === '') {
             $data['consolidated']['description'] = $this->standardsChargeFor($category, $standards);
+        } elseif ($mode === ProformaInvoice::PRESENTATION_ITEMIZED) {
+            $data['items'] = $this->attachPackageScopeToItems($data['items'] ?? [], $standards);
         }
 
         return $data;

@@ -132,7 +132,8 @@ class CommercialDraftResolver
             if ($std && ! in_array($std->id, $seen, true)) {
                 $seen[] = $std->id;
                 $resolved[] = ['id' => $std->id, 'name' => $std->name, 'code' => $std->shortLabel(),
-                    'category_id' => $std->service_category_id, 'detected' => $phrase, 'status' => self::STATUS_MATCHED];
+                    'category_id' => $std->service_category_id, 'has_scope' => $std->defaultScope() !== [],
+                    'detected' => $phrase, 'status' => self::STATUS_MATCHED];
             } elseif (! $std) {
                 $resolved[] = ['id' => null, 'name' => $phrase, 'code' => null,
                     'category_id' => null, 'detected' => $phrase, 'status' => self::STATUS_NOT_MATCHED];
@@ -177,11 +178,12 @@ class CommercialDraftResolver
             }
         }
 
-        // Infer: priced rows -> itemized; components/particulars -> breakdown; else consolidated.
+        // Infer: priced rows -> itemized; particulars OR a scoped package -> breakdown
+        // (so the package parameters render as "Including:"); else consolidated.
         if (! empty($ai['itemized_rows'])) {
             return ['value' => 'itemized', 'status' => self::STATUS_SUGGESTED];
         }
-        if (! empty($ai['charge_particulars'])) {
+        if (! empty($ai['charge_particulars']) || collect($standards)->contains('has_scope', true)) {
             return ['value' => 'component_breakdown', 'status' => self::STATUS_SUGGESTED];
         }
 

@@ -267,12 +267,52 @@
             pickerLabel.textContent = cat ? cat.label : 'Standards / Programs';
         }
 
+        // In Itemized mode, a selected PACKAGE (an item with predefined scope) becomes
+        // one priced commercial line carrying its scope. Non-package standards do not
+        // auto-create rows (the user prices those manually). Rows are tracked by
+        // data-pkg so deselecting removes only the auto-added ones.
+        function syncItemizedPackages() {
+            const presentation = document.getElementById('chargePresentation');
+            const tbody = document.querySelector('#itemsTable tbody');
+            if (! tbody) return;
+            if (presentation && presentation.value !== 'itemized') return; // only itemized
+            const packages = selected.filter(s => (s.scope || []).length);
+
+            tbody.querySelectorAll('tr[data-pkg]').forEach(tr => {
+                if (! packages.some(p => String(p.id) === tr.dataset.pkg)) tr.remove();
+            });
+
+            packages.forEach(p => {
+                if (tbody.querySelector(`tr[data-pkg="${p.id}"]`)) return;
+                const used = [...tbody.querySelectorAll('[name^="items["]')]
+                    .map(el => parseInt((el.name.match(/items\[(\d+)\]/) || [])[1], 10)).filter(n => !isNaN(n));
+                const idx = (used.length ? Math.max(...used) : -1) + 1;
+                const tr = document.createElement('tr');
+                tr.dataset.pkg = p.id;
+                const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                tr.innerHTML =
+                    `<td><textarea class="form-control form-control-sm" rows="2" name="items[${idx}][description]" data-description>${esc(p.name)}</textarea>` +
+                    `<div class="mt-1 small" data-scope-wrap><button class="btn btn-link btn-sm p-0 text-decoration-none" type="button" data-scope-toggle>Includes <span data-scope-count>${p.scope.length}</span> package items · View / Edit scope</button>` +
+                    `<textarea class="form-control form-control-sm d-none mt-1" rows="4" name="items[${idx}][scope_items]" data-pkg-scope>${esc(p.scope.join('\n'))}</textarea></div></td>` +
+                    `<td><input class="form-control form-control-sm num amount-input" type="number" step="0.01" min="0" name="items[${idx}][amount]" value="0" data-amount-input required></td>` +
+                    `<td><button class="btn-icon" type="button" data-remove-row title="Remove">&times;</button></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
         function renderAll() { updateLabel(); renderOptions(); renderTokens(); renderHidden(); }
         // User-driven change: refresh UI AND regenerate commercial defaults.
-        function changed() { renderAll(); regenerate(); }
+        function changed() { renderAll(); regenerate(); syncItemizedPackages(); }
 
         catSelect.addEventListener('change', () => { search.value = ''; changed(); });
         search.addEventListener('input', renderOptions);
+        // Reveal/hide the compact package-scope editor.
+        document.addEventListener('click', e => {
+            const t = e.target.closest('[data-scope-toggle]');
+            if (t) t.closest('[data-scope-wrap]').querySelector('[data-pkg-scope]').classList.toggle('d-none');
+        });
+        // When switching INTO itemized, materialise any already-selected packages.
+        document.getElementById('chargePresentation')?.addEventListener('change', syncItemizedPackages);
         // Initial load renders the UI only — never overwrites saved wording on edit.
         renderAll();
     })();

@@ -121,6 +121,36 @@ trait HandlesDocumentStandards
     }
 
     /**
+     * Package-aware itemized rows: a row whose description names a selected package
+     * inherits that package's default scope (initialised once, fill-if-empty). The
+     * saved scope_items then becomes authoritative — later master edits never change
+     * historical documents, and the row stays a single priced commercial line.
+     */
+    protected function attachPackageScopeToItems(array $items, Collection $standards): array
+    {
+        $packages = $standards->filter(fn (Standard $s) => $s->defaultScope() !== []);
+
+        if ($packages->isEmpty()) {
+            return $items;
+        }
+
+        return collect($items)->map(function ($item) use ($packages) {
+            if (trim((string) ($item['scope_items'] ?? '')) !== '') {
+                return $item; // already carries its own (edited/saved) scope
+            }
+
+            $description = trim((string) ($item['description'] ?? ''));
+            $package = $packages->first(fn (Standard $s) => strcasecmp($s->name, $description) === 0);
+
+            if ($package) {
+                $item['scope_items'] = implode("\n", $package->defaultScope());
+            }
+
+            return $item;
+        })->all();
+    }
+
+    /**
      * Default breakdown scope: a single package's own component list when it has
      * one (e.g. Environmental Parameter Testing → its parameters), otherwise the
      * selected standard names (e.g. the three ISO standards).
