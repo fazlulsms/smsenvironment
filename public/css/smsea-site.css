@@ -142,6 +142,17 @@ h1,h2,h3,h4{color:var(--ink);line-height:1.18;margin:0 0 .5em;font-weight:700;le
 .footer-bottom{border-top:1px solid rgba(255,255,255,.14);margin-top:18px;padding-top:20px;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;color:#9dc4b2;font-size:.85rem}
 .footer-bottom a{color:#cfe6da}
 
+/* Verification Center */
+.verify-center{margin-top:6px}
+.verify-option{position:relative;padding:30px;border:1px solid var(--line);border-radius:var(--radius);background:#fff;transition:.15s}
+.verify-option:hover{border-color:#cfe3d8;box-shadow:var(--shadow)}
+.verify-option .ico-wrap{width:52px;height:52px;border-radius:13px;background:var(--softer);color:var(--brand-dark);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.verify-option h2{font-size:1.3rem;margin-bottom:.35rem}
+.verify-option p{color:var(--muted);margin:0 0 18px;font-size:.98rem}
+.verify-option.soon{background:var(--soft);border-style:dashed}
+.verify-option.soon h2,.verify-option.soon .ico-wrap{opacity:.85}
+.soon-badge{position:absolute;top:18px;right:18px;background:var(--softer);color:var(--brand-dark);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.32rem .7rem;border-radius:999px}
+
 /* Verify Document */
 .verify-wrap2{max-width:680px;margin:0 auto}
 .verify-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}

@@ -171,9 +171,20 @@ class PublicSiteTest extends TestCase
         $this->get(route('proforma-invoices.index'))->assertRedirect(route('login'));
     }
 
-    public function test_public_nav_has_verify_document(): void
+    public function test_public_nav_has_verify_link(): void
     {
-        $this->get('/')->assertOk()->assertSee('Verify Document');
+        $this->get('/')->assertOk()
+            ->assertSee(route('verify.index'), false)
+            ->assertSee('>Verify</a>', false);
+    }
+
+    public function test_verification_center_shows_both_cards(): void
+    {
+        $this->get(route('verify.index'))->assertOk()
+            ->assertSee('Verify Documents')
+            ->assertSee('Invoice &amp; Quotation', false)
+            ->assertSee('Reports')
+            ->assertSee('Coming Soon');
     }
 
     public function test_home_has_organization_structured_data(): void

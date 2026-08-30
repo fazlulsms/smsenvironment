@@ -19,7 +19,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/smsea-site.css') }}?v=2" rel="stylesheet">
+    <link href="{{ asset('css/smsea-site.css') }}?v=3" rel="stylesheet">
     @php $c = \App\Support\PublicSite::contact(); @endphp
     <script type="application/ld+json">{!! json_encode([
         '@context' => 'https://schema.org',
@@ -49,14 +49,14 @@
         <nav class="nav" id="siteNav">
             <a class="brand" href="{{ route('public.home') }}">
                 <img class="brand-logo" src="{{ asset('images/brand/smsea-logo.png') }}" alt="SMS Environmental Alliance" width="300" height="300">
-                <span class="brand-name">SMS Environmental Alliance<span>Environmental · Chemical · Sustainability</span></span>
+                <span class="brand-name">SMS Environmental Alliance<span>Trusted Environmental Expertise</span></span>
             </a>
             <div class="nav-links">
                 <a href="{{ route('public.home') }}" class="{{ request()->routeIs('public.home') ? 'active' : '' }}">Home</a>
                 <a href="{{ route('public.services') }}" class="{{ request()->routeIs('public.services') ? 'active' : '' }}">Services</a>
                 <a href="{{ route('public.training') }}" class="{{ request()->routeIs('public.training') ? 'active' : '' }}">Training</a>
                 <a href="{{ route('public.about') }}" class="{{ request()->routeIs('public.about') ? 'active' : '' }}">About</a>
-                <a href="{{ route('verify.index') }}" class="{{ request()->routeIs('verify.*') ? 'active' : '' }}">Verify Document</a>
+                <a href="{{ route('verify.index') }}" class="{{ request()->routeIs('verify.*') ? 'active' : '' }}">Verify</a>
                 <a href="{{ route('public.contact') }}" class="{{ request()->routeIs('public.contact') ? 'active' : '' }}">Contact</a>
             </div>
             <div class="nav-cta">
@@ -103,7 +103,7 @@
             </div>
         </div>
         <div class="footer-verify">
-            Received a document from us? <a href="{{ route('verify.index') }}">Verify a quotation or proforma invoice →</a>
+            Received a document from us? <a href="{{ route('verify.index') }}">Verify →</a>
         </div>
         <div class="footer-bottom">
             <span>© {{ date('Y') }} SMS Environmental Alliance. All rights reserved.</span>
