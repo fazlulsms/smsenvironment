@@ -46,6 +46,33 @@
 <section class="section section--soft">
     <div class="wrap">
         <div class="section-head">
+            <span class="eyebrow">Our Approach</span>
+            <h2>Practical expertise. Measurable improvement.</h2>
+            <p>SMS Environmental Alliance combines technical assessment with practical implementation support. Our work is designed not only to identify environmental and sustainability gaps, but to help organizations understand priorities, strengthen controls and improve measurable performance.</p>
+        </div>
+        <div class="grid grid-3">
+            <div class="pillar">
+                <span class="ico-wrap">@include('public.partials.icon', ['name' => 'shield'])</span>
+                <h3>Technical Integrity</h3>
+                <p>Assessment and testing carried out with method and care, so the findings can be relied on.</p>
+            </div>
+            <div class="pillar">
+                <span class="ico-wrap">@include('public.partials.icon', ['name' => 'clipboard'])</span>
+                <h3>Practical Solutions</h3>
+                <p>Recommendations your team can act on — prioritised, realistic and grounded in your facility.</p>
+            </div>
+            <div class="pillar">
+                <span class="ico-wrap">@include('public.partials.icon', ['name' => 'recycle'])</span>
+                <h3>Continuous Improvement</h3>
+                <p>Support that helps strengthen controls and improve environmental performance over time.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="wrap">
+        <div class="section-head">
             <span class="eyebrow">Industries We Support</span>
             <h2>Across industrial sectors</h2>
         </div>

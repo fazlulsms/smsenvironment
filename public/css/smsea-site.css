@@ -15,11 +15,11 @@ a:hover{color:var(--brand)}
 h1,h2,h3,h4{color:var(--ink);line-height:1.18;margin:0 0 .5em;font-weight:700;letter-spacing:-.01em}
 .wrap{max-width:var(--wrap);margin:0 auto;padding:0 22px}
 .eyebrow{display:inline-block;font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);margin-bottom:.7rem}
-.section{padding:76px 0}
+.section{padding:66px 0}
 .section--soft{background:var(--soft)}
 .section--brand{background:linear-gradient(160deg,var(--brand-800),var(--brand-dark));color:#dff1e8}
 .section--brand h2,.section--brand h3{color:#fff}
-.section-head{max-width:720px;margin-bottom:40px}
+.section-head{max-width:720px;margin-bottom:34px}
 .section-head.center{margin-left:auto;margin-right:auto;text-align:center}
 .section-head h2{font-size:clamp(1.6rem,3.2vw,2.3rem)}
 .section-head p{color:var(--muted);font-size:1.05rem;margin:0}
@@ -37,22 +37,23 @@ h1,h2,h3,h4{color:var(--ink);line-height:1.18;margin:0 0 .5em;font-weight:700;le
 
 /* Header */
 .site-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--line)}
-.nav{display:flex;align-items:center;gap:18px;height:72px}
-.brand{display:flex;align-items:center;gap:12px;color:var(--ink);font-weight:800;letter-spacing:-.02em}
+.nav{display:flex;align-items:center;gap:18px;height:80px}
+.brand{display:flex;align-items:center;gap:13px;color:var(--ink);font-weight:800;letter-spacing:-.02em}
 .brand:hover{color:var(--ink)}
-.brand-logo{height:48px;width:auto;flex:none}
-.brand-name{font-size:1.02rem;line-height:1.05}
-.brand-name span{display:block;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.brand-logo{height:54px;width:auto;flex:none}
+.brand-name{font-size:1.16rem;line-height:1.08;white-space:nowrap}
+.brand-name span{display:block;font-size:.68rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--brand);margin-top:3px;white-space:nowrap}
 .nav-links{display:flex;align-items:center;gap:6px;margin-left:auto}
 .nav-links a{padding:.5rem .8rem;border-radius:8px;color:var(--body);font-weight:600;font-size:.95rem}
 .nav-links a:hover,.nav-links a.active{color:var(--brand-dark);background:var(--softer)}
-.nav-cta{display:flex;align-items:center;gap:10px;margin-left:8px}
+.nav-cta{display:flex;align-items:center;gap:12px;margin-left:10px}
+.nav-cta .btn2--primary{padding:.62rem 1.15rem;font-size:.92rem}
 .nav-office{color:var(--muted);font-weight:600;font-size:.9rem;padding:.5rem .7rem}
 .nav-toggle{display:none;margin-left:auto;background:none;border:1px solid var(--line);border-radius:9px;padding:.5rem .6rem;cursor:pointer;color:var(--ink)}
 
 /* Hero */
 .hero{position:relative;overflow:hidden;background:radial-gradient(1200px 500px at 80% -10%,rgba(70,201,138,.18),transparent),linear-gradient(180deg,var(--softer),#fff)}
-.hero-inner{padding:84px 0 72px;max-width:820px}
+.hero-inner{padding:72px 0 60px;max-width:820px}
 .hero h1{font-size:clamp(2.1rem,5vw,3.4rem);letter-spacing:-.025em}
 .hero p{font-size:1.2rem;color:var(--body);max-width:660px;margin:1.1rem 0 1.9rem}
 .hero-cta{display:flex;flex-wrap:wrap;gap:14px}
@@ -76,6 +77,10 @@ h1,h2,h3,h4{color:var(--ink);line-height:1.18;margin:0 0 .5em;font-weight:700;le
 .feature .ico-wrap{width:40px;height:40px;border-radius:10px;background:var(--softer);color:var(--brand-dark);display:flex;align-items:center;justify-content:center;flex:none}
 .feature h3{font-size:1.02rem;margin-bottom:.25rem}
 .feature p{color:var(--muted);font-size:.9rem;margin:0}
+/* Commercially important services get a subtle stronger treatment */
+.feature--primary{border-color:#cfe3d8;box-shadow:0 10px 26px -20px rgba(18,63,42,.35)}
+.feature--primary .ico-wrap{background:var(--brand);color:#fff}
+.feature--primary h3{font-size:1.06rem}
 
 /* Split sections (EIA / Testing / Chemical) */
 .split{display:grid;grid-template-columns:1.05fr .95fr;gap:44px;align-items:center}
@@ -152,6 +157,8 @@ h1,h2,h3,h4{color:var(--ink);line-height:1.18;margin:0 0 .5em;font-weight:700;le
 .verify-option.soon{background:var(--soft);border-style:dashed}
 .verify-option.soon h2,.verify-option.soon .ico-wrap{opacity:.85}
 .soon-badge{position:absolute;top:18px;right:18px;background:var(--softer);color:var(--brand-dark);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.32rem .7rem;border-radius:999px}
+.verify-tags{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;padding:0}
+.verify-tags li{background:var(--softer);color:var(--brand-dark);border-radius:999px;padding:.35rem .75rem;font-size:.82rem;font-weight:600}
 
 /* Verify Document */
 .verify-wrap2{max-width:680px;margin:0 auto}
@@ -198,11 +205,13 @@ h1,h2,h3,h4{color:var(--ink);line-height:1.18;margin:0 0 .5em;font-weight:700;le
   .section{padding:52px 0}
   .nav-links,.nav-cta .btn2{display:none}
   .brand-logo{height:40px}
-  .brand-name{font-size:.92rem}
+  .brand-name{font-size:.95rem;white-space:normal;line-height:1.12}
   .brand-name span{display:none}
+  .nav{gap:10px}
+  .brand{gap:10px}
   .nav-toggle{display:inline-flex}
   .nav-cta{margin-left:auto}
-  .nav.open .nav-links{display:flex;position:absolute;top:72px;left:0;right:0;flex-direction:column;align-items:stretch;background:#fff;border-bottom:1px solid var(--line);padding:12px 22px;gap:2px}
+  .nav.open .nav-links{display:flex;position:absolute;top:80px;left:0;right:0;flex-direction:column;align-items:stretch;background:#fff;border-bottom:1px solid var(--line);padding:12px 22px;gap:2px}
   .nav.open .nav-cta{display:none}
   .grid-2,.grid-3,.grid-4,.form-row{grid-template-columns:1fr}
   .service-cols{columns:1}

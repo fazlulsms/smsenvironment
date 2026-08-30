@@ -21,6 +21,11 @@
                 <span class="ico-wrap">@include('public.partials.icon', ['name' => 'clipboard'])</span>
                 <h2>Invoice &amp; Quotation</h2>
                 <p>Verify a proforma invoice or quotation issued by SMS Environmental Alliance.</p>
+                <ul class="verify-tags">
+                    <li>Proforma Invoice</li>
+                    <li>Quotation</li>
+                    <li>QR / Verification Reference</li>
+                </ul>
                 <a class="btn2 btn2--primary" href="#invoice-quotation">Verify Invoice / Quotation</a>
             </div>
 

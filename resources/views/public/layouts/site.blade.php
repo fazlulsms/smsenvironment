@@ -19,28 +19,33 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/smsea-site.css') }}?v=3" rel="stylesheet">
-    @php $c = \App\Support\PublicSite::contact(); @endphp
-    <script type="application/ld+json">{!! json_encode([
-        '@context' => 'https://schema.org',
-        '@type' => 'ProfessionalService',
-        'name' => 'SMS Environmental Alliance',
-        'description' => 'Environmental assessment and testing, chemical management, sustainability solutions and professional training for responsible industry in Bangladesh.',
-        'url' => url('/'),
-        'logo' => asset('images/brand/smsea-logo.png'),
-        'image' => asset('images/brand/smsea-logo.png'),
-        'telephone' => $c['phone'],
-        'email' => $c['email'],
-        'address' => [
-            '@type' => 'PostalAddress',
-            'streetAddress' => '01, Sonargaon Janapath Avenue, Sector #12, Uttara, Model Town',
-            'addressLocality' => 'Dhaka',
-            'postalCode' => '1230',
-            'addressCountry' => 'BD',
-        ],
-        'areaServed' => 'Bangladesh',
-        'knowsAbout' => ['Environmental Impact Assessment', 'Environmental Parameter Testing', 'Environmental Compliance Audit', 'Energy Audit', 'Chemical Management', 'Carbon Footprint', 'GHG Inventory', 'Wastewater and ETP Assessment', 'Cleaner Production', 'Environmental Training'],
-    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+    <link href="{{ asset('css/smsea-site.css') }}?v=4" rel="stylesheet">
+    @php
+        // Built in a @php block so Blade's @context directive never touches the
+        // literal "@context"/"@type" JSON-LD keys (that would corrupt the markup).
+        $c = \App\Support\PublicSite::contact();
+        $orgJsonLd = json_encode([
+            '@context' => 'https://schema.org',
+            '@type' => 'ProfessionalService',
+            'name' => 'SMS Environmental Alliance',
+            'description' => 'Environmental assessment and testing, chemical management, sustainability solutions and professional training for responsible industry in Bangladesh.',
+            'url' => url('/'),
+            'logo' => asset('images/brand/smsea-logo.png'),
+            'image' => asset('images/brand/smsea-logo.png'),
+            'telephone' => $c['phone'],
+            'email' => $c['email'],
+            'address' => [
+                '@type' => 'PostalAddress',
+                'streetAddress' => '01, Sonargaon Janapath Avenue, Sector #12, Uttara, Model Town',
+                'addressLocality' => 'Dhaka',
+                'postalCode' => '1230',
+                'addressCountry' => 'BD',
+            ],
+            'areaServed' => 'Bangladesh',
+            'knowsAbout' => ['Environmental Impact Assessment', 'Environmental Parameter Testing', 'Environmental Compliance Audit', 'Energy Audit', 'Chemical Management', 'Carbon Footprint', 'GHG Inventory', 'Wastewater and ETP Assessment', 'Cleaner Production', 'Environmental Training'],
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    @endphp
+    <script type="application/ld+json">{!! $orgJsonLd !!}</script>
     @stack('jsonld')
 </head>
 <body>
@@ -86,6 +91,7 @@
                 <a href="{{ route('public.services') }}">Services</a>
                 <a href="{{ route('public.training') }}">Training</a>
                 <a href="{{ route('public.about') }}">About</a>
+                <a href="{{ route('verify.index') }}">Verify</a>
                 <a href="{{ route('public.contact') }}">Contact</a>
             </div>
             <div>
@@ -103,7 +109,7 @@
             </div>
         </div>
         <div class="footer-verify">
-            Received a document from us? <a href="{{ route('verify.index') }}">Verify →</a>
+            Received a document from us? <a href="{{ route('verify.index') }}">Verify a document →</a>
         </div>
         <div class="footer-bottom">
             <span>© {{ date('Y') }} SMS Environmental Alliance. All rights reserved.</span>

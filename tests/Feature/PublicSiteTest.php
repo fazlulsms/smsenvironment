@@ -187,12 +187,25 @@ class PublicSiteTest extends TestCase
             ->assertSee('Coming Soon');
     }
 
-    public function test_home_has_organization_structured_data(): void
+    public function test_home_has_valid_organization_structured_data(): void
     {
-        $this->get('/')->assertOk()
+        $html = $this->get('/')->assertOk()
             ->assertSee('application/ld+json', false)
             ->assertSee('ProfessionalService', false)
-            ->assertSee('areaServed', false);
+            ->assertSee('areaServed', false)
+            ->getContent();
+
+        // The @context/@type keys must survive as valid JSON-LD (not be mangled
+        // by Blade's @context directive).
+        $this->assertMatchesRegularExpression('/"@context"\s*:\s*"https:\/\/schema.org"/', $html);
+        $this->assertStringNotContainsString('__contextArgs', $html);
+    }
+
+    public function test_breadcrumb_structured_data_is_valid_on_inner_pages(): void
+    {
+        $html = $this->get(route('public.services'))->assertOk()->getContent();
+        $this->assertStringContainsString('"@type":"BreadcrumbList"', $html);
+        $this->assertStringNotContainsString('__contextArgs', $html);
     }
 
     public function test_pages_have_unique_titles(): void

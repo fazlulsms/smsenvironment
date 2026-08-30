@@ -52,7 +52,7 @@
         </div>
         <div class="grid grid-3">
             @foreach ($featured as $f)
-                <div class="feature">
+                <div class="feature {{ $loop->iteration <= 6 ? 'feature--primary' : '' }}">
                     <span class="ico-wrap">@include('public.partials.icon', ['name' => $f['icon']])</span>
                     <div>
                         <h3>{{ $f['title'] }}</h3>
@@ -217,7 +217,7 @@
     <div class="wrap">
         <div class="section-head">
             <span class="eyebrow">Industries We Support</span>
-            <h2>Trusted across industrial sectors</h2>
+            <h2>Environmental expertise across industrial sectors</h2>
         </div>
         <div class="tagcloud">
             @foreach ($industries as $ind)<span>{{ $ind }}</span>@endforeach
