@@ -22,8 +22,7 @@ class AmountInWords
         string $currency = 'BDT',
         string $majorName = 'Taka',
         string $minorName = 'Paisa'
-    ): string
-    {
+    ): string {
         $normalized = number_format((float) $amount, 2, '.', '');
         [$wholePart, $decimalPart] = explode('.', $normalized);
         $whole = (int) $wholePart;

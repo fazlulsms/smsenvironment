@@ -11,6 +11,7 @@ use App\Services\ClientInformationExtractor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class ClientController extends Controller
@@ -152,7 +153,29 @@ class ClientController extends Controller
 
     public function destroy(Client $client): RedirectResponse
     {
+        $this->authorize('delete', $client);
+
+        // Cascade safety: never orphan or destroy real commercial history. A client
+        // with any quotation or invoice (across every entity, including soft-deleted
+        // ones) cannot be deleted — remove those documents first.
+        $linked = $client->quotations()->withoutGlobalScope(BusinessEntityScope::class)->withTrashed()->count()
+            + $client->proformaInvoices()->withoutGlobalScope(BusinessEntityScope::class)->withTrashed()->count();
+
+        if ($linked > 0) {
+            return redirect()->route('clients.show', $client)->with(
+                'error',
+                'This client cannot be deleted because it has linked commercial documents. Remove those documents first.'
+            );
+        }
+
+        $company = $client->company_name;
         $client->delete();
+
+        Log::warning('Client deleted', [
+            'client_id' => $client->id,
+            'company' => $company,
+            'by_user_id' => auth()->id(),
+        ]);
 
         return redirect()->route('clients.index')->with('status', 'Client deleted.');
     }

@@ -8,6 +8,8 @@ use App\Models\Quotation;
 use App\Services\DocumentEmailService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -52,6 +54,27 @@ class DocumentEmailController extends Controller
             'sentCount' => DocumentEmailDelivery::query()->where('status', 'sent')->count(),
             'failedCount' => DocumentEmailDelivery::query()->where('status', 'failed')->count(),
         ]);
+    }
+
+    /**
+     * Remove a single email delivery record. Delivery history is operational/audit
+     * evidence, so this is Super Admin only (via the delete-email-deliveries gate)
+     * and intended for clearing test records — not for erasing real sent history.
+     */
+    public function deliveryDestroy(DocumentEmailDelivery $delivery): RedirectResponse
+    {
+        Gate::authorize('delete-email-deliveries');
+
+        Log::warning('Email delivery record deleted', [
+            'delivery_id' => $delivery->id,
+            'document_type' => $delivery->document_type,
+            'document_id' => $delivery->document_id,
+            'by_user_id' => auth()->id(),
+        ]);
+
+        $delivery->delete();
+
+        return redirect()->route('email-deliveries.index')->with('status', 'Email record deleted.');
     }
 
     public function quotationCreate(Quotation $quotation, DocumentEmailService $emails): View

@@ -56,6 +56,7 @@ class LocalClientInformationExtractor
         foreach ($available as $index => $line) {
             if ($this->looksLikeAddress($line)) {
                 $data['address'] = $line;
+
                 continue;
             }
 
@@ -63,6 +64,7 @@ class LocalClientInformationExtractor
                 if ($data['company_name'] && ! $data['parent_company']) {
                     $data['parent_company'] = $data['company_name'];
                     $data['company_name'] = $line;
+
                     continue;
                 }
 
@@ -76,6 +78,7 @@ class LocalClientInformationExtractor
             if ($person = $this->personDesignationFromLine($line)) {
                 $data['contact_person'] = $person['contact_person'];
                 $data['designation'] = $person['designation'];
+
                 continue;
             }
 

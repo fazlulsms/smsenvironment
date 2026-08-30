@@ -17,6 +17,7 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StandardController;
 use App\Http\Controllers\TestEmailController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\VerificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,13 +49,19 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 
 // The authenticated SMSEA Office application lives entirely under /office.
 // Route names are unchanged, so all existing route() references keep working.
-Route::middleware('auth')->prefix('office')->group(function () {
+Route::middleware(['auth', 'active'])->prefix('office')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
-    Route::get('entities/overview', [BusinessEntityController::class, 'overview'])->name('entities.overview');
+
+    // Switching the active entity is an operational action available to all roles.
     Route::post('entities/switch', [BusinessEntityController::class, 'switch'])->name('entities.switch');
-    Route::get('entities', [BusinessEntityController::class, 'index'])->name('entities.index');
-    Route::get('entities/{entity}/edit', [BusinessEntityController::class, 'edit'])->name('entities.edit');
-    Route::put('entities/{entity}', [BusinessEntityController::class, 'update'])->name('entities.update');
+
+    // Managing business entities is Super Admin only (system configuration).
+    Route::middleware('can:manage-entities')->group(function () {
+        Route::get('entities/overview', [BusinessEntityController::class, 'overview'])->name('entities.overview');
+        Route::get('entities', [BusinessEntityController::class, 'index'])->name('entities.index');
+        Route::get('entities/{entity}/edit', [BusinessEntityController::class, 'edit'])->name('entities.edit');
+        Route::put('entities/{entity}', [BusinessEntityController::class, 'update'])->name('entities.update');
+    });
 
     Route::get('quick-environmental', [QuickEnvironmentalController::class, 'index'])->name('quick-env.index');
     Route::post('quick-environmental/prepare', [QuickEnvironmentalController::class, 'prepare'])->name('quick-env.prepare');
@@ -64,28 +71,64 @@ Route::middleware('auth')->prefix('office')->group(function () {
     Route::post('ai-draft/apply', [CommercialDraftController::class, 'apply'])->name('ai-draft.apply');
 
     // Website inquiries → review → bridge into the normal client/quotation flows.
+    // (Status update + delete are additionally authorized per-record in the controller.)
     Route::get('inquiries', [InquiryController::class, 'index'])->name('inquiries.index');
     Route::get('inquiries/{inquiry}', [InquiryController::class, 'show'])->name('inquiries.show');
     Route::patch('inquiries/{inquiry}/status', [InquiryController::class, 'updateStatus'])->name('inquiries.status');
     Route::post('inquiries/{inquiry}/client', [InquiryController::class, 'createClient'])->name('inquiries.client');
     Route::post('inquiries/{inquiry}/quotation', [InquiryController::class, 'prepareQuotation'])->name('inquiries.quotation');
+    Route::delete('inquiries/{inquiry}', [InquiryController::class, 'destroy'])->name('inquiries.destroy');
 
+    // Clients — operational master data. Delete is authorized per-record (ClientPolicy).
     Route::post('clients/smart-paste', [ClientController::class, 'smartPaste'])->name('clients.smart-paste');
     Route::post('clients/smart-store', [ClientController::class, 'smartStore'])->name('clients.smart-store');
     Route::resource('clients', ClientController::class);
-    Route::resource('services', ServiceController::class);
-    Route::get('catalogue/standards/create', [StandardController::class, 'create'])->name('catalogue-standards.create');
-    Route::post('catalogue/standards', [StandardController::class, 'store'])->name('catalogue-standards.store');
-    Route::get('catalogue/standards/{standard}/edit', [StandardController::class, 'edit'])->name('catalogue-standards.edit');
-    Route::put('catalogue/standards/{standard}', [StandardController::class, 'update'])->name('catalogue-standards.update');
-    Route::post('bank-accounts/{bankAccount}/default', [BankAccountController::class, 'setDefault'])->name('bank-accounts.default');
-    Route::resource('bank-accounts', BankAccountController::class)->parameters(['bank-accounts' => 'bankAccount']);
-    Route::get('email-deliveries', [DocumentEmailController::class, 'index'])->name('email-deliveries.index');
-    Route::resource('email-accounts', EmailAccountController::class)->parameters(['email-accounts' => 'emailAccount'])->except(['show']);
 
-    Route::get('settings', [SettingController::class, 'edit'])->name('settings.edit');
-    Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
-    Route::post('settings/test-email', TestEmailController::class)->name('settings.test-email');
+    // Services catalogue — anyone may view; only Admin/Super Admin may modify.
+    // The mutating routes are registered first so services/create resolves before
+    // the services/{service} show route.
+    Route::middleware('can:manage-services')->group(function () {
+        Route::resource('services', ServiceController::class)->except(['index', 'show']);
+    });
+    Route::resource('services', ServiceController::class)->only(['index', 'show']);
+
+    // Catalogue standards master — Admin/Super Admin only.
+    Route::middleware('can:manage-standards')->group(function () {
+        Route::get('catalogue/standards/create', [StandardController::class, 'create'])->name('catalogue-standards.create');
+        Route::post('catalogue/standards', [StandardController::class, 'store'])->name('catalogue-standards.store');
+        Route::get('catalogue/standards/{standard}/edit', [StandardController::class, 'edit'])->name('catalogue-standards.edit');
+        Route::put('catalogue/standards/{standard}', [StandardController::class, 'update'])->name('catalogue-standards.update');
+    });
+
+    // Bank accounts — Admin/Super Admin only (financial configuration).
+    Route::middleware('can:manage-banks')->group(function () {
+        Route::post('bank-accounts/{bankAccount}/default', [BankAccountController::class, 'setDefault'])->name('bank-accounts.default');
+        Route::resource('bank-accounts', BankAccountController::class)->parameters(['bank-accounts' => 'bankAccount']);
+    });
+
+    // Email delivery history — Admin/Super Admin may view; only Super Admin may delete a record.
+    Route::get('email-deliveries', [DocumentEmailController::class, 'index'])
+        ->middleware('can:view-email-deliveries')->name('email-deliveries.index');
+    Route::delete('email-deliveries/{delivery}', [DocumentEmailController::class, 'deliveryDestroy'])
+        ->middleware('can:delete-email-deliveries')->name('email-deliveries.destroy');
+
+    // Email accounts (SMTP credentials) — Super Admin only (security configuration).
+    Route::middleware('can:manage-email-accounts')->group(function () {
+        Route::resource('email-accounts', EmailAccountController::class)->parameters(['email-accounts' => 'emailAccount'])->except(['show']);
+    });
+
+    // System settings — Super Admin only.
+    Route::middleware('can:manage-settings')->group(function () {
+        Route::get('settings', [SettingController::class, 'edit'])->name('settings.edit');
+        Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
+        Route::post('settings/test-email', TestEmailController::class)->name('settings.test-email');
+    });
+
+    // User management — Super Admin only.
+    Route::middleware('can:manage-users')->group(function () {
+        Route::patch('users/{user}/active', [UserController::class, 'toggleActive'])->name('users.active');
+        Route::resource('users', UserController::class)->except(['show']);
+    });
 
     Route::post('quotations/{quotation}/duplicate', [QuotationController::class, 'duplicate'])->name('quotations.duplicate');
     Route::get('quotations/{quotation}/pdf', [QuotationController::class, 'pdf'])->name('quotations.pdf');

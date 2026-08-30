@@ -21,7 +21,13 @@ class DocumentNumberService
     private function format(?string $format, string $model, string $fallback): string
     {
         $year = now()->format('Y');
-        $sequence = $model::query()->whereYear('date', $year)->count() + 1;
+
+        // Include soft-deleted documents when counting and checking for collisions.
+        // A deleted quotation/invoice must NEVER free its number for reuse, so the
+        // sequence stays monotonic even after deletions. Quotation and
+        // ProformaInvoice both use SoftDeletes, so withTrashed() sees every number
+        // ever issued.
+        $sequence = $model::withTrashed()->whereYear('date', $year)->count() + 1;
 
         do {
             $number = strtr($format ?: $fallback, [
@@ -31,7 +37,7 @@ class DocumentNumberService
                 '{###}' => str_pad((string) $sequence, 3, '0', STR_PAD_LEFT),
             ]);
             $sequence++;
-        } while ($model::query()->where('number', $number)->exists());
+        } while ($model::withTrashed()->where('number', $number)->exists());
 
         return $number;
     }

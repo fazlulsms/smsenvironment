@@ -19,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -175,7 +176,20 @@ class QuotationController extends Controller
 
     public function destroy(Quotation $quotation): RedirectResponse
     {
+        $this->authorize('delete', $quotation);
+
+        $wasIssued = $quotation->wasEmailed();
+
+        // Soft delete only — the row (and its number) is preserved, so numbering
+        // stays monotonic and any QR verification of an issued document still works.
         $quotation->delete();
+
+        Log::warning('Quotation deleted', [
+            'quotation_id' => $quotation->id,
+            'number' => $quotation->number,
+            'was_issued' => $wasIssued,
+            'by_user_id' => auth()->id(),
+        ]);
 
         return redirect()->route('quotations.index')->with('status', 'Quotation deleted.');
     }

@@ -106,4 +106,14 @@ class Quotation extends Model
             ->latest('sent_at')
             ->latest('id');
     }
+
+    /**
+     * A document that has been emailed to a recipient is treated as "issued": it
+     * left the building and may be relied upon / QR-verified, so it is protected
+     * from casual deletion. There is no separate status lifecycle by design.
+     */
+    public function wasEmailed(): bool
+    {
+        return $this->emailDeliveries()->exists();
+    }
 }

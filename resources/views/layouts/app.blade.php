@@ -69,12 +69,37 @@
         </div>
     @endif
 </div>
+
+{{-- Shared strong-confirmation modal for high-consequence deletes (type DELETE). --}}
+<div class="modal fade" id="strongDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" data-sd-form data-no-loading>
+                @csrf
+                @method('DELETE')
+                <div class="modal-header">
+                    <h5 class="modal-title" data-sd-title>Delete this record?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3" data-sd-message>This action cannot be undone.</p>
+                    <label class="form-label small text-muted">Type <b>DELETE</b> to confirm</label>
+                    <input type="text" class="form-control" data-sd-input autocomplete="off" placeholder="DELETE">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger" data-sd-confirm disabled>Delete permanently</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @else
     @yield('content')
 @endauth
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{{ asset('js/smsea-app.js') }}?v=1"></script>
+<script src="{{ asset('js/smsea-app.js') }}?v=2"></script>
 @stack('scripts')
 </body>
 </html>

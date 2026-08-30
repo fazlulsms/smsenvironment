@@ -95,7 +95,8 @@ class SmartPasteClientTest extends TestCase
 
     public function test_extraction_failure_returns_manual_fallback_data(): void
     {
-        $this->app->instance(ClientInformationExtractor::class, new class extends ClientInformationExtractor {
+        $this->app->instance(ClientInformationExtractor::class, new class extends ClientInformationExtractor
+        {
             public function extractWithMetadata(string $text): array
             {
                 return [
@@ -334,10 +335,9 @@ class SmartPasteClientTest extends TestCase
 
     private function mockExtractor(array $data): void
     {
-        $this->app->instance(ClientInformationExtractor::class, new class($data) extends ClientInformationExtractor {
-            public function __construct(private array $data)
-            {
-            }
+        $this->app->instance(ClientInformationExtractor::class, new class($data) extends ClientInformationExtractor
+        {
+            public function __construct(private array $data) {}
 
             public function extract(string $text): array
             {

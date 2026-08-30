@@ -3,6 +3,12 @@
 @section('content')
 <x-page-toolbar title="Website Inquiry" subtitle="Review and act on a public proposal request.">
     <a class="btn btn-outline-secondary btn-sm mb-1" href="{{ route('inquiries.index') }}"><x-icon name="chevron-left" :size="15" /> All Inquiries</a>
+    @can('delete', $inquiry)
+        <form method="post" action="{{ route('inquiries.destroy', $inquiry) }}" class="d-inline" data-confirm="Delete this inquiry? This can’t be undone.">
+            @csrf @method('DELETE')
+            <button class="btn btn-outline-danger btn-sm mb-1" type="submit"><x-icon name="trash" :size="15" /> Delete</button>
+        </form>
+    @endcan
 </x-page-toolbar>
 
 @if (session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif

@@ -54,6 +54,29 @@
                                             <button class="dropdown-item" type="submit"><x-icon name="copy" :size="15" class="me-2" />Duplicate</button>
                                         </form>
                                     </li>
+                                    @can('delete', $document)
+                                        @php $destroyRoute = $isQuote ? route('quotations.destroy', $document) : route('proforma-invoices.destroy', $document); @endphp
+                                        <li><hr class="dropdown-divider"></li>
+                                        @if ($document->emailDeliveries->isNotEmpty())
+                                            {{-- Issued (already emailed / may be QR-verified): strong confirmation. --}}
+                                            <li>
+                                                <button type="button" class="dropdown-item text-danger" data-strong-delete
+                                                    data-action="{{ $destroyRoute }}"
+                                                    data-title="Delete {{ $document->number }}?"
+                                                    data-message="This document was already emailed and may be QR-verified. Deleting archives it and preserves its number and verification. This cannot be undone.">
+                                                    <x-icon name="trash" :size="15" class="me-2" />Delete…
+                                                </button>
+                                            </li>
+                                        @else
+                                            {{-- Draft (never emailed): standard confirmation. --}}
+                                            <li>
+                                                <form method="post" action="{{ $destroyRoute }}" data-confirm="Delete draft {{ $document->number }}? This can’t be undone.">
+                                                    @csrf @method('DELETE')
+                                                    <button class="dropdown-item text-danger" type="submit"><x-icon name="trash" :size="15" class="me-2" />Delete</button>
+                                                </form>
+                                            </li>
+                                        @endif
+                                    @endcan
                                 </ul>
                             </div>
                         </div>

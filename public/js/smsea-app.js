@@ -55,4 +55,44 @@
             document.querySelectorAll('.btn.is-loading').forEach(function (b) { b.classList.remove('is-loading'); });
         }
     });
+
+    // Simple confirmation for destructive forms: <form data-confirm="Message?">.
+    document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            if (!window.confirm(form.getAttribute('data-confirm'))) {
+                e.preventDefault();
+            }
+        });
+    });
+
+    // Strong confirmation ("type DELETE") for high-consequence deletes. A single
+    // shared modal is reused; triggers carry the details as data-* attributes:
+    //   <button data-strong-delete data-action="/url" data-title="..." data-message="...">
+    var strongModalEl = document.getElementById('strongDeleteModal');
+    if (strongModalEl && window.bootstrap) {
+        var strongModal = new window.bootstrap.Modal(strongModalEl);
+        var sdForm = strongModalEl.querySelector('[data-sd-form]');
+        var sdTitle = strongModalEl.querySelector('[data-sd-title]');
+        var sdMessage = strongModalEl.querySelector('[data-sd-message]');
+        var sdInput = strongModalEl.querySelector('[data-sd-input]');
+        var sdConfirm = strongModalEl.querySelector('[data-sd-confirm]');
+
+        var syncConfirm = function () {
+            sdConfirm.disabled = (sdInput.value.trim().toUpperCase() !== 'DELETE');
+        };
+        sdInput.addEventListener('input', syncConfirm);
+
+        document.querySelectorAll('[data-strong-delete]').forEach(function (trigger) {
+            trigger.addEventListener('click', function (e) {
+                e.preventDefault();
+                sdForm.setAttribute('action', trigger.getAttribute('data-action') || '');
+                sdTitle.textContent = trigger.getAttribute('data-title') || 'Delete this record?';
+                sdMessage.textContent = trigger.getAttribute('data-message') || 'This action cannot be undone.';
+                sdInput.value = '';
+                syncConfirm();
+                strongModal.show();
+                setTimeout(function () { sdInput.focus(); }, 300);
+            });
+        });
+    }
 })();

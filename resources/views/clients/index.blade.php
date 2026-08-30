@@ -52,6 +52,19 @@
                                 <button class="btn-icon" type="button" data-bs-toggle="dropdown" title="More"><x-icon name="dots" :size="16" /></button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow">
                                     <li><a class="dropdown-item" href="{{ route('clients.edit', $client) }}"><x-icon name="edit" :size="15" class="me-2" />Edit</a></li>
+                                    @can('delete', $client)
+                                        <li><hr class="dropdown-divider"></li>
+                                        @if ($docs > 0)
+                                            <li><span class="dropdown-item disabled text-muted small">Has documents — can’t delete</span></li>
+                                        @else
+                                            <li>
+                                                <form method="post" action="{{ route('clients.destroy', $client) }}" data-confirm="Delete {{ $client->company_name }}? This can’t be undone.">
+                                                    @csrf @method('DELETE')
+                                                    <button class="dropdown-item text-danger" type="submit"><x-icon name="trash" :size="15" class="me-2" />Delete</button>
+                                                </form>
+                                            </li>
+                                        @endif
+                                    @endcan
                                 </ul>
                             </div>
                         </div>

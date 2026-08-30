@@ -10,6 +10,7 @@ use Illuminate\Support\Collection;
 class DocumentFilenameService
 {
     private const MAX_FILENAME_LENGTH = 145;
+
     private const MAX_SERVICE_SEGMENT_LENGTH = 72;
 
     public function quotationFilename(Quotation $quotation): string

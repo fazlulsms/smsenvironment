@@ -150,10 +150,22 @@ class ClientInformationExtractorTest extends TestCase
 
     public function test_timeout_falls_back_to_local(): void
     {
-        $provider = new class implements ClientInformationProvider {
-            public function name(): string { return 'gemini'; }
-            public function isConfigured(): bool { return true; }
-            public function extract(string $text): array { throw new ConnectionException('timeout'); }
+        $provider = new class implements ClientInformationProvider
+        {
+            public function name(): string
+            {
+                return 'gemini';
+            }
+
+            public function isConfigured(): bool
+            {
+                return true;
+            }
+
+            public function extract(string $text): array
+            {
+                throw new ConnectionException('timeout');
+            }
         };
 
         $result = (new ClientInformationExtractor(providers: [$provider]))->extractWithMetadata('client@example.com');
@@ -190,9 +202,7 @@ class ClientInformationExtractorTest extends TestCase
 
 class FakeProvider implements ClientInformationProvider
 {
-    public function __construct(private array $data)
-    {
-    }
+    public function __construct(private array $data) {}
 
     public function name(): string
     {

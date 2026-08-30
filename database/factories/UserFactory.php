@@ -30,6 +30,11 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            // Factory users default to the highest privilege so existing feature
+            // tests (which just need an authenticated operator) keep working.
+            // Authorization tests opt into ->admin()/->staff() explicitly.
+            'role' => User::ROLE_SUPER_ADMIN,
+            'is_active' => true,
         ];
     }
 
@@ -41,5 +46,25 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    public function superAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => ['role' => User::ROLE_SUPER_ADMIN]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => ['role' => User::ROLE_ADMIN]);
+    }
+
+    public function staff(): static
+    {
+        return $this->state(fn (array $attributes) => ['role' => User::ROLE_STAFF]);
+    }
+
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => ['is_active' => false]);
     }
 }

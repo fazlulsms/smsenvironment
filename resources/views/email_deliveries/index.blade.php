@@ -33,6 +33,7 @@
                 <tr>
                     <th>Document</th><th>Recipient</th><th>Subject</th>
                     <th>Sent by</th><th>When</th><th>Status</th>
+                    @can('delete-email-deliveries')<th class="text-end">Actions</th>@endcan
                 </tr>
             </thead>
             <tbody>
@@ -63,9 +64,17 @@
                             <span class="badge-soft b-danger" title="{{ $delivery->error_summary }}"><x-icon name="alert" :size="12" />Failed</span>
                         @endif
                     </td>
+                    @can('delete-email-deliveries')
+                        <td class="text-end">
+                            <form method="post" action="{{ route('email-deliveries.destroy', $delivery) }}" data-confirm="Delete this email record? Delivery history is normally kept as audit evidence.">
+                                @csrf @method('DELETE')
+                                <button class="btn-icon text-danger" type="submit" title="Delete record"><x-icon name="trash" :size="16" /></button>
+                            </form>
+                        </td>
+                    @endcan
                 </tr>
             @empty
-                <tr><td colspan="6">
+                <tr><td colspan="7">
                     <x-empty-state icon="email" title="No emails sent yet"
                         message="When you send a quotation or proforma invoice, delivery records appear here." />
                 </td></tr>

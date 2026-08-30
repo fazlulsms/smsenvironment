@@ -42,9 +42,11 @@
                         </form>
                     </li>
                 @endforeach
+                @can('manage-entities')
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="{{ route('entities.index') }}"><x-icon name="settings" :size="15" class="me-2" />Manage entities</a></li>
                 <li><a class="dropdown-item" href="{{ route('entities.overview') }}"><x-icon name="dashboard" :size="15" class="me-2" />All entities overview</a></li>
+                @endcan
             </ul>
         </div>
     @endif
@@ -99,31 +101,53 @@
             </a>
         </div>
 
+        @can('view-email-deliveries')
         <div class="nav-group">
             <div class="nav-group-label">Communication</div>
             <a class="nav-item-link {{ request()->routeIs('email-deliveries.*') ? 'active' : '' }}" href="{{ route('email-deliveries.index') }}">
                 <x-icon name="email" /><span class="label">Email History</span>
             </a>
         </div>
+        @endcan
 
+        @canany(['manage-banks', 'manage-email-accounts', 'manage-settings'])
         <div class="nav-group">
             <div class="nav-group-label">Configuration</div>
+            @can('manage-banks')
             <a class="nav-item-link {{ request()->routeIs('bank-accounts.*') ? 'active' : '' }}" href="{{ route('bank-accounts.index') }}">
                 <x-icon name="bank" /><span class="label">Bank Accounts</span>
             </a>
+            @endcan
+            @can('manage-email-accounts')
             <a class="nav-item-link {{ request()->routeIs('email-accounts.*') ? 'active' : '' }}" href="{{ route('email-accounts.index') }}">
                 <x-icon name="send" /><span class="label">Email Accounts</span>
             </a>
+            @endcan
+            @can('manage-settings')
             <a class="nav-item-link {{ request()->routeIs('settings.*') ? 'active' : '' }}" href="{{ route('settings.edit') }}">
                 <x-icon name="settings" /><span class="label">Settings</span>
             </a>
+            @endcan
         </div>
+        @endcanany
+
+        @can('manage-users')
+        <div class="nav-group">
+            <div class="nav-group-label">Administration</div>
+            <a class="nav-item-link {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
+                <x-icon name="clients" /><span class="label">Users</span>
+            </a>
+        </div>
+        @endcan
     </div>
 
     <div class="sidebar-foot">
         <div class="side-user">
             <span class="avatar">{{ strtoupper($initials ?: 'U') }}</span>
-            <span class="u-meta"><b>{{ $user->name }}</b><span>{{ $user->email }}</span></span>
+            <span class="u-meta">
+                <b>{{ $user->name }}</b>
+                <span class="badge-soft {{ $user->roleBadgeClass() }}">{{ $user->roleLabel() }}</span>
+            </span>
             <form method="post" action="{{ route('logout') }}">
                 @csrf
                 <button class="side-logout" type="submit" title="Log out" aria-label="Log out"><x-icon name="logout" :size="17" /></button>

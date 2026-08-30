@@ -12,6 +12,21 @@
         <a class="btn btn-outline-secondary" href="{{ route('quotations.edit', $quotation) }}"><x-icon name="edit" :size="16" /> Edit</a>
         <a class="btn btn-outline-primary" href="{{ route('quotations.email.create', $quotation) }}"><x-icon name="send" :size="16" /> Send Email</a>
         <a class="btn btn-primary" href="{{ route('quotations.pdf', $quotation) }}"><x-icon name="download" :size="16" /> Download PDF</a>
+        @can('delete', $quotation)
+            @if ($quotation->wasEmailed())
+                <button type="button" class="btn btn-outline-danger" data-strong-delete
+                    data-action="{{ route('quotations.destroy', $quotation) }}"
+                    data-title="Delete {{ $quotation->number }}?"
+                    data-message="This quotation was already emailed and may be QR-verified. Deleting archives it and preserves its number and verification. This cannot be undone.">
+                    <x-icon name="trash" :size="16" /> Delete
+                </button>
+            @else
+                <form method="post" action="{{ route('quotations.destroy', $quotation) }}" data-confirm="Delete draft {{ $quotation->number }}? This can’t be undone.">
+                    @csrf @method('DELETE')
+                    <button class="btn btn-outline-danger" type="submit"><x-icon name="trash" :size="16" /> Delete</button>
+                </form>
+            @endif
+        @endcan
     </x-slot:actions>
 </x-page-toolbar>
 

@@ -19,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -178,7 +179,20 @@ class ProformaInvoiceController extends Controller
 
     public function destroy(ProformaInvoice $proformaInvoice): RedirectResponse
     {
+        $this->authorize('delete', $proformaInvoice);
+
+        $wasIssued = $proformaInvoice->wasEmailed();
+
+        // Soft delete only — the row (and its number) is preserved, so numbering
+        // stays monotonic and any QR verification of an issued document still works.
         $proformaInvoice->delete();
+
+        Log::warning('Proforma invoice deleted', [
+            'invoice_id' => $proformaInvoice->id,
+            'number' => $proformaInvoice->number,
+            'was_issued' => $wasIssued,
+            'by_user_id' => auth()->id(),
+        ]);
 
         return redirect()->route('proforma-invoices.index')->with('status', 'Invoice deleted.');
     }

@@ -7,6 +7,7 @@ use App\Models\ServiceInquiry;
 use App\Support\InquiryServiceMatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 /**
@@ -51,10 +52,27 @@ class InquiryController extends Controller
 
     public function updateStatus(Request $request, ServiceInquiry $inquiry): RedirectResponse
     {
+        $this->authorize('update', $inquiry);
+
         $data = $request->validate(['status' => ['required', 'in:'.implode(',', ServiceInquiry::STATUSES)]]);
         $inquiry->update(['status' => $data['status']]);
 
         return back()->with('status', 'Inquiry marked as '.ucfirst($data['status']).'.');
+    }
+
+    /** Remove a website inquiry (e.g. spam or test lead). Super Admin only. */
+    public function destroy(ServiceInquiry $inquiry): RedirectResponse
+    {
+        $this->authorize('delete', $inquiry);
+
+        $inquiry->delete();
+
+        Log::warning('Service inquiry deleted', [
+            'inquiry_id' => $inquiry->id,
+            'by_user_id' => auth()->id(),
+        ]);
+
+        return redirect()->route('inquiries.index')->with('status', 'Inquiry deleted.');
     }
 
     /** Prefill the normal Client create form from the inquiry (never auto-created). */
