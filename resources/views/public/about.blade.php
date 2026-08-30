@@ -6,7 +6,7 @@
 
 @section('content')
 <section class="hero">
-    <div class="wrap hero-inner" style="padding:64px 0 44px">
+    <div class="wrap hero-inner" style="padding-top:64px;padding-bottom:44px">
         <span class="eyebrow">About Us</span>
         <h1 style="font-size:clamp(1.9rem,4.4vw,2.9rem)">Environmental &amp; sustainability specialists for responsible industry</h1>
         <p>SMS Environmental Alliance supports industrial facilities with practical environmental assessment, testing, chemical management, sustainability improvement and training.</p>

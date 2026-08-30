@@ -6,14 +6,14 @@
 
 @section('content')
 <section class="hero">
-    <div class="wrap hero-inner" style="padding:64px 0 44px">
+    <div class="wrap hero-inner" style="padding-top:64px;padding-bottom:44px">
         <span class="eyebrow">Our Services</span>
         <h1 style="font-size:clamp(1.9rem,4.4vw,2.9rem)">Environmental, Chemical &amp; Sustainability Services</h1>
         <p>Focused technical services for industrial facilities — environmental assessment and testing, chemical management, sustainability improvement, and capacity-building training.</p>
     </div>
 </section>
 
-@include('public.partials.page_header_image', ['file' => 'images/site/services-monitoring.webp', 'alt' => 'Environmental testing and monitoring at an industrial facility'])
+@include('public.partials.page_header_image', ['file' => 'images/site/services-monitoring.webp', 'alt' => 'Water quality sampling at an industrial wastewater facility'])
 
 <section class="section">
     <div class="wrap">

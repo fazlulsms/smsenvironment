@@ -6,7 +6,7 @@
 
 @section('content')
 <section class="hero">
-    <div class="wrap hero-inner" style="padding:64px 0 40px">
+    <div class="wrap hero-inner" style="padding-top:64px;padding-bottom:40px">
         <span class="eyebrow">Contact</span>
         <h1 style="font-size:clamp(1.9rem,4.4vw,2.9rem)">Request a Proposal</h1>
         <p>Tell us about your facility and what you need assessed, tested, managed or trained — we’ll respond with a focused proposal.</p>

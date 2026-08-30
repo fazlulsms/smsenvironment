@@ -24,4 +24,23 @@ generic eco/NGO site.
 Alt text is already set in the templates and describes the intended subject; if a
 final image differs meaningfully, update the `alt` in the relevant Blade view.
 
+## The three photos supplied for launch
+
+Map the supplied photos to these files:
+
+- **Air-quality monitoring at the refinery** → `hero-industrial.webp` (homepage hero)
+- **Water-quality sampling at the ETP/wastewater plant** → `services-monitoring.webp` (Services)
+- **Training/presentation session** → `training-workshop.webp` (Training)
+
+Resize + convert to optimised WebP (ImageMagick example — run in this folder):
+
+```bash
+magick hero-source.jpg      -resize 1200x960^   -gravity center -extent 1200x960 -quality 82 hero-industrial.webp
+magick services-source.jpg  -resize 1600x600^   -gravity center -extent 1600x600 -quality 82 services-monitoring.webp
+magick training-source.jpg  -resize 1600x600^   -gravity center -extent 1600x600 -quality 82 training-workshop.webp
+```
+
+(or `cwebp -q 82 -resize 1200 960 hero-source.jpg -o hero-industrial.webp`). Once
+the files are in this folder the site picks them up automatically — no code change.
+
 Do **not** add photography to the Verify pages or the Contact form (kept clean).

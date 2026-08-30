@@ -6,7 +6,7 @@
 
 @section('content')
 <section class="hero">
-    <div class="wrap hero-inner" style="padding:64px 0 44px">
+    <div class="wrap hero-inner" style="padding-top:64px;padding-bottom:44px">
         <span class="eyebrow">Training &amp; Capacity Building</span>
         <h1 style="font-size:clamp(1.9rem,4.4vw,2.9rem)">Environmental &amp; Sustainability Training</h1>
         <p>Build in-house capability across environmental, chemical and sustainability topics — delivered in-house, as public programs, or customized to your facility.</p>
