@@ -63,7 +63,7 @@ h1,h2,h3,h4{color:var(--ink);line-height:1.18;margin:0 0 .5em;font-weight:700;le
    single-column hero above is used unchanged. */
 .hero-grid{display:grid;grid-template-columns:1.06fr .94fr;gap:46px;align-items:center;padding:60px 0 54px}
 .hero-grid .hero-copy{max-width:640px}
-.hero-media img{width:100%;aspect-ratio:4/3;object-fit:cover;object-position:center;border-radius:18px;box-shadow:var(--shadow);display:block;background:var(--softer)}
+.hero-media img{width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;object-position:center;border-radius:18px;box-shadow:var(--shadow);display:block;background:var(--softer)}
 /* Restrained page-header photo band (Services / Training) */
 .page-hero-media img{width:100%;aspect-ratio:16/6;object-fit:cover;object-position:center;border-radius:16px;box-shadow:var(--shadow);display:block;background:var(--softer)}
 /* Subtle, safe reveal: content is visible by default; only enhanced when JS is
