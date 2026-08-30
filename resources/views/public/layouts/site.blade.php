@@ -19,7 +19,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/smsea-site.css') }}?v=5" rel="stylesheet">
+    <link href="{{ asset('css/smsea-site.css') }}?v=6" rel="stylesheet">
     @php
         // Built in a @php block so Blade's @context directive never touches the
         // literal "@context"/"@type" JSON-LD keys (that would corrupt the markup).
@@ -120,5 +120,23 @@
         </div>
     </div>
 </footer>
+
+{{-- Lightweight, dependency-free reveal. Content is visible without JS; this only
+     adds a subtle entrance when supported, with a guaranteed-visible fallback. --}}
+<script>
+    document.documentElement.classList.add('js');
+    (function () {
+        var els = [].slice.call(document.querySelectorAll('.reveal'));
+        if (!els.length) return;
+        var reveal = function (el) { el.classList.add('is-in'); };
+        if (!('IntersectionObserver' in window)) { els.forEach(reveal); return; }
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) { if (e.isIntersecting) { reveal(e.target); io.unobserve(e.target); } });
+        }, { rootMargin: '0px 0px -8% 0px' });
+        els.forEach(function (el) { io.observe(el); });
+        // Safety net: never leave content hidden.
+        setTimeout(function () { els.forEach(reveal); }, 1800);
+    })();
+</script>
 </body>
 </html>

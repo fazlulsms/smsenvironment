@@ -13,6 +13,8 @@
     </div>
 </section>
 
+@include('public.partials.page_header_image', ['file' => 'images/site/services-monitoring.webp', 'alt' => 'Environmental testing and monitoring at an industrial facility'])
+
 <section class="section">
     <div class="wrap">
         @foreach ($families as $family)

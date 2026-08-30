@@ -3,22 +3,31 @@
 @section('meta_description', 'Environmental consultancy in Bangladesh: EIA, environmental parameter testing, energy audit, chemical management, carbon & GHG inventory, wastewater/ETP assessment and environmental training for industry.')
 
 @section('content')
-{{-- HERO --}}
+{{-- HERO — a hero photo is shown when supplied at public/images/site/hero-industrial.webp;
+     otherwise the approved clean single-column hero is used unchanged. --}}
+@php $heroImg = is_file(public_path('images/site/hero-industrial.webp')); @endphp
 <section class="hero">
-    <div class="wrap hero-inner">
-        <span class="eyebrow">SMS Environmental Alliance</span>
-        <h1>Environmental, Chemical &amp; Sustainability Solutions for Responsible Industry</h1>
-        <p>{{ \App\Support\PublicSite::INTRO }}</p>
-        <div class="hero-cta">
-            <a class="btn2 btn2--primary" href="{{ route('public.contact') }}#proposal">Request a Proposal @include('public.partials.icon', ['name' => 'arrow', 'size' => 18])</a>
-            <a class="btn2 btn2--outline" href="{{ route('public.services') }}">Explore Services</a>
+    <div class="wrap {{ $heroImg ? 'hero-grid' : 'hero-inner' }}">
+        <div class="{{ $heroImg ? 'hero-copy' : '' }}">
+            <span class="eyebrow">SMS Environmental Alliance</span>
+            <h1>Environmental, Chemical &amp; Sustainability Solutions for Responsible Industry</h1>
+            <p>{{ \App\Support\PublicSite::INTRO }}</p>
+            <div class="hero-cta">
+                <a class="btn2 btn2--primary" href="{{ route('public.contact') }}#proposal">Request a Proposal @include('public.partials.icon', ['name' => 'arrow', 'size' => 18])</a>
+                <a class="btn2 btn2--outline" href="{{ route('public.services') }}">Explore Services</a>
+            </div>
+            <div class="hero-strip">
+                <span>@include('public.partials.icon', ['name' => 'check']) Environmental Assessment &amp; Testing</span>
+                <span>@include('public.partials.icon', ['name' => 'check']) Chemical Management</span>
+                <span>@include('public.partials.icon', ['name' => 'check']) Sustainability Solutions</span>
+                <span>@include('public.partials.icon', ['name' => 'check']) Training &amp; Capacity Building</span>
+            </div>
         </div>
-        <div class="hero-strip">
-            <span>@include('public.partials.icon', ['name' => 'check']) Environmental Assessment &amp; Testing</span>
-            <span>@include('public.partials.icon', ['name' => 'check']) Chemical Management</span>
-            <span>@include('public.partials.icon', ['name' => 'check']) Sustainability Solutions</span>
-            <span>@include('public.partials.icon', ['name' => 'check']) Training &amp; Capacity Building</span>
-        </div>
+        @if ($heroImg)
+            <div class="hero-media reveal">
+                <img src="{{ asset('images/site/hero-industrial.webp') }}" alt="Environmental monitoring at an industrial facility" width="1200" height="960" fetchpriority="high">
+            </div>
+        @endif
     </div>
 </section>
 
@@ -32,7 +41,7 @@
         </div>
         <div class="grid grid-4">
             @foreach ($families as $family)
-                <a class="pillar" href="{{ route('public.services') }}#{{ $family['key'] }}">
+                <a class="pillar reveal" href="{{ route('public.services') }}#{{ $family['key'] }}">
                     <span class="ico-wrap">@include('public.partials.icon', ['name' => $family['icon']])</span>
                     <h3>{{ $family['title'] }}</h3>
                     <p>{{ $family['tagline'] }}</p>
@@ -52,7 +61,7 @@
         </div>
         <div class="grid grid-3">
             @foreach ($featured as $f)
-                <div class="feature {{ $loop->iteration <= 6 ? 'feature--primary' : '' }}">
+                <div class="feature reveal {{ $loop->iteration <= 6 ? 'feature--primary' : '' }}">
                     <span class="ico-wrap">@include('public.partials.icon', ['name' => $f['icon']])</span>
                     <div>
                         <h3>{{ $f['title'] }}</h3>
