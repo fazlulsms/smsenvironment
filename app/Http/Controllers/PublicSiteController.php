@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Mail\InquiryNotification;
+use App\Models\BusinessEntity;
 use App\Models\ServiceInquiry;
 use App\Models\Setting;
 use App\Support\PublicSite;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
@@ -70,6 +72,8 @@ class PublicSiteController extends Controller
         ]);
 
         $inquiry = ServiceInquiry::query()->create([
+            // All public inquiries belong to SMSEA (no public entity selector).
+            'business_entity_id' => BusinessEntity::query()->where('entity_code', 'SMSEA')->value('id'),
             'name' => $data['name'],
             'company' => $data['company'] ?? null,
             'email' => $data['email'],
@@ -77,6 +81,7 @@ class PublicSiteController extends Controller
             'service' => $data['service'] ?? null,
             'message' => $data['message'] ?? null,
             'source' => 'website',
+            'status' => 'new',
         ]);
 
         // Notify SMSEA. The saved record is the source of truth; a delivery
@@ -105,6 +110,44 @@ class PublicSiteController extends Controller
         return config('mail.inquiry_to')
             ?: (Setting::current()->email ?? null)
             ?: config('mail.from.address');
+    }
+
+    /** XML sitemap of public, indexable pages only (no /office, no result URLs). */
+    public function sitemap(): Response
+    {
+        $urls = [
+            route('public.home'),
+            route('public.services'),
+            route('public.training'),
+            route('public.about'),
+            route('verify.index'),
+            route('public.contact'),
+            route('public.privacy'),
+            route('public.terms'),
+        ];
+
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n"
+            .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+        foreach ($urls as $url) {
+            $xml .= '  <url><loc>'.htmlspecialchars($url, ENT_XML1).'</loc></url>'."\n";
+        }
+        $xml .= '</urlset>'."\n";
+
+        return response($xml, 200, ['Content-Type' => 'application/xml']);
+    }
+
+    public function robots(): Response
+    {
+        $body = implode("\n", [
+            'User-agent: *',
+            'Allow: /',
+            'Disallow: /office/',
+            'Disallow: /login',
+            '',
+            'Sitemap: '.url('/sitemap.xml'),
+        ])."\n";
+
+        return response($body, 200, ['Content-Type' => 'text/plain']);
     }
 
     private function shared(): array

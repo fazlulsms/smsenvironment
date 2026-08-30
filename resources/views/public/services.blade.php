@@ -2,6 +2,8 @@
 @section('title', 'Environmental, Chemical & Sustainability Services')
 @section('meta_description', 'Environmental assessment and testing, chemical management, sustainability services and training in Bangladesh — EIA, environmental parameter testing, energy audit, GHG inventory, wastewater/ETP and more.')
 
+@include('public.partials.breadcrumbs', ['label' => 'Services', 'url' => route('public.services')])
+
 @section('content')
 <section class="hero">
     <div class="wrap hero-inner" style="padding:64px 0 44px">

@@ -2,6 +2,8 @@
 @section('title', 'About — Environmental & Sustainability Specialists')
 @section('meta_description', 'SMS Environmental Alliance is a specialized environmental, chemical and sustainability services company supporting responsible industry with assessment, testing, improvement and training.')
 
+@include('public.partials.breadcrumbs', ['label' => 'About', 'url' => route('public.about')])
+
 @section('content')
 <section class="hero">
     <div class="wrap hero-inner" style="padding:64px 0 44px">

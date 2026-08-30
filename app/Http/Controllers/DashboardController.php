@@ -7,6 +7,7 @@ use App\Models\DocumentEmailDelivery;
 use App\Models\ProformaInvoice;
 use App\Models\Quotation;
 use App\Models\Service;
+use App\Models\ServiceInquiry;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
@@ -24,6 +25,7 @@ class DashboardController extends Controller
             'quotedValue' => (float) Quotation::query()->sum('total'),
             'invoicedValue' => (float) ProformaInvoice::query()->sum('total'),
             'emailsSent' => DocumentEmailDelivery::query()->where('status', 'sent')->count(),
+            'newInquiries' => ServiceInquiry::query()->where('status', 'new')->count(),
 
             'quotedThisMonth' => (float) Quotation::query()->where('date', '>=', $monthStart)->sum('total'),
             'invoicedThisMonth' => (float) ProformaInvoice::query()->where('date', '>=', $monthStart)->sum('total'),

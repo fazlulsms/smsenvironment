@@ -8,6 +8,7 @@ use App\Http\Controllers\CommercialDraftController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentEmailController;
 use App\Http\Controllers\EmailAccountController;
+use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\ProformaInvoiceController;
 use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\QuickEnvironmentalController;
@@ -31,6 +32,8 @@ Route::get('/privacy', [PublicSiteController::class, 'privacy'])->name('public.p
 Route::get('/terms', [PublicSiteController::class, 'terms'])->name('public.terms');
 Route::post('/request-proposal', [PublicSiteController::class, 'storeInquiry'])
     ->middleware('throttle:6,1')->name('public.inquiry');
+Route::get('/sitemap.xml', [PublicSiteController::class, 'sitemap'])->name('public.sitemap');
+Route::get('/robots.txt', [PublicSiteController::class, 'robots'])->name('public.robots');
 
 // Public document verification portal (QR target + lookup by number).
 Route::get('verify', [VerificationController::class, 'index'])->name('verify.index');
@@ -59,6 +62,13 @@ Route::middleware('auth')->prefix('office')->group(function () {
     Route::get('ai-draft', [CommercialDraftController::class, 'index'])->name('ai-draft.index');
     Route::post('ai-draft/analyze', [CommercialDraftController::class, 'analyze'])->name('ai-draft.analyze');
     Route::post('ai-draft/apply', [CommercialDraftController::class, 'apply'])->name('ai-draft.apply');
+
+    // Website inquiries → review → bridge into the normal client/quotation flows.
+    Route::get('inquiries', [InquiryController::class, 'index'])->name('inquiries.index');
+    Route::get('inquiries/{inquiry}', [InquiryController::class, 'show'])->name('inquiries.show');
+    Route::patch('inquiries/{inquiry}/status', [InquiryController::class, 'updateStatus'])->name('inquiries.status');
+    Route::post('inquiries/{inquiry}/client', [InquiryController::class, 'createClient'])->name('inquiries.client');
+    Route::post('inquiries/{inquiry}/quotation', [InquiryController::class, 'prepareQuotation'])->name('inquiries.quotation');
 
     Route::post('clients/smart-paste', [ClientController::class, 'smartPaste'])->name('clients.smart-paste');
     Route::post('clients/smart-store', [ClientController::class, 'smartStore'])->name('clients.smart-store');

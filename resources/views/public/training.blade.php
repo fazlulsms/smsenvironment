@@ -2,6 +2,8 @@
 @section('title', 'Environmental & Sustainability Training')
 @section('meta_description', 'Environmental and sustainability training in Bangladesh — environmental compliance, chemical management, energy efficiency, carbon/GHG, waste, ETP/wastewater, cleaner production and resource efficiency.')
 
+@include('public.partials.breadcrumbs', ['label' => 'Training', 'url' => route('public.training')])
+
 @section('content')
 <section class="hero">
     <div class="wrap hero-inner" style="padding:64px 0 44px">

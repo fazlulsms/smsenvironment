@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Client;
 use App\Models\ProformaInvoice;
 use App\Models\Quotation;
+use App\Models\ServiceInquiry;
 use App\Support\CurrentEntity;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\View;
@@ -33,6 +34,7 @@ class AppServiceProvider extends ServiceProvider
                 'quotations' => Quotation::query()->count(),
                 'invoices' => ProformaInvoice::query()->count(),
                 'clients' => Client::query()->count(),
+                'inquiries_new' => ServiceInquiry::query()->where('status', 'new')->count(),
             ]);
         });
     }

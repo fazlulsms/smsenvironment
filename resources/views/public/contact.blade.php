@@ -2,6 +2,8 @@
 @section('title', 'Contact & Request a Proposal')
 @section('meta_description', 'Contact SMS Environmental Alliance for environmental assessment, testing, chemical management, sustainability services and training. Request a proposal for your facility.')
 
+@include('public.partials.breadcrumbs', ['label' => 'Contact', 'url' => route('public.contact')])
+
 @section('content')
 <section class="hero">
     <div class="wrap hero-inner" style="padding:64px 0 40px">

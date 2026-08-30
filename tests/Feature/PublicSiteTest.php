@@ -171,6 +171,54 @@ class PublicSiteTest extends TestCase
         $this->get(route('proforma-invoices.index'))->assertRedirect(route('login'));
     }
 
+    public function test_public_nav_has_verify_document(): void
+    {
+        $this->get('/')->assertOk()->assertSee('Verify Document');
+    }
+
+    public function test_home_has_organization_structured_data(): void
+    {
+        $this->get('/')->assertOk()
+            ->assertSee('application/ld+json', false)
+            ->assertSee('ProfessionalService', false)
+            ->assertSee('areaServed', false);
+    }
+
+    public function test_pages_have_unique_titles(): void
+    {
+        $home = $this->get('/')->getContent();
+        $services = $this->get(route('public.services'))->getContent();
+        $training = $this->get(route('public.training'))->getContent();
+
+        $title = fn ($html) => preg_match('/<title>(.*?)<\/title>/s', $html, $m) ? trim($m[1]) : '';
+        $this->assertNotSame($title($home), $title($services));
+        $this->assertNotSame($title($services), $title($training));
+    }
+
+    public function test_sitemap_lists_public_pages_and_excludes_office(): void
+    {
+        $res = $this->get('/sitemap.xml')->assertOk();
+        $res->assertHeader('Content-Type', 'application/xml');
+        $res->assertSee(route('public.services'), false);
+        $res->assertSee(route('public.training'), false);
+        $res->assertSee(route('verify.index'), false);
+        $res->assertDontSee('/office', false);
+    }
+
+    public function test_robots_disallows_office_and_points_to_sitemap(): void
+    {
+        $this->get('/robots.txt')->assertOk()
+            ->assertSee('Disallow: /office/')
+            ->assertSee('Sitemap:');
+    }
+
+    public function test_verify_result_page_is_noindex(): void
+    {
+        $this->get(route('verify.show', 'BOGUS-CODE-0000-0000'))->assertOk()
+            ->assertSee('noindex', false)
+            ->assertSee('Document not found', false);
+    }
+
     public function test_no_internal_data_leaks_onto_public_pages(): void
     {
         Client::query()->create(['company_name' => 'CONFIDENTIAL CLIENT LTD', 'address' => 'Somewhere']);

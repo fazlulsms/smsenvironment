@@ -137,6 +137,6 @@ class VerificationPortalTest extends TestCase
 
     public function test_the_index_page_renders_a_search_form(): void
     {
-        $this->get(route('verify.index'))->assertOk()->assertSee('Verify a document');
+        $this->get(route('verify.index'))->assertOk()->assertSee('Verify a Document');
     }
 }

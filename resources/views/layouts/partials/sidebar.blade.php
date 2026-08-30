@@ -74,6 +74,10 @@
 
         <div class="nav-group">
             <div class="nav-group-label">Documents</div>
+            <a class="nav-item-link {{ request()->routeIs('inquiries.*') ? 'active' : '' }}" href="{{ route('inquiries.index') }}">
+                <x-icon name="email" /><span class="label">Inquiries</span>
+                @if (($counts['inquiries_new'] ?? 0) > 0)<span class="nav-badge">{{ $counts['inquiries_new'] }}</span>@endif
+            </a>
             <a class="nav-item-link {{ request()->routeIs('quotations.*') ? 'active' : '' }}" href="{{ route('quotations.index') }}">
                 <x-icon name="quotation" /><span class="label">Quotations</span>
                 @if (($counts['quotations'] ?? 0) > 0)<span class="nav-badge">{{ $counts['quotations'] }}</span>@endif

@@ -43,6 +43,7 @@
     <div class="card-head"><h2>Quick actions</h2></div>
     <div class="card-body">
         <div class="qa-grid">
+            <a class="qa qa-smart" href="{{ route('inquiries.index') }}"><span class="qa-ico"><x-icon name="email" /></span><span>Website Inquiries<small>{{ ($newInquiries ?? 0) > 0 ? $newInquiries.' new — review' : 'No new requests' }}</small></span></a>
             <a class="qa qa-invoice" href="{{ route('quick-env.index') }}"><span class="qa-ico"><x-icon name="invoice" /></span><span>Quick Environmental Document<small>EIA / Parameter — fast prep</small></span></a>
             <a class="qa qa-service" href="{{ route('quick-env.index', ['service' => 'eia']) }}"><span class="qa-ico"><x-icon name="services" /></span><span>EIA Invoice<small>Impact Assessment</small></span></a>
             <a class="qa qa-service" href="{{ route('quick-env.index', ['service' => 'ept']) }}"><span class="qa-ico"><x-icon name="services" /></span><span>Parameter Test Invoice<small>Environmental testing</small></span></a>
