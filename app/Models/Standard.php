@@ -15,12 +15,18 @@ class Standard extends Model
 {
     protected $fillable = [
         'service_category_id', 'code', 'slug', 'name', 'short_name', 'type',
-        'description', 'default_scope', 'active', 'display_order',
+        'description', 'default_scope', 'active', 'is_public', 'display_order',
     ];
 
     protected function casts(): array
     {
-        return ['active' => 'boolean'];
+        return ['active' => 'boolean', 'is_public' => 'boolean'];
+    }
+
+    /** Catalogue items opted in to the public marketing website. */
+    public function scopePublic(Builder $query): Builder
+    {
+        return $query->where('is_public', true);
     }
 
     public function category(): BelongsTo

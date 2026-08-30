@@ -10,17 +10,24 @@ class ExampleTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guests_are_sent_to_login(): void
+    public function test_root_is_the_public_website(): void
     {
-        $this->get('/')->assertRedirect('/login');
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Environmental, Chemical &amp; Sustainability Solutions for Responsible Industry', false);
     }
 
-    public function test_authenticated_user_can_view_dashboard(): void
+    public function test_office_requires_authentication(): void
+    {
+        $this->get(route('dashboard'))->assertRedirect(route('login'));
+    }
+
+    public function test_authenticated_user_can_view_office_dashboard(): void
     {
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->get('/')
+            ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Quick actions')
             ->assertSee('Quotations');

@@ -1,0 +1,132 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Client;
+use App\Models\ServiceInquiry;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+/**
+ * The public marketing website: correct positioning and scope, working enquiry
+ * form, no internal data leakage, and the Office kept behind authentication.
+ */
+class PublicSiteTest extends TestCase
+{
+    use RefreshDatabase;
+
+    /** Content that must never appear on the public site. */
+    private array $forbidden = [
+        'ISO 9001', 'ISO 14001', 'ISO 45001', 'BSCI', 'SMETA', 'SLCP', 'WRAP',
+        'CTPAT', 'C-TPAT', 'Social Compliance', 'grievance', 'harassment',
+        'working hours', 'supply chain security',
+    ];
+
+    public function test_home_is_public_and_on_message(): void
+    {
+        $res = $this->get('/')->assertOk()
+            ->assertSee('Environmental, Chemical &amp; Sustainability Solutions for Responsible Industry', false)
+            ->assertSee('Environmental Impact Assessment')
+            ->assertSee('Environmental Parameter Testing')
+            ->assertSee('Chemical Management')
+            ->assertSee('Energy Audit')
+            ->assertSee('Request a Proposal');
+
+        foreach ($this->forbidden as $needle) {
+            $res->assertDontSee($needle, false);
+        }
+    }
+
+    public function test_services_page_shows_only_relevant_families(): void
+    {
+        $res = $this->get(route('public.services'))->assertOk()
+            ->assertSee('Environmental Services')
+            ->assertSee('Chemical Management Services')
+            ->assertSee('Sustainability Services')
+            ->assertSee('Environmental &amp; Sustainability Training', false)
+            ->assertSee('Environmental Impact Assessment (EIA)')
+            ->assertSee('Wastewater / ETP Assessment');
+
+        foreach ($this->forbidden as $needle) {
+            $res->assertDontSee($needle, false);
+        }
+    }
+
+    public function test_training_page_is_environmental_only(): void
+    {
+        $res = $this->get(route('public.training'))->assertOk()
+            ->assertSee('Environmental &amp; Sustainability Training', false)
+            ->assertSee('Chemical Management Training')
+            ->assertSee('Cleaner Production Training');
+
+        foreach (array_merge($this->forbidden, ['labour', 'wages']) as $needle) {
+            $res->assertDontSee($needle, false);
+        }
+    }
+
+    public function test_static_pages_render(): void
+    {
+        $this->get(route('public.about'))->assertOk()->assertSee('About');
+        $this->get(route('public.contact'))->assertOk()->assertSee('Request a Proposal');
+        $this->get(route('public.privacy'))->assertOk()->assertSee('Privacy Policy');
+        $this->get(route('public.terms'))->assertOk()->assertSee('Terms of Use');
+    }
+
+    public function test_environmental_testing_scope_is_shown(): void
+    {
+        // Seeded EPT package scope (flagged public by migration) appears on the home page.
+        $this->get('/')->assertOk()
+            ->assertSee('Stack Emission')
+            ->assertSee('ODS Assessment / Inventory');
+    }
+
+    public function test_inquiry_form_stores_a_lead_and_confirms(): void
+    {
+        $res = $this->post(route('public.inquiry'), [
+            'name' => 'Rifat Ahmed',
+            'company' => 'Green Textiles Ltd.',
+            'email' => 'rifat@example.com',
+            'phone' => '+8801700000000',
+            'service' => 'Environmental Parameter Testing',
+            'message' => 'We need parameter testing for our facility.',
+            'website_url' => '',
+        ]);
+
+        $res->assertRedirect();
+        $res->assertSessionHas('inquiry_status');
+        $this->assertDatabaseHas('service_inquiries', [
+            'email' => 'rifat@example.com',
+            'service' => 'Environmental Parameter Testing',
+        ]);
+    }
+
+    public function test_inquiry_requires_name_and_email(): void
+    {
+        $this->post(route('public.inquiry'), ['name' => '', 'email' => 'not-an-email'])
+            ->assertSessionHasErrors(['name', 'email']);
+        $this->assertSame(0, ServiceInquiry::query()->count());
+    }
+
+    public function test_inquiry_honeypot_blocks_bots(): void
+    {
+        $this->post(route('public.inquiry'), [
+            'name' => 'Bot', 'email' => 'bot@example.com', 'website_url' => 'http://spam.example',
+        ])->assertSessionHasErrors('website_url');
+        $this->assertSame(0, ServiceInquiry::query()->count());
+    }
+
+    public function test_office_is_still_protected(): void
+    {
+        $this->get(route('dashboard'))->assertRedirect(route('login'));
+        $this->get(route('clients.index'))->assertRedirect(route('login'));
+        $this->get(route('proforma-invoices.index'))->assertRedirect(route('login'));
+    }
+
+    public function test_no_internal_data_leaks_onto_public_pages(): void
+    {
+        Client::query()->create(['company_name' => 'CONFIDENTIAL CLIENT LTD', 'address' => 'Somewhere']);
+
+        $this->get('/')->assertOk()->assertDontSee('CONFIDENTIAL CLIENT LTD');
+        $this->get(route('public.services'))->assertOk()->assertDontSee('CONFIDENTIAL CLIENT LTD');
+    }
+}

@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentEmailController;
 use App\Http\Controllers\EmailAccountController;
 use App\Http\Controllers\ProformaInvoiceController;
+use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\QuickEnvironmentalController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ServiceController;
@@ -17,6 +18,19 @@ use App\Http\Controllers\StandardController;
 use App\Http\Controllers\TestEmailController;
 use App\Http\Controllers\VerificationController;
 use Illuminate\Support\Facades\Route;
+
+// ---------------------------------------------------------------------------
+// Public SMS Environmental Alliance website (domain root, no authentication).
+// ---------------------------------------------------------------------------
+Route::get('/', [PublicSiteController::class, 'home'])->name('public.home');
+Route::get('/services', [PublicSiteController::class, 'services'])->name('public.services');
+Route::get('/training', [PublicSiteController::class, 'training'])->name('public.training');
+Route::get('/about', [PublicSiteController::class, 'about'])->name('public.about');
+Route::get('/contact', [PublicSiteController::class, 'contact'])->name('public.contact');
+Route::get('/privacy', [PublicSiteController::class, 'privacy'])->name('public.privacy');
+Route::get('/terms', [PublicSiteController::class, 'terms'])->name('public.terms');
+Route::post('/request-proposal', [PublicSiteController::class, 'storeInquiry'])
+    ->middleware('throttle:6,1')->name('public.inquiry');
 
 // Public document verification portal (QR target + lookup by number).
 Route::get('verify', [VerificationController::class, 'index'])->name('verify.index');
@@ -29,7 +43,9 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
-Route::middleware('auth')->group(function () {
+// The authenticated SMSEA Office application lives entirely under /office.
+// Route names are unchanged, so all existing route() references keep working.
+Route::middleware('auth')->prefix('office')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('entities/overview', [BusinessEntityController::class, 'overview'])->name('entities.overview');
     Route::post('entities/switch', [BusinessEntityController::class, 'switch'])->name('entities.switch');
