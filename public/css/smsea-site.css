@@ -40,9 +40,7 @@ h1,h2,h3,h4{color:var(--ink);line-height:1.18;margin:0 0 .5em;font-weight:700;le
 .nav{display:flex;align-items:center;gap:18px;height:80px}
 .brand{display:flex;align-items:center;gap:13px;color:var(--ink);font-weight:800;letter-spacing:-.02em}
 .brand:hover{color:var(--ink)}
-.brand-logo{height:54px;width:auto;flex:none}
-.brand-name{font-size:1.16rem;line-height:1.08;white-space:nowrap}
-.brand-name span{display:block;font-size:.68rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--brand);margin-top:3px;white-space:nowrap}
+.brand-logo{height:56px;width:auto;flex:none;display:block}
 .nav-links{display:flex;align-items:center;gap:6px;margin-left:auto}
 .nav-links a{padding:.5rem .8rem;border-radius:8px;color:var(--body);font-weight:600;font-size:.95rem}
 .nav-links a:hover,.nav-links a.active{color:var(--brand-dark);background:var(--softer)}
@@ -204,9 +202,7 @@ h1,h2,h3,h4{color:var(--ink);line-height:1.18;margin:0 0 .5em;font-weight:700;le
 @media (max-width:640px){
   .section{padding:52px 0}
   .nav-links,.nav-cta .btn2{display:none}
-  .brand-logo{height:40px}
-  .brand-name{font-size:.95rem;white-space:normal;line-height:1.12}
-  .brand-name span{display:none}
+  .brand-logo{height:46px}
   .nav{gap:10px}
   .brand{gap:10px}
   .nav-toggle{display:inline-flex}

@@ -19,7 +19,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/smsea-site.css') }}?v=4" rel="stylesheet">
+    <link href="{{ asset('css/smsea-site.css') }}?v=5" rel="stylesheet">
     @php
         // Built in a @php block so Blade's @context directive never touches the
         // literal "@context"/"@type" JSON-LD keys (that would corrupt the markup).
@@ -52,9 +52,8 @@
 <header class="site-header">
     <div class="wrap">
         <nav class="nav" id="siteNav">
-            <a class="brand" href="{{ route('public.home') }}">
+            <a class="brand" href="{{ route('public.home') }}" aria-label="SMS Environmental Alliance — Home">
                 <img class="brand-logo" src="{{ asset('images/brand/smsea-logo.png') }}" alt="SMS Environmental Alliance" width="300" height="300">
-                <span class="brand-name">SMS Environmental Alliance<span>Trusted Environmental Expertise</span></span>
             </a>
             <div class="nav-links">
                 <a href="{{ route('public.home') }}" class="{{ request()->routeIs('public.home') ? 'active' : '' }}">Home</a>
