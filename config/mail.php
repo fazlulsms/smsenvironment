@@ -115,4 +115,17 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'SMSEA Office')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Public Website Inquiry Recipient
+    |--------------------------------------------------------------------------
+    |
+    | Where "Request a Proposal" notifications from the public website are sent.
+    | Configurable via PUBLIC_INQUIRY_EMAIL; when unset the application falls
+    | back to the SMSEA company email, then to the default From address.
+    |
+    */
+
+    'inquiry_to' => env('PUBLIC_INQUIRY_EMAIL'),
+
 ];

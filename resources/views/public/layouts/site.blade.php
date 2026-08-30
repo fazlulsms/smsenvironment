@@ -9,6 +9,8 @@
     <meta property="og:title" content="@yield('title', 'SMS Environmental Alliance')">
     <meta property="og:description" content="@yield('meta_description', 'Environmental, Chemical & Sustainability Solutions for Responsible Industry.')">
     <meta property="og:type" content="website">
+    <meta property="og:image" content="{{ asset('images/brand/smsea-logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/brand/smsea-logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -19,7 +21,7 @@
     <div class="wrap">
         <nav class="nav" id="siteNav">
             <a class="brand" href="{{ route('public.home') }}">
-                <span class="brand-mark">@include('public.partials.icon', ['name' => 'leaf', 'size' => 22])</span>
+                <img class="brand-logo" src="{{ asset('images/brand/smsea-logo.png') }}" alt="SMS Environmental Alliance" width="300" height="300">
                 <span class="brand-name">SMS Environmental Alliance<span>Environmental · Chemical · Sustainability</span></span>
             </a>
             <div class="nav-links">
@@ -48,7 +50,7 @@
     <div class="wrap">
         <div class="footer-grid">
             <div class="footer-brand">
-                <span class="brand-name">SMS Environmental Alliance</span>
+                <img class="footer-logo" src="{{ asset('images/brand/smsea-logo.png') }}" alt="SMS Environmental Alliance" width="300" height="300">
                 <p>Environmental assessment &amp; testing, chemical management, sustainability solutions and professional training for responsible industry.</p>
             </div>
             <div>

@@ -2,9 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Mail\InquiryNotification;
 use App\Models\Client;
+use App\Models\ProformaInvoice;
+use App\Models\Quotation;
 use App\Models\ServiceInquiry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
@@ -80,8 +84,10 @@ class PublicSiteTest extends TestCase
             ->assertSee('ODS Assessment / Inventory');
     }
 
-    public function test_inquiry_form_stores_a_lead_and_confirms(): void
+    public function test_inquiry_form_stores_a_lead_and_notifies(): void
     {
+        Mail::fake();
+
         $res = $this->post(route('public.inquiry'), [
             'name' => 'Rifat Ahmed',
             'company' => 'Green Textiles Ltd.',
@@ -98,6 +104,49 @@ class PublicSiteTest extends TestCase
             'email' => 'rifat@example.com',
             'service' => 'Environmental Parameter Testing',
         ]);
+
+        // A notification is sent to SMSEA, with Reply-To set to the submitter.
+        Mail::assertSent(InquiryNotification::class, function (InquiryNotification $mail) {
+            return $mail->replyToAddress === 'rifat@example.com'
+                && $mail->inquiry->email === 'rifat@example.com'
+                && $mail->inquiry->service === 'Environmental Parameter Testing';
+        });
+    }
+
+    public function test_inquiry_recipient_uses_configured_public_email(): void
+    {
+        Mail::fake();
+        config(['mail.inquiry_to' => 'leads@smsenvironment.com']);
+
+        $this->post(route('public.inquiry'), ['name' => 'A B', 'email' => 'a@b.com', 'website_url' => '']);
+
+        Mail::assertSent(InquiryNotification::class, fn (InquiryNotification $mail) => $mail->hasTo('leads@smsenvironment.com'));
+    }
+
+    public function test_inquiry_is_saved_even_when_email_delivery_fails(): void
+    {
+        // Force the mail layer to throw; the lead must still be saved and the
+        // visitor must still see a normal confirmation.
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('smtp unavailable'));
+
+        $res = $this->post(route('public.inquiry'), [
+            'name' => 'Fatima Noor', 'email' => 'fatima@example.com', 'website_url' => '',
+        ]);
+
+        $res->assertRedirect();
+        $res->assertSessionHas('inquiry_status');
+        $this->assertDatabaseHas('service_inquiries', ['email' => 'fatima@example.com']);
+    }
+
+    public function test_inquiry_creates_no_commercial_records(): void
+    {
+        Mail::fake();
+
+        $this->post(route('public.inquiry'), ['name' => 'X Y', 'email' => 'x@y.com', 'website_url' => '']);
+
+        $this->assertSame(0, Client::query()->withoutGlobalScopes()->count());
+        $this->assertSame(0, Quotation::query()->withoutGlobalScopes()->count());
+        $this->assertSame(0, ProformaInvoice::query()->withoutGlobalScopes()->count());
     }
 
     public function test_inquiry_requires_name_and_email(): void
