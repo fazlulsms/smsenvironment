@@ -68,8 +68,8 @@
     <table class="rh-table">
         <tr>
             <td class="rh-logo-cell">
-                @if (!empty($settings['logo_path']) && file_exists(storage_path('app/public/'.$settings['logo_path'])))
-                    <img class="rh-logo" src="{{ storage_path('app/public/'.$settings['logo_path']) }}" alt="">
+                @if (!empty($settings['logo_abs']))
+                    <img class="rh-logo" src="{{ $settings['logo_abs'] }}" alt="">
                 @endif
             </td>
             <td class="rh-brand-cell">

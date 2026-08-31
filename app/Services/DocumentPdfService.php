@@ -33,6 +33,8 @@ class DocumentPdfService
 
         $this->ensureBankSnapshot($bank);
 
+        $settings['logo_abs'] = $this->logoAbsolutePath($settings['logo_path'] ?? null, $quotation->entity_code);
+
         return PdfFacade::loadView('quotations.pdf', [
             'quotation' => $quotation,
             'settings' => $settings,
@@ -66,6 +68,7 @@ class DocumentPdfService
         // file is gone (e.g. an older invoice, or a logo replaced via Settings),
         // fall back to the entity's current logo so the document is never unbranded.
         $settings['logo_path'] = $this->resolveLogoPath($settings['logo_path'] ?? null, $entity);
+        $settings['logo_abs'] = $this->logoAbsolutePath($settings['logo_path'], $invoice->entity_code);
 
         return PdfFacade::loadView($profile['pdf_view'], [
             'invoice' => $invoice,
@@ -123,6 +126,32 @@ class DocumentPdfService
         }
 
         return $exists($entity?->logo_path) ? $entity->logo_path : $snapshotLogo;
+    }
+
+    /**
+     * Absolute filesystem path DOMPDF can read for the branding logo. Prefers the
+     * storage logo when the file is present; otherwise falls back to the committed
+     * brand asset (public/images/brand/{code}-logo.png), so documents stay branded
+     * in production even before storage logos are synced. Returns null if neither
+     * exists (the template then omits the logo cleanly).
+     */
+    private function logoAbsolutePath(?string $logoPath, ?string $entityCode): ?string
+    {
+        if (filled($logoPath)) {
+            $storage = storage_path('app/public/'.$logoPath);
+            if (is_file($storage)) {
+                return $storage;
+            }
+        }
+
+        if (filled($entityCode)) {
+            $brand = public_path('images/brand/'.strtolower($entityCode).'-logo.png');
+            if (is_file($brand)) {
+                return $brand;
+            }
+        }
+
+        return null;
     }
 
     private function ensureBankSnapshot(?array $bank): void

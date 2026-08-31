@@ -52,6 +52,10 @@ class EidikosInvoiceTest extends TestCase
     {
         $invoice->loadMissing('items.service', 'bankAccount', 'client');
         $settings = $invoice->settings_snapshot ?: Setting::current()->toArray();
+        // Mirror DocumentPdfService: resolve the branding logo to an absolute path.
+        $settings['logo_abs'] = ! empty($settings['logo_path']) && file_exists(storage_path('app/public/'.$settings['logo_path']))
+            ? storage_path('app/public/'.$settings['logo_path'])
+            : null;
         $profile = DocumentProfile::forInvoice($invoice);
         $money = InvoiceMoney::context($invoice, $settings);
         $entity = BusinessEntity::query()->where('entity_code', $invoice->entity_code)->first();

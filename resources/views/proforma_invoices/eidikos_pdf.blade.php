@@ -14,8 +14,7 @@
     $fmtBase = fn ($a) => $m['base'].' '.number_format((float) $a, 2);
 
     $orgName = $settings['organization_name'] ?? 'Eidikos Cert.';
-    $logoAbs = ! empty($settings['logo_path']) && file_exists(storage_path('app/public/'.$settings['logo_path']))
-        ? storage_path('app/public/'.$settings['logo_path']) : null;
+    $logoAbs = $settings['logo_abs'] ?? null;
 
     $clientName = $client['company_name'] ?? $invoice->client?->company_name;
     $siteName = $invoice->site_name ?: $clientName;
