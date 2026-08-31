@@ -4,7 +4,7 @@
     <section class="section" style="padding-top:0">
         <div class="wrap">
             <div class="page-hero-media reveal">
-                <img src="{{ asset($file) }}" alt="{{ $alt }}" width="1600" height="600" loading="lazy">
+                <img src="{{ asset($file) }}" alt="{{ $alt }}" width="1280" height="720" loading="lazy">
             </div>
         </div>
     </section>
