@@ -15,6 +15,28 @@ class BusinessEntity extends Model
         'primary_color', 'secondary_color', 'accent_color',
     ];
 
+    /**
+     * Web URL for the entity logo shown in the Office UI. Prefers the committed
+     * brand asset (public/images/brand/{code}-logo.png) so it renders WITHOUT the
+     * public/storage symlink — which is unreliable on shared hosting (Hostinger).
+     * Falls back to the storage upload URL, then null (UI shows initials).
+     */
+    public function logoUrl(): ?string
+    {
+        if ($this->entity_code) {
+            $brand = 'images/brand/'.strtolower($this->entity_code).'-logo.png';
+            if (is_file(public_path($brand))) {
+                return asset($brand);
+            }
+        }
+
+        if ($this->logo_path && file_exists(storage_path('app/public/'.$this->logo_path))) {
+            return asset('storage/'.$this->logo_path);
+        }
+
+        return null;
+    }
+
     /** Theme tokens for the app UI, with a safe SMSEA-green fallback. */
     public function theme(): array
     {

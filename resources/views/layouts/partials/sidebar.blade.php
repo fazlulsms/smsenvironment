@@ -5,14 +5,14 @@
     $current = app(\App\Support\CurrentEntity::class);
     $currentEntity = $current->get();
     $entities = $current->options();
-    $navLogo = $currentEntity?->logo_path ?: \App\Models\Setting::current()->logo_path;
+    $navLogoUrl = $currentEntity?->logoUrl();
     $entityInitials = fn ($e) => strtoupper(mb_substr($e->short_name ?: $e->name, 0, 2));
 @endphp
 <aside class="app-sidebar">
     <a class="sidebar-brand" href="{{ route('dashboard') }}">
         <span class="brand-badge">
-            @if ($navLogo)
-                <img src="{{ asset('storage/'.$navLogo) }}" alt="Logo">
+            @if ($navLogoUrl)
+                <img src="{{ $navLogoUrl }}" alt="Logo">
             @else {{ $currentEntity ? $entityInitials($currentEntity) : 'SE' }} @endif
         </span>
         <span class="brand-text"><b>SMSEA Office</b><span>Multi-entity workspace</span></span>
@@ -22,7 +22,7 @@
         <div class="entity-switch dropdown">
             <button class="entity-switch-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Switch business entity">
                 <span class="es-avatar">
-                    @if ($currentEntity->logo_path)<img src="{{ asset('storage/'.$currentEntity->logo_path) }}" alt="">@else {{ $entityInitials($currentEntity) }} @endif
+                    @if ($currentEntity->logoUrl())<img src="{{ $currentEntity->logoUrl() }}" alt="">@else {{ $entityInitials($currentEntity) }} @endif
                 </span>
                 <span class="es-meta"><span class="es-label">Business Entity</span><b>{{ $currentEntity->name }}</b></span>
             </button>

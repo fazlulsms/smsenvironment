@@ -20,7 +20,7 @@
                     <td>
                         <div class="d-flex align-items-center gap-2">
                             <span class="dh-badge" style="width:34px;height:34px;border-radius:9px;font-size:12px;overflow:hidden;background:{{ $theme['primary'] }};color:#fff">
-                                @if ($entity->logo_path)<img src="{{ asset('storage/'.$entity->logo_path) }}" alt="" style="width:100%;height:100%;object-fit:contain;background:#fff">@else {{ strtoupper(mb_substr($entity->short_name ?: $entity->name, 0, 2)) }} @endif
+                                @if ($entity->logoUrl())<img src="{{ $entity->logoUrl() }}" alt="" style="width:100%;height:100%;object-fit:contain;background:#fff">@else {{ strtoupper(mb_substr($entity->short_name ?: $entity->name, 0, 2)) }} @endif
                             </span>
                             <div>
                                 <span class="row-title">{{ $entity->name }}</span>

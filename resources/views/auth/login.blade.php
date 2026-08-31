@@ -1,12 +1,16 @@
 @extends('layouts.app', ['title' => 'Sign in'])
 
-@php $navLogo = \App\Models\Setting::current()->logo_path; @endphp
+@php
+    // Symlink-free: prefer the committed brand asset so the login logo renders
+    // even without the public/storage link (unreliable on shared hosting).
+    $brandLogo = is_file(public_path('images/brand/smsea-logo.png')) ? asset('images/brand/smsea-logo.png') : null;
+@endphp
 
 @section('content')
 <div class="auth-shell">
     <div class="auth-aside">
         <div class="aa-brand">
-            <span class="brand-badge">@if ($navLogo)<img src="{{ asset('storage/'.$navLogo) }}" alt="SMSEA">@else SE @endif</span>
+            <span class="brand-badge">@if ($brandLogo)<img src="{{ $brandLogo }}" alt="SMSEA">@else SE @endif</span>
             <div><div class="fw-semibold text-white">SMSEA Office</div><div style="color:#8ba296;font-size:12px">SMS Environmental Alliance</div></div>
         </div>
         <div class="aa-hero">

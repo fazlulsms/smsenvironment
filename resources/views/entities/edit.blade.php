@@ -47,8 +47,8 @@
                 </div>
                 <div class="col-md-6"><label class="form-label">Logo</label><input class="form-control" type="file" name="logo" accept="image/*">
                     @if ($entity->logo_path)<div class="form-hint">Current logo saved. Upload to replace (aspect ratio preserved).</div>@endif</div>
-                @if ($entity->logo_path)
-                    <div class="col-md-6"><img src="{{ asset('storage/'.$entity->logo_path) }}" alt="logo" style="max-height:52px;max-width:180px;object-fit:contain"></div>
+                @if ($entity->logoUrl())
+                    <div class="col-md-6"><img src="{{ $entity->logoUrl() }}" alt="logo" style="max-height:52px;max-width:180px;object-fit:contain"></div>
                 @endif
             </div>
         </div>
