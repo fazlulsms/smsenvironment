@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentEmailController;
 use App\Http\Controllers\EmailAccountController;
 use App\Http\Controllers\InquiryController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProformaInvoiceController;
 use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\QuickEnvironmentalController;
@@ -62,6 +63,12 @@ Route::middleware(['auth', 'active'])->prefix('office')->group(function () {
         Route::get('entities/{entity}/edit', [BusinessEntityController::class, 'edit'])->name('entities.edit');
         Route::put('entities/{entity}', [BusinessEntityController::class, 'update'])->name('entities.update');
     });
+
+    // Every authenticated user has a self-service profile (no role gate).
+    Route::get('profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::delete('profile/avatar', [ProfileController::class, 'destroyAvatar'])->name('profile.avatar.destroy');
 
     Route::get('quick-environmental', [QuickEnvironmentalController::class, 'index'])->name('quick-env.index');
     Route::post('quick-environmental/prepare', [QuickEnvironmentalController::class, 'prepare'])->name('quick-env.prepare');

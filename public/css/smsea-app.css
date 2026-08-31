@@ -161,6 +161,26 @@ body.sidebar-collapsed .entity-switch-btn { justify-content: center; padding: 8p
 }
 .side-logout:hover { background: rgba(220,60,60,.2); color: #ffd9d9; }
 
+/* Reusable avatar — shows an uploaded photo, else initials on a brand gradient */
+.smsea-avatar {
+    border-radius: 50%; flex: none; overflow: hidden; display: inline-grid; place-items: center;
+    background: linear-gradient(135deg, var(--entity-primary), var(--entity-accent));
+    color: #fff; font-weight: 700; line-height: 1; text-transform: uppercase;
+}
+.smsea-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
+
+/* Sidebar footer becomes a link to the profile */
+.side-user-link { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-decoration: none; padding: 2px; border-radius: 8px; }
+.side-user-link:hover { background: rgba(255,255,255,.05); }
+
+/* Topbar account menu */
+.account-btn { display: inline-flex; align-items: center; gap: 8px; background: transparent; border: 0; cursor: pointer; padding: 3px 6px; border-radius: 10px; color: inherit; }
+.account-btn:hover { background: rgba(0,0,0,.05); }
+.account-btn::after { margin-left: 2px; }
+.account-meta { flex-direction: column; align-items: flex-start; line-height: 1.12; }
+.account-meta b { font-size: 13px; }
+.account-meta .badge-soft { font-size: 10px; padding: 0 6px; }
+
 /* Collapsed state: icons only */
 body.sidebar-collapsed .brand-text,
 body.sidebar-collapsed .nav-group-label,

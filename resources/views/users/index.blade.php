@@ -21,8 +21,13 @@
                 @endphp
                 <tr>
                     <td>
-                        <a class="row-title" href="{{ route('users.edit', $u) }}">{{ $u->name }}</a>
-                        @if ($isSelf)<span class="cell-sub">You</span>@endif
+                        <span class="d-inline-flex align-items-center gap-2">
+                            <x-avatar :user="$u" :size="30" />
+                            <span>
+                                <a class="row-title" href="{{ route('users.edit', $u) }}">{{ $u->name }}</a>
+                                @if ($isSelf)<span class="cell-sub">You</span>@endif
+                            </span>
+                        </span>
                     </td>
                     <td class="cell-sub">{{ $u->email }}</td>
                     <td><span class="badge-soft {{ $u->roleBadgeClass() }}">{{ $u->roleLabel() }}</span></td>

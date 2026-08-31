@@ -9,8 +9,9 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['name', 'email', 'password', 'role', 'is_active'])]
+#[Fillable(['name', 'email', 'password', 'role', 'is_active', 'avatar_path'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -83,5 +84,29 @@ class User extends Authenticatable
             self::ROLE_ADMIN => 'b-info',
             default => 'b-neutral',
         };
+    }
+
+    /** Public URL for the avatar, or null when none is set / the file is missing. */
+    public function avatarUrl(): ?string
+    {
+        if (! $this->avatar_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->exists($this->avatar_path)
+            ? Storage::disk('public')->url($this->avatar_path)
+            : null;
+    }
+
+    /** Up-to-two-letter initials used as the avatar fallback. */
+    public function initials(): string
+    {
+        $initials = collect(explode(' ', trim((string) $this->name)))
+            ->filter()
+            ->take(2)
+            ->map(fn ($part) => mb_substr($part, 0, 1))
+            ->implode('');
+
+        return mb_strtoupper($initials ?: 'U');
     }
 }

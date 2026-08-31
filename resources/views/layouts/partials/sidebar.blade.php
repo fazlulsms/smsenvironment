@@ -143,11 +143,13 @@
 
     <div class="sidebar-foot">
         <div class="side-user">
-            <span class="avatar">{{ strtoupper($initials ?: 'U') }}</span>
-            <span class="u-meta">
-                <b>{{ $user->name }}</b>
-                <span class="badge-soft {{ $user->roleBadgeClass() }}">{{ $user->roleLabel() }}</span>
-            </span>
+            <a class="side-user-link" href="{{ route('profile.show') }}" title="My profile">
+                <x-avatar :user="$user" :size="36" />
+                <span class="u-meta">
+                    <b>{{ $user->name }}</b>
+                    <span class="badge-soft {{ $user->roleBadgeClass() }}">{{ $user->roleLabel() }}</span>
+                </span>
+            </a>
             <form method="post" action="{{ route('logout') }}">
                 @csrf
                 <button class="side-logout" type="submit" title="Log out" aria-label="Log out"><x-icon name="logout" :size="17" /></button>
