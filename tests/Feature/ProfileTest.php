@@ -82,6 +82,45 @@ class ProfileTest extends TestCase
         Storage::disk('public')->assertMissing($second);
     }
 
+    public function test_avatar_url_is_domain_relative_and_served_via_route(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->staff()->create();
+
+        $this->actingAs($user)->put(route('profile.update'), [
+            'name' => $user->name,
+            'email' => $user->email,
+            'avatar' => UploadedFile::fake()->image('me.png', 120, 120),
+        ])->assertRedirect();
+
+        $user->refresh();
+        $url = $user->avatarUrl();
+
+        // Relative (host-agnostic) — must NOT embed APP_URL / http(s) host.
+        $this->assertNotNull($url);
+        $this->assertStringStartsWith('/', $url);
+        $this->assertStringNotContainsString('http', $url);
+
+        // The route streams the image to authenticated users.
+        $response = $this->actingAs($user)->get(route('avatar.show', $user));
+        $response->assertOk();
+        $this->assertStringContainsString('image/', (string) $response->headers->get('content-type'));
+    }
+
+    public function test_avatar_route_404s_when_user_has_no_photo(): void
+    {
+        $viewer = User::factory()->superAdmin()->create();
+        $noPhoto = User::factory()->staff()->create();
+
+        $this->actingAs($viewer)->get(route('avatar.show', $noPhoto))->assertNotFound();
+    }
+
+    public function test_avatar_route_requires_authentication(): void
+    {
+        $user = User::factory()->staff()->create();
+        $this->get(route('avatar.show', $user))->assertRedirect(route('login'));
+    }
+
     public function test_avatar_rejects_non_image_files(): void
     {
         Storage::fake('public');

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -9,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Self-service profile for the signed-in user. Anyone authenticated may view and
@@ -21,6 +23,20 @@ class ProfileController extends Controller
     public function show(): View
     {
         return view('profile.show', ['user' => Auth::user()]);
+    }
+
+    /**
+     * Stream a user's avatar straight from the public disk. Used instead of a
+     * /storage symlink so avatars work on any host without a symlink and without
+     * depending on APP_URL. Any authenticated Office user may view avatars.
+     */
+    public function avatar(User $user): StreamedResponse
+    {
+        abort_unless($user->avatar_path && Storage::disk('public')->exists($user->avatar_path), 404);
+
+        return Storage::disk('public')->response($user->avatar_path, null, [
+            'Cache-Control' => 'private, max-age=86400',
+        ]);
     }
 
     public function update(Request $request): RedirectResponse

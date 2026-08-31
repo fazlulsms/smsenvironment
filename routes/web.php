@@ -64,6 +64,9 @@ Route::middleware(['auth', 'active'])->prefix('office')->group(function () {
         Route::put('entities/{entity}', [BusinessEntityController::class, 'update'])->name('entities.update');
     });
 
+    // Avatar image served from storage (no /storage symlink or APP_URL dependency).
+    Route::get('avatar/{user}', [ProfileController::class, 'avatar'])->name('avatar.show');
+
     // Every authenticated user has a self-service profile (no role gate).
     Route::get('profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');

@@ -86,16 +86,25 @@ class User extends Authenticatable
         };
     }
 
-    /** Public URL for the avatar, or null when none is set / the file is missing. */
+    /**
+     * URL for the avatar, or null when none is set / the file is missing.
+     *
+     * Served through a route (not a direct /storage link) and returned as a
+     * DOMAIN-RELATIVE path. This makes avatars resolve on any host regardless of
+     * APP_URL, and works without the public-storage symlink — important on shared
+     * hosting (e.g. Hostinger) where symlinks and APP_URL are often unreliable.
+     * A version query keyed on updated_at busts the browser cache on change.
+     */
     public function avatarUrl(): ?string
     {
-        if (! $this->avatar_path) {
+        if (! $this->avatar_path || ! Storage::disk('public')->exists($this->avatar_path)) {
             return null;
         }
 
-        return Storage::disk('public')->exists($this->avatar_path)
-            ? Storage::disk('public')->url($this->avatar_path)
-            : null;
+        return route('avatar.show', [
+            'user' => $this->getKey(),
+            'v' => optional($this->updated_at)->timestamp,
+        ], absolute: false);
     }
 
     /** Up-to-two-letter initials used as the avatar fallback. */
