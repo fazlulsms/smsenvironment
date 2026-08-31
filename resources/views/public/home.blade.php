@@ -25,7 +25,7 @@
         </div>
         @if ($heroImg)
             <div class="hero-media reveal">
-                <img src="{{ asset('images/site/hero-industrial.webp') }}" alt="SMS Environmental Alliance specialist carrying out noise and emission monitoring on plant equipment" width="1200" height="960" fetchpriority="high">
+                <img src="{{ asset('images/site/hero-industrial.webp') }}?v={{ @filemtime(public_path('images/site/hero-industrial.webp')) }}" alt="SMS Environmental Alliance specialist carrying out noise and emission monitoring on plant equipment" width="1200" height="960" fetchpriority="high">
             </div>
         @endif
     </div>

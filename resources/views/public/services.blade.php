@@ -18,7 +18,7 @@
         </div>
         @if ($heroImg)
             <div class="hero-media reveal">
-                <img src="{{ asset('images/site/services-monitoring.webp') }}?v=2" alt="Effluent treatment plant at an industrial facility" width="1280" height="960" loading="eager">
+                <img src="{{ asset('images/site/services-monitoring.webp') }}?v={{ @filemtime(public_path('images/site/services-monitoring.webp')) }}" alt="Effluent treatment plant at an industrial facility" width="1280" height="960" loading="eager">
             </div>
         @endif
     </div>

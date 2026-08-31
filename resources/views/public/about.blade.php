@@ -19,7 +19,7 @@
         </div>
         @if ($heroImg)
             <div class="hero-media reveal">
-                <img src="{{ asset('images/site/about-facility.webp') }}?v=2" alt="SMS Environmental Alliance specialist conducting facility monitoring" width="1280" height="960" loading="eager">
+                <img src="{{ asset('images/site/about-facility.webp') }}?v={{ @filemtime(public_path('images/site/about-facility.webp')) }}" alt="SMS Environmental Alliance specialist conducting facility monitoring" width="1280" height="960" loading="eager">
             </div>
         @endif
     </div>

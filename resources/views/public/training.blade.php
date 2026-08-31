@@ -18,7 +18,7 @@
         </div>
         @if ($heroImg)
             <div class="hero-media reveal">
-                <img src="{{ asset('images/site/training-workshop.webp') }}?v=2" alt="On-site environmental assessment and team briefing at an industrial facility" width="1280" height="960" loading="eager">
+                <img src="{{ asset('images/site/training-workshop.webp') }}?v={{ @filemtime(public_path('images/site/training-workshop.webp')) }}" alt="On-site environmental assessment and team briefing at an industrial facility" width="1280" height="960" loading="eager">
             </div>
         @endif
     </div>
