@@ -5,15 +5,24 @@
 @include('public.partials.breadcrumbs', ['label' => 'Services', 'url' => route('public.services')])
 
 @section('content')
+@php $heroImg = is_file(public_path('images/site/services-monitoring.webp')); @endphp
 <section class="hero">
-    <div class="wrap hero-inner" style="padding-top:64px;padding-bottom:44px">
-        <span class="eyebrow">Our Services</span>
-        <h1 style="font-size:clamp(1.9rem,4.4vw,2.9rem)">Environmental, Chemical &amp; Sustainability Services</h1>
-        <p>Focused technical services for industrial facilities — environmental assessment and testing, chemical management, sustainability improvement, and capacity-building training.</p>
+    <div class="wrap {{ $heroImg ? 'hero-grid' : 'hero-inner' }}" @unless ($heroImg) style="padding-top:64px;padding-bottom:44px" @endunless>
+        <div class="{{ $heroImg ? 'hero-copy' : '' }}">
+            <span class="eyebrow">Our Services</span>
+            <h1 style="font-size:clamp(1.9rem,4.4vw,2.9rem)">Environmental, Chemical &amp; Sustainability Services</h1>
+            <p>Focused technical services for industrial facilities — environmental assessment and testing, chemical management, sustainability improvement, and capacity-building training.</p>
+            <div class="hero-cta">
+                <a class="btn2 btn2--primary" href="{{ route('public.contact') }}#proposal">Request a Proposal @include('public.partials.icon', ['name' => 'arrow', 'size' => 18])</a>
+            </div>
+        </div>
+        @if ($heroImg)
+            <div class="hero-media reveal">
+                <img src="{{ asset('images/site/services-monitoring.webp') }}?v=2" alt="Effluent treatment plant at an industrial facility" width="1280" height="960" loading="eager">
+            </div>
+        @endif
     </div>
 </section>
-
-@include('public.partials.page_header_image', ['file' => 'images/site/services-monitoring.webp', 'alt' => 'Effluent treatment plant at an industrial facility'])
 
 <section class="section">
     <div class="wrap">

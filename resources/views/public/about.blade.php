@@ -5,15 +5,25 @@
 @include('public.partials.breadcrumbs', ['label' => 'About', 'url' => route('public.about')])
 
 @section('content')
+@php $heroImg = is_file(public_path('images/site/about-facility.webp')); @endphp
 <section class="hero">
-    <div class="wrap hero-inner" style="padding-top:64px;padding-bottom:44px">
-        <span class="eyebrow">About Us</span>
-        <h1 style="font-size:clamp(1.9rem,4.4vw,2.9rem)">Environmental &amp; sustainability specialists for responsible industry</h1>
-        <p>SMS Environmental Alliance supports industrial facilities with practical environmental assessment, testing, chemical management, sustainability improvement and training.</p>
+    <div class="wrap {{ $heroImg ? 'hero-grid' : 'hero-inner' }}" @unless ($heroImg) style="padding-top:64px;padding-bottom:44px" @endunless>
+        <div class="{{ $heroImg ? 'hero-copy' : '' }}">
+            <span class="eyebrow">About Us</span>
+            <h1 style="font-size:clamp(1.9rem,4.4vw,2.9rem)">Environmental &amp; sustainability specialists for responsible industry</h1>
+            <p>SMS Environmental Alliance supports industrial facilities with practical environmental assessment, testing, chemical management, sustainability improvement and training.</p>
+            <div class="hero-cta">
+                <a class="btn2 btn2--primary" href="{{ route('public.contact') }}#proposal">Request a Proposal @include('public.partials.icon', ['name' => 'arrow', 'size' => 18])</a>
+                <a class="btn2 btn2--outline" href="{{ route('public.services') }}">Explore Services</a>
+            </div>
+        </div>
+        @if ($heroImg)
+            <div class="hero-media reveal">
+                <img src="{{ asset('images/site/about-facility.webp') }}?v=2" alt="SMS Environmental Alliance specialist conducting facility monitoring" width="1280" height="960" loading="eager">
+            </div>
+        @endif
     </div>
 </section>
-
-@include('public.partials.page_header_image', ['file' => 'images/site/about-facility.webp', 'alt' => 'SMS Environmental Alliance specialist conducting facility monitoring'])
 
 <section class="section">
     <div class="wrap">

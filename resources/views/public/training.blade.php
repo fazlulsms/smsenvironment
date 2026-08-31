@@ -5,15 +5,24 @@
 @include('public.partials.breadcrumbs', ['label' => 'Training', 'url' => route('public.training')])
 
 @section('content')
+@php $heroImg = is_file(public_path('images/site/training-workshop.webp')); @endphp
 <section class="hero">
-    <div class="wrap hero-inner" style="padding-top:64px;padding-bottom:44px">
-        <span class="eyebrow">Training &amp; Capacity Building</span>
-        <h1 style="font-size:clamp(1.9rem,4.4vw,2.9rem)">Environmental &amp; Sustainability Training</h1>
-        <p>Build in-house capability across environmental, chemical and sustainability topics — delivered in-house, as public programs, or customized to your facility.</p>
+    <div class="wrap {{ $heroImg ? 'hero-grid' : 'hero-inner' }}" @unless ($heroImg) style="padding-top:64px;padding-bottom:44px" @endunless>
+        <div class="{{ $heroImg ? 'hero-copy' : '' }}">
+            <span class="eyebrow">Training &amp; Capacity Building</span>
+            <h1 style="font-size:clamp(1.9rem,4.4vw,2.9rem)">Environmental &amp; Sustainability Training</h1>
+            <p>Build in-house capability across environmental, chemical and sustainability topics — delivered in-house, as public programs, or customized to your facility.</p>
+            <div class="hero-cta">
+                <a class="btn2 btn2--primary" href="{{ route('public.contact') }}#proposal">Request Training Proposal @include('public.partials.icon', ['name' => 'arrow', 'size' => 18])</a>
+            </div>
+        </div>
+        @if ($heroImg)
+            <div class="hero-media reveal">
+                <img src="{{ asset('images/site/training-workshop.webp') }}?v=2" alt="On-site environmental assessment and team briefing at an industrial facility" width="1280" height="960" loading="eager">
+            </div>
+        @endif
     </div>
 </section>
-
-@include('public.partials.page_header_image', ['file' => 'images/site/training-workshop.webp', 'alt' => 'On-site environmental assessment and team briefing at an industrial facility'])
 
 <section class="section">
     <div class="wrap">
