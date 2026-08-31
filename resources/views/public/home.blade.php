@@ -25,7 +25,7 @@
         </div>
         @if ($heroImg)
             <div class="hero-media reveal">
-                <img src="{{ asset('images/site/hero-industrial.webp') }}" alt="Environmental monitoring at an industrial facility" width="1200" height="960" fetchpriority="high">
+                <img src="{{ asset('images/site/hero-industrial.webp') }}" alt="SMS Environmental Alliance specialist carrying out noise and emission monitoring on plant equipment" width="1200" height="960" fetchpriority="high">
             </div>
         @endif
     </div>
@@ -72,6 +72,9 @@
         </div>
     </div>
 </section>
+
+{{-- FIELD WORK PHOTO BAND (renders only when the photo is present) --}}
+@include('public.partials.page_header_image', ['file' => 'images/site/home-fieldwork.webp', 'alt' => 'Ambient air quality monitoring at an industrial facility in Bangladesh'])
 
 {{-- ENVIRONMENTAL PARAMETER TESTING --}}
 <section class="section" id="testing">

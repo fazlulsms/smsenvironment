@@ -13,7 +13,7 @@
     </div>
 </section>
 
-@include('public.partials.page_header_image', ['file' => 'images/site/training-workshop.webp', 'alt' => 'Professional environmental and sustainability training workshop'])
+@include('public.partials.page_header_image', ['file' => 'images/site/training-workshop.webp', 'alt' => 'On-site environmental assessment and team briefing at an industrial facility'])
 
 <section class="section">
     <div class="wrap">

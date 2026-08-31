@@ -13,7 +13,7 @@
     </div>
 </section>
 
-@include('public.partials.page_header_image', ['file' => 'images/site/services-monitoring.webp', 'alt' => 'Water quality sampling at an industrial wastewater facility'])
+@include('public.partials.page_header_image', ['file' => 'images/site/services-monitoring.webp', 'alt' => 'Effluent treatment plant at an industrial facility'])
 
 <section class="section">
     <div class="wrap">

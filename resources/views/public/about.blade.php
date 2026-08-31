@@ -13,6 +13,8 @@
     </div>
 </section>
 
+@include('public.partials.page_header_image', ['file' => 'images/site/about-facility.webp', 'alt' => 'SMS Environmental Alliance specialist conducting facility monitoring'])
+
 <section class="section">
     <div class="wrap">
         <div class="split">
