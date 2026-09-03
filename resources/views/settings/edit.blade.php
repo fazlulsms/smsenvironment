@@ -127,6 +127,17 @@
         </div>
     </div>
 
+    <div class="form-section">
+        <div class="fs-head"><span class="fs-ico"><x-icon name="clock" /></span><div><div class="fs-t">Reassessment Reminders</div><div class="fs-s">Automatic client reminders before the next periodic reassessment.</div></div></div>
+        <div class="fs-body">
+            <div class="row g-3">
+                <div class="col-md-4"><label class="form-check mt-4"><input class="form-check-input" type="checkbox" name="reassessment_reminder_enabled" value="1" @checked(old('reassessment_reminder_enabled', $settings->reassessment_reminder_enabled ?? true))> <span class="form-check-label">Reminders enabled</span></label></div>
+                <div class="col-md-4"><label class="form-label">Lead time (days before)</label><input class="form-control" type="number" min="1" max="180" name="reassessment_reminder_lead_days" value="{{ old('reassessment_reminder_lead_days', $settings->reassessment_reminder_lead_days ?? 30) }}"></div>
+                <div class="col-md-4"><label class="form-label">Default interval (months)</label><input class="form-control" type="number" min="1" max="60" name="reassessment_default_interval_months" value="{{ old('reassessment_default_interval_months', $settings->reassessment_default_interval_months ?? 12) }}"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="d-flex justify-content-end sticky-bottom py-2">
         <button class="btn btn-primary" type="submit"><x-icon name="check" :size="16" /> Save Settings</button>
     </div>

@@ -88,6 +88,25 @@
                 <x-icon name="invoice" /><span class="label">Proforma Invoices</span>
                 @if (($counts['invoices'] ?? 0) > 0)<span class="nav-badge">{{ $counts['invoices'] }}</span>@endif
             </a>
+            <a class="nav-item-link {{ request()->routeIs('receivables.*') ? 'active' : '' }}" href="{{ route('receivables.index') }}">
+                <x-icon name="money" /><span class="label">Receivables</span>
+            </a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-group-label">Operations</div>
+            <a class="nav-item-link {{ request()->routeIs('schedules.*') ? 'active' : '' }}" href="{{ route('schedules.index') }}">
+                <x-icon name="clock" /><span class="label">Schedule</span>
+            </a>
+            <a class="nav-item-link {{ request()->routeIs('reassessments.*') ? 'active' : '' }}" href="{{ route('reassessments.index') }}">
+                <x-icon name="clock" /><span class="label">Reassessments</span>
+                @if (($counts['reassess_due'] ?? 0) > 0)<span class="nav-badge">{{ $counts['reassess_due'] }}</span>@endif
+            </a>
+            @can('manage-assessors')
+            <a class="nav-item-link {{ request()->routeIs('assessors.*') ? 'active' : '' }}" href="{{ route('assessors.index') }}">
+                <x-icon name="clients" /><span class="label">Assessors</span>
+            </a>
+            @endcan
         </div>
 
         <div class="nav-group">

@@ -21,6 +21,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -120,7 +121,7 @@ class ProformaInvoiceController extends Controller
 
     public function show(ProformaInvoice $proformaInvoice): View
     {
-        $proformaInvoice->load('client', 'bankAccount', 'items.service', 'creator', 'emailDeliveries.sender');
+        $proformaInvoice->load('client', 'bankAccount', 'items.service', 'creator', 'emailDeliveries.sender', 'payments.recorder');
 
         return view('proforma_invoices.show', ['invoice' => $proformaInvoice]);
     }
@@ -175,6 +176,28 @@ class ProformaInvoiceController extends Controller
         });
 
         return redirect()->route('proforma-invoices.show', $proformaInvoice)->with('status', 'Invoice updated.');
+    }
+
+    public function updateStatus(Request $request, ProformaInvoice $proformaInvoice): RedirectResponse
+    {
+        $data = $request->validate([
+            'commercial_status' => ['required', Rule::in(array_keys(ProformaInvoice::COMMERCIAL_STATUSES))],
+            'lost_reason' => ['nullable', Rule::in(ProformaInvoice::LOST_REASONS)],
+            'lost_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $proformaInvoice->commercial_status = $data['commercial_status'];
+        $proformaInvoice->status_updated_at = now();
+        if ($data['commercial_status'] === ProformaInvoice::STATUS_LOST) {
+            $proformaInvoice->lost_reason = $data['lost_reason'] ?? null;
+            $proformaInvoice->lost_note = $data['lost_note'] ?? null;
+        } else {
+            $proformaInvoice->lost_reason = null;
+            $proformaInvoice->lost_note = null;
+        }
+        $proformaInvoice->save();
+
+        return back()->with('status', 'Invoice marked as '.ProformaInvoice::COMMERCIAL_STATUSES[$data['commercial_status']].'.');
     }
 
     public function destroy(ProformaInvoice $proformaInvoice): RedirectResponse

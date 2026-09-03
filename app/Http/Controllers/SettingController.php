@@ -65,11 +65,14 @@ class SettingController extends Controller
             'pdf_note' => ['nullable', 'string'],
             'quotation_number_format' => ['required', 'string', 'max:255'],
             'invoice_number_format' => ['required', 'string', 'max:255'],
+            'reassessment_reminder_lead_days' => ['nullable', 'integer', 'min:1', 'max:180'],
+            'reassessment_default_interval_months' => ['nullable', 'integer', 'min:1', 'max:60'],
         ]);
 
         unset($data['logo']);
         $data['quotation_show_vat_separately'] = $request->boolean('quotation_show_vat_separately');
         $data['quotation_include_acceptance'] = $request->boolean('quotation_include_acceptance');
+        $data['reassessment_reminder_enabled'] = $request->boolean('reassessment_reminder_enabled');
 
         if ($request->hasFile('logo')) {
             if ($settings->logo_path) {

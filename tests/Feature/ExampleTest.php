@@ -29,7 +29,7 @@ class ExampleTest extends TestCase
         $this->actingAs($user)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('Quick actions')
-            ->assertSee('Quotations');
+            ->assertSee('Management Dashboard')
+            ->assertSee('Total Invoiced');
     }
 }

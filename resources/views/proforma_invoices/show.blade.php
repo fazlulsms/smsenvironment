@@ -46,6 +46,124 @@
     </div>
 </div>
 
+@php
+    $received = $invoice->receivedAmount();
+    $due = $invoice->dueAmount();
+    $payStatus = $invoice->paymentStatus();
+    $statusMeta = [
+        'draft' => ['Draft', 'b-neutral'], 'sent' => ['Sent', 'b-info'],
+        'won' => ['Won', 'b-ok'], 'lost' => ['Lost', 'b-danger'],
+    ][$invoice->commercial_status] ?? ['Draft', 'b-neutral'];
+    $payMeta = ['unpaid' => ['Unpaid', 'b-warn'], 'partial' => ['Partially Paid', 'b-info'], 'paid' => ['Paid', 'b-ok']][$payStatus];
+@endphp
+
+<div class="row g-3 mb-3">
+    {{-- Commercial status --}}
+    <div class="col-lg-5">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="eyebrow">Commercial Status</span>
+                <span class="badge-soft {{ $statusMeta[1] }}">{{ $statusMeta[0] }}</span>
+            </div>
+            <form method="post" action="{{ route('proforma-invoices.status', $invoice) }}" class="d-flex gap-2 flex-wrap align-items-end">
+                @csrf @method('PATCH')
+                <div class="flex-grow-1">
+                    <label class="form-label small text-muted mb-1">Set status</label>
+                    <select class="form-select form-select-sm" name="commercial_status" onchange="this.form.querySelector('[data-lost]').hidden = this.value !== 'lost'">
+                        @foreach (\App\Models\ProformaInvoice::COMMERCIAL_STATUSES as $val => $label)
+                            <option value="{{ $val }}" @selected($invoice->commercial_status === $val)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <button class="btn btn-primary btn-sm" type="submit"><x-icon name="check" :size="15" /> Update</button>
+                <div class="w-100" data-lost @if($invoice->commercial_status !== 'lost') hidden @endif>
+                    <label class="form-label small text-muted mb-1 mt-2">Lost reason (optional)</label>
+                    <select class="form-select form-select-sm mb-2" name="lost_reason">
+                        <option value="">— none —</option>
+                        @foreach (\App\Models\ProformaInvoice::LOST_REASONS as $r)
+                            <option value="{{ $r }}" @selected($invoice->lost_reason === $r)>{{ $r }}</option>
+                        @endforeach
+                    </select>
+                    <input class="form-control form-control-sm" name="lost_note" value="{{ $invoice->lost_note }}" placeholder="Lost note (optional)">
+                </div>
+            </form>
+            @if ($invoice->commercial_status === 'won')
+                <a class="btn btn-outline-primary btn-sm mt-3" href="{{ route('schedules.create', ['invoice' => $invoice->id]) }}"><x-icon name="clock" :size="15" /> Schedule Assessment</a>
+            @endif
+        </div></div>
+    </div>
+
+    {{-- Receivables --}}
+    <div class="col-lg-7">
+        <div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="eyebrow">Receivables</span>
+                <span class="badge-soft {{ $payMeta[1] }}">{{ $payMeta[0] }}</span>
+            </div>
+            <div class="row text-center g-2 mb-2">
+                <div class="col-4"><div class="cell-sub">Invoice</div><div class="money"><span class="cur">{{ $currency }}</span>{{ number_format($invoice->total, 2) }}</div></div>
+                <div class="col-4"><div class="cell-sub">Received</div><div class="money text-success"><span class="cur">{{ $currency }}</span>{{ number_format($received, 2) }}</div></div>
+                <div class="col-4"><div class="cell-sub">Due</div><div class="money {{ $due > 0 ? 'text-danger' : '' }}"><span class="cur">{{ $currency }}</span>{{ number_format($due, 2) }}</div></div>
+            </div>
+            @if ($due > 0.001)
+                <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#recordPaymentModal"><x-icon name="plus" :size="15" /> Record Payment</button>
+            @endif
+            @if ($invoice->payments->isNotEmpty())
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th>By</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach ($invoice->payments as $p)
+                            <tr>
+                                <td class="cell-sub">{{ $p->received_date->format('d M Y') }}</td>
+                                <td class="money"><span class="cur">{{ $p->currency }}</span>{{ number_format($p->amount, 2) }}</td>
+                                <td class="cell-sub">{{ $p->method ?: '—' }}</td>
+                                <td class="cell-sub">{{ $p->reference ?: '—' }}</td>
+                                <td class="cell-sub">{{ $p->recorder?->name ?? '—' }}</td>
+                                <td class="text-end">
+                                    @can('delete-payments')
+                                        <form method="post" action="{{ route('proforma-invoices.payments.destroy', [$invoice, $p]) }}" data-confirm="Remove this payment entry?">
+                                            @csrf @method('DELETE')
+                                            <button class="btn-icon text-danger" type="submit" title="Remove"><x-icon name="trash" :size="15" /></button>
+                                        </form>
+                                    @endcan
+                                </td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div></div>
+    </div>
+</div>
+
+{{-- Record payment modal --}}
+<div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" method="post" action="{{ route('proforma-invoices.payments.store', $invoice) }}" data-no-loading>
+            @csrf
+            <div class="modal-header"><h5 class="modal-title">Record Payment</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-6"><label class="form-label">Amount ({{ $currency }})</label><input class="form-control" type="number" step="0.01" min="0.01" max="{{ $due }}" name="amount" value="{{ number_format($due, 2, '.', '') }}" required></div>
+                    <div class="col-6"><label class="form-label">Received Date</label><input class="form-control" type="date" name="received_date" value="{{ now()->toDateString() }}" required></div>
+                    <div class="col-6"><label class="form-label">Method</label>
+                        <select class="form-select" name="method">
+                            <option value="">—</option>
+                            @foreach (\App\Models\InvoicePayment::METHODS as $m)<option value="{{ $m }}">{{ $m }}</option>@endforeach
+                        </select>
+                    </div>
+                    <div class="col-6"><label class="form-label">Reference</label><input class="form-control" name="reference" placeholder="Txn / cheque no."></div>
+                    <div class="col-12"><label class="form-label">Note</label><input class="form-control" name="note"></div>
+                </div>
+                <div class="form-text mt-2">Outstanding due: <b>{{ $currency }} {{ number_format($due, 2) }}</b>. Overpayment is prevented.</div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" type="submit">Record Payment</button></div>
+        </form>
+    </div>
+</div>
+
 @include('documents.preview', ['document' => $invoice, 'type' => 'invoice'])
 @include('document_emails.history', ['deliveries' => $invoice->emailDeliveries])
 @endsection

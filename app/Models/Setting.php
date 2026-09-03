@@ -57,6 +57,9 @@ class Setting extends Model
         'pdf_note',
         'quotation_number_format',
         'invoice_number_format',
+        'reassessment_reminder_enabled',
+        'reassessment_reminder_lead_days',
+        'reassessment_default_interval_months',
     ];
 
     public static function current(): self
@@ -93,6 +96,7 @@ class Setting extends Model
             'default_conversion_rate' => 'decimal:4',
             'quotation_show_vat_separately' => 'boolean',
             'quotation_include_acceptance' => 'boolean',
+            'reassessment_reminder_enabled' => 'boolean',
         ];
     }
 }

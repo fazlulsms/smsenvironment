@@ -72,6 +72,17 @@ class DocumentEmailService
                 'sent_at' => now(),
                 'error_summary' => null,
             ]);
+
+            // A successfully emailed invoice that is still a draft becomes "Sent"
+            // (commercial status). Never downgrades or overrides Won/Lost.
+            if ($documentType === 'proforma_invoice'
+                && $document instanceof ProformaInvoice
+                && $document->commercial_status === ProformaInvoice::STATUS_DRAFT) {
+                $document->forceFill([
+                    'commercial_status' => ProformaInvoice::STATUS_SENT,
+                    'status_updated_at' => now(),
+                ])->save();
+            }
         } catch (Throwable $exception) {
             $delivery->update([
                 'status' => 'failed',

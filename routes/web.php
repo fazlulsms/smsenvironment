@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AssessmentScheduleController;
+use App\Http\Controllers\AssessorController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\BusinessEntityController;
@@ -9,11 +11,14 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentEmailController;
 use App\Http\Controllers\EmailAccountController;
 use App\Http\Controllers\InquiryController;
+use App\Http\Controllers\InvoicePaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProformaInvoiceController;
 use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\QuickEnvironmentalController;
 use App\Http\Controllers\QuotationController;
+use App\Http\Controllers\ReassessmentController;
+use App\Http\Controllers\ReceivableController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StandardController;
@@ -150,5 +155,33 @@ Route::middleware(['auth', 'active'])->prefix('office')->group(function () {
     Route::get('proforma-invoices/{proformaInvoice}/pdf', [ProformaInvoiceController::class, 'pdf'])->name('proforma-invoices.pdf');
     Route::get('proforma-invoices/{proformaInvoice}/email', [DocumentEmailController::class, 'proformaCreate'])->name('proforma-invoices.email.create');
     Route::post('proforma-invoices/{proformaInvoice}/email', [DocumentEmailController::class, 'proformaSend'])->name('proforma-invoices.email.send');
+    // Commercial status + receivables (payments) on an invoice.
+    Route::patch('proforma-invoices/{proformaInvoice}/status', [ProformaInvoiceController::class, 'updateStatus'])->name('proforma-invoices.status');
+    Route::post('proforma-invoices/{proformaInvoice}/payments', [InvoicePaymentController::class, 'store'])->name('proforma-invoices.payments.store');
+    Route::delete('proforma-invoices/{proformaInvoice}/payments/{payment}', [InvoicePaymentController::class, 'destroy'])->name('proforma-invoices.payments.destroy');
     Route::resource('proforma-invoices', ProformaInvoiceController::class)->parameters(['proforma-invoices' => 'proformaInvoice']);
+
+    // Receivables list.
+    Route::get('receivables', [ReceivableController::class, 'index'])->name('receivables.index');
+
+    // Assessment scheduling (operational — available to all authenticated).
+    Route::get('schedules/create', [AssessmentScheduleController::class, 'create'])->name('schedules.create');
+    Route::post('schedules', [AssessmentScheduleController::class, 'store'])->name('schedules.store');
+    Route::get('schedules', [AssessmentScheduleController::class, 'index'])->name('schedules.index');
+    Route::get('schedules/{schedule}', [AssessmentScheduleController::class, 'show'])->name('schedules.show');
+    Route::get('schedules/{schedule}/edit', [AssessmentScheduleController::class, 'edit'])->name('schedules.edit');
+    Route::put('schedules/{schedule}', [AssessmentScheduleController::class, 'update'])->name('schedules.update');
+    Route::post('schedules/{schedule}/complete', [AssessmentScheduleController::class, 'complete'])->name('schedules.complete');
+    Route::post('schedules/{schedule}/cancel', [AssessmentScheduleController::class, 'cancel'])->name('schedules.cancel');
+    Route::post('schedules/{schedule}/email', [AssessmentScheduleController::class, 'email'])->name('schedules.email');
+
+    // Reassessments (upcoming/overdue) + manual client reminder.
+    Route::get('reassessments', [ReassessmentController::class, 'index'])->name('reassessments.index');
+    Route::post('reassessments/{schedule}/reminder', [ReassessmentController::class, 'sendReminder'])->name('reassessments.reminder');
+
+    // Assessor master — Admin/Super Admin only.
+    Route::middleware('can:manage-assessors')->group(function () {
+        Route::patch('assessors/{assessor}/active', [AssessorController::class, 'toggleActive'])->name('assessors.active');
+        Route::resource('assessors', AssessorController::class)->except(['show']);
+    });
 });

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\AssessmentSchedule;
 use App\Models\Client;
 use App\Models\ProformaInvoice;
 use App\Models\Quotation;
@@ -39,6 +40,9 @@ class AppServiceProvider extends ServiceProvider
                 'invoices' => ProformaInvoice::query()->count(),
                 'clients' => Client::query()->count(),
                 'inquiries_new' => ServiceInquiry::query()->where('status', 'new')->count(),
+                'reassess_due' => AssessmentSchedule::query()
+                    ->where('status', 'completed')->whereNotNull('next_reassessment_date')
+                    ->whereDate('next_reassessment_date', '<=', now()->addDays(30))->count(),
             ]);
         });
     }
@@ -58,6 +62,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manage-services', fn (User $user) => $user->hasAdminAccess());
         Gate::define('manage-standards', fn (User $user) => $user->hasAdminAccess());
         Gate::define('view-email-deliveries', fn (User $user) => $user->hasAdminAccess());
+        // Operational management (assessors master, financial corrections, cancels).
+        Gate::define('manage-assessors', fn (User $user) => $user->hasAdminAccess());
+        Gate::define('delete-payments', fn (User $user) => $user->hasAdminAccess());
+        Gate::define('cancel-schedules', fn (User $user) => $user->hasAdminAccess());
 
         // Super Admin only — system, security and financial configuration.
         // (Super Admin already passes via Gate::before; these deny everyone else.)

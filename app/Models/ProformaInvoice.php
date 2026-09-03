@@ -25,6 +25,23 @@ class ProformaInvoice extends Model
         self::PRESENTATION_ITEMIZED => 'Itemized Charges',
     ];
 
+    public const STATUS_DRAFT = 'draft';
+
+    public const STATUS_SENT = 'sent';
+
+    public const STATUS_WON = 'won';
+
+    public const STATUS_LOST = 'lost';
+
+    public const COMMERCIAL_STATUSES = [
+        self::STATUS_DRAFT => 'Draft',
+        self::STATUS_SENT => 'Sent',
+        self::STATUS_WON => 'Won',
+        self::STATUS_LOST => 'Lost',
+    ];
+
+    public const LOST_REASONS = ['Price', 'Client Postponed', 'Client Cancelled', 'Competitor', 'No Response', 'Scope Changed', 'Other'];
+
     protected $fillable = [
         'business_entity_id',
         'entity_code',
@@ -58,6 +75,10 @@ class ProformaInvoice extends Model
         'verification_payload_version',
         'verification_id',
         'verification_signature',
+        'commercial_status',
+        'lost_reason',
+        'lost_note',
+        'status_updated_at',
     ];
 
     protected function casts(): array
@@ -75,7 +96,50 @@ class ProformaInvoice extends Model
             'vat_amount' => 'decimal:2',
             'show_vat_separately' => 'boolean',
             'total' => 'decimal:2',
+            'status_updated_at' => 'datetime',
         ];
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(InvoicePayment::class)->latest('received_date')->latest('id');
+    }
+
+    /** Sum of recorded payments (in the invoice payable currency). */
+    public function receivedAmount(): float
+    {
+        return (float) $this->payments()->sum('amount');
+    }
+
+    public function dueAmount(): float
+    {
+        return round((float) $this->total - $this->receivedAmount(), 2);
+    }
+
+    /** unpaid | partial | paid — derived from payments, never stored redundantly. */
+    public function paymentStatus(): string
+    {
+        $received = $this->receivedAmount();
+        if ($received <= 0) {
+            return 'unpaid';
+        }
+
+        return $received + 0.001 >= (float) $this->total ? 'paid' : 'partial';
+    }
+
+    public function payableCurrency(): string
+    {
+        return strtoupper((string) ($this->currency ?: 'BDT')) ?: 'BDT';
+    }
+
+    /** Total expressed in the platform base currency (BDT) using the saved rate. */
+    public function baseTotal(): float
+    {
+        if ($this->payableCurrency() === 'BDT') {
+            return (float) $this->total;
+        }
+
+        return $this->conversion_rate > 0 ? round((float) $this->total * (float) $this->conversion_rate, 2) : (float) $this->total;
     }
 
     public function client(): BelongsTo
