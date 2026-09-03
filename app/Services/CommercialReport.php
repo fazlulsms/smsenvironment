@@ -16,13 +16,16 @@ use Illuminate\Support\Collection;
  *     represents the SAME engagement — the quotation is dropped and the invoice
  *     is the effective offer (its value + status win). No double counting.
  *   - Unlinked quotations and invoices each count separately (no fuzzy matching).
- *   - "Sent" is true when the status is past draft OR the document was actually
- *     emailed (so historical records created before the status field count).
+ *   - "Created" is every retained (non-soft-deleted) document — this is the
+ *     primary commercial-volume signal. Both models use SoftDeletes, so the
+ *     default query already excludes deleted records.
+ *   - "Sent" (status past draft OR actually emailed) is retained only as a
+ *     secondary/operational indicator; it does NOT gate whether the offer exists.
  * Runs in the current entity context (both models are entity-scoped). Payments,
  * received and due are NOT computed here — they remain proforma-invoice only.
  *
  * @return Collection<int, object> items with: type, id, currency, value, base,
- *                                 status, is_sent, sent_date, status_date, service, client_id, client_name
+ *                                 status, is_sent, created_date, sent_date, status_date, service, client_id, client_name
  */
 class CommercialReport
 {
@@ -70,6 +73,12 @@ class CommercialReport
             'base' => $base,
             'status' => $doc->commercial_status,
             'is_sent' => $isSent,
+            // Emailed through the app (used for the "sent via system" secondary
+            // figure, so Won/Lost don't inflate it just by being past draft).
+            'was_emailed' => $lastEmailAt !== null,
+            // Created date: the business document date (issue date), falling back
+            // to created_at only if a record somehow has no date.
+            'created_date' => $doc->date ? Carbon::parse($doc->date) : ($doc->created_at ? Carbon::parse($doc->created_at) : null),
             'sent_date' => $sentDate,
             'status_date' => $doc->status_updated_at ?: $doc->date,
             'service' => $doc->items->first()?->service?->short_name

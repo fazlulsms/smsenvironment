@@ -37,22 +37,28 @@ class DashboardService
 
     /**
      * Commercial KPIs from NORMALIZED offers (quotation OR proforma invoice, with
-     * linked quotation→PI counted once). Total Invoiced stays proforma-only.
+     * linked quotation→PI counted once). The primary volume metric is CREATED:
+     * every retained (non-deleted) commercial document counts, regardless of
+     * whether it was ever emailed or marked sent. Total Invoiced stays PI-only.
      */
     public function invoiceKpis(): array
     {
         $items = (new CommercialReport)->items();
 
-        $sent = $items->filter(fn ($i) => $i->is_sent && $this->inPeriod($i->sent_date));
+        $created = $items->filter(fn ($i) => $this->inPeriod($i->created_date));
         $won = $items->filter(fn ($i) => $i->status === 'won' && $this->inPeriod($i->status_date));
         $lost = $items->filter(fn ($i) => $i->status === 'lost' && $this->inPeriod($i->status_date));
 
         return [
-            'sent' => $this->byCurrencyItems($sent),
+            'created' => $this->byCurrencyItems($created),
             'won' => $this->byCurrencyItems($won),
             'lost' => $this->byCurrencyItems($lost),
             // Accounting figure: actual proforma invoice value only.
             'invoiced' => $this->byCurrency(ProformaInvoice::query()->whereBetween('date', [$this->from, $this->to])),
+            // Secondary operational indicator: how many of the created offers were
+            // emailed through the app or explicitly marked Sent. Won/Lost do NOT
+            // count here (being past draft is not "sent"). Not a volume KPI.
+            'sent_count' => $created->filter(fn ($i) => $i->status === 'sent' || $i->was_emailed)->count(),
         ];
     }
 
@@ -145,9 +151,10 @@ class DashboardService
     }
 
     /**
-     * Service-wise report (BDT-equivalent), date filtered. Offers + Won come from
-     * normalized commercial items (no linked quotation/PI double count); Received
-     * + Due are proforma-invoice only.
+     * Service-wise report (BDT-equivalent), date filtered. Offers Created + Won
+     * come from normalized commercial items (no linked quotation/PI double count);
+     * Received + Due are proforma-invoice only. "Offers" counts every retained
+     * document by its created/document date — not sent/email status.
      */
     public function serviceReport(): array
     {
@@ -157,7 +164,7 @@ class DashboardService
         };
 
         foreach ((new CommercialReport)->items() as $i) {
-            if ($i->is_sent && $this->inPeriod($i->sent_date)) {
+            if ($this->inPeriod($i->created_date)) {
                 $row($report, $i->service);
                 $report[$i->service]['offers']++;
             }

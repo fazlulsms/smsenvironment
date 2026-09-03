@@ -32,18 +32,20 @@
     </x-slot:actions>
 </x-page-toolbar>
 
-{{-- Invoice KPIs --}}
+{{-- Commercial KPIs — "Created" is the primary volume metric (every retained
+     quotation/PI), independent of send/email status. --}}
 <div class="row g-3 mb-1">
     @foreach ([
-        ['Commercial Offers Sent', $invoiceKpis['sent'], 'send', 'b-info'],
-        ['Won', $invoiceKpis['won'], 'check', 'b-ok'],
-        ['Lost', $invoiceKpis['lost'], 'x', 'b-danger'],
-        ['Total Invoiced', $invoiceKpis['invoiced'], 'invoice', 'b-neutral'],
-    ] as [$label, $rows, $icon, $cls])
+        ['Commercial Offers Created', $invoiceKpis['created'], 'invoice', 'b-info', $invoiceKpis['sent_count']],
+        ['Won', $invoiceKpis['won'], 'check', 'b-ok', null],
+        ['Lost', $invoiceKpis['lost'], 'x', 'b-danger', null],
+        ['Total Invoiced', $invoiceKpis['invoiced'], 'invoice', 'b-neutral', null],
+    ] as [$label, $rows, $icon, $cls, $sub])
         <div class="col-6 col-lg-3">
             <div class="card h-100"><div class="card-body">
                 <div class="d-flex justify-content-between"><span class="cell-sub">{{ $label }}</span><span class="badge-soft {{ $cls }}">{{ $count($rows) }}</span></div>
                 @foreach ($money($rows) as $line)<div class="h5 mb-0 mt-1">{{ $line }}</div>@endforeach
+                @if ($sub !== null)<div class="cell-sub mt-1">{{ $sub }} sent via system</div>@endif
             </div></div>
         </div>
     @endforeach
@@ -88,7 +90,7 @@
         <div class="card h-100"><div class="card-body">
             <span class="eyebrow">Service-wise (BDT-equiv.)</span>
             <div class="table-responsive mt-2">
-                <table class="table table-sm mb-0"><thead><tr><th>Service</th><th class="num">Offers</th><th class="num">Won</th><th class="num">Due</th></tr></thead><tbody>
+                <table class="table table-sm mb-0"><thead><tr><th>Service</th><th class="num">Created</th><th class="num">Won</th><th class="num">Due</th></tr></thead><tbody>
                 @forelse ($serviceReport as $r)
                     <tr><td class="cell-sub">{{ \Illuminate\Support\Str::limit($r['service'], 22) }}</td><td class="num">{{ $r['offers'] }}</td><td class="num">{{ number_format($r['won_value']) }}</td><td class="num">{{ number_format($r['due']) }}</td></tr>
                 @empty
