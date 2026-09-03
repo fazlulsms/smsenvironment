@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\RecordsHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InvoicePayment extends Model
 {
+    use RecordsHistory;
+
     public const METHODS = ['Bank Transfer', 'Cash', 'Cheque', 'Mobile Financial Service', 'Card', 'Other'];
 
     protected $fillable = [

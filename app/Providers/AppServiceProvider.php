@@ -62,9 +62,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manage-services', fn (User $user) => $user->hasAdminAccess());
         Gate::define('manage-standards', fn (User $user) => $user->hasAdminAccess());
         Gate::define('view-email-deliveries', fn (User $user) => $user->hasAdminAccess());
-        // Operational management (assessors master, financial corrections, cancels).
+        // Operational management (assessors master, schedule cancels — a STATUS
+        // change, not a record deletion). Admin may create/edit these.
         Gate::define('manage-assessors', fn (User $user) => $user->hasAdminAccess());
-        Gate::define('delete-payments', fn (User $user) => $user->hasAdminAccess());
         Gate::define('cancel-schedules', fn (User $user) => $user->hasAdminAccess());
 
         // Super Admin only — system, security and financial configuration.
@@ -74,5 +74,13 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manage-entities', fn (User $user) => false);
         Gate::define('manage-email-accounts', fn (User $user) => false);
         Gate::define('delete-email-deliveries', fn (User $user) => false);
+
+        // SINGLE SOURCE OF TRUTH FOR DELETION: only Super Admin may delete any
+        // record anywhere in SMSEA Office. Every destroy endpoint and every
+        // Delete UI control authorizes against one of these; Admin/Staff are
+        // denied here and Super Admin passes via Gate::before above. Deleting a
+        // payment is a financial correction and follows the same rule.
+        Gate::define('delete-records', fn (User $user) => false);
+        Gate::define('delete-payments', fn (User $user) => false);
     }
 }

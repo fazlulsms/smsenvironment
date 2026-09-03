@@ -96,18 +96,22 @@ class ReceivablesTest extends TestCase
         $this->assertSame('USD', $invoice->payments()->first()->currency);
     }
 
-    public function test_only_admin_can_delete_payment(): void
+    public function test_only_super_admin_can_delete_payment(): void
     {
+        // Payment deletion is a financial correction: Super Admin only. Admin may
+        // record payments but must not erase an existing payment record.
         $staff = User::factory()->staff()->create();
         $admin = User::factory()->admin()->create();
+        $super = User::factory()->superAdmin()->create();
         $invoice = $this->invoice();
         $this->actingAs($staff)->post(route('proforma-invoices.payments.store', $invoice), ['amount' => 1000, 'received_date' => now()->toDateString()]);
         $payment = $invoice->payments()->first();
 
         $this->actingAs($staff)->delete(route('proforma-invoices.payments.destroy', [$invoice, $payment]))->assertForbidden();
+        $this->actingAs($admin)->delete(route('proforma-invoices.payments.destroy', [$invoice, $payment]))->assertForbidden();
         $this->assertDatabaseHas('invoice_payments', ['id' => $payment->id]);
 
-        $this->actingAs($admin)->delete(route('proforma-invoices.payments.destroy', [$invoice, $payment]))->assertRedirect();
+        $this->actingAs($super)->delete(route('proforma-invoices.payments.destroy', [$invoice, $payment]))->assertRedirect();
         $this->assertDatabaseMissing('invoice_payments', ['id' => $payment->id]);
     }
 

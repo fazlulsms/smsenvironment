@@ -69,4 +69,5 @@
 
 @include('documents.preview', ['document' => $quotation, 'type' => 'quotation'])
 @include('document_emails.history', ['deliveries' => $quotation->emailDeliveries])
+@include('partials.change_history', ['histories' => $quotation->histories])
 @endsection

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BankAccount;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class BankAccountController extends Controller
@@ -51,6 +52,9 @@ class BankAccountController extends Controller
 
     public function destroy(BankAccount $bankAccount): RedirectResponse
     {
+        // Deletion is Super Admin only, even though managing banks (create/edit)
+        // is open to Admin. This is the independent server-side check.
+        Gate::authorize('delete-records');
         $bankAccount->delete();
 
         return redirect()->route('bank-accounts.index')->with('status', 'Bank account deleted.');

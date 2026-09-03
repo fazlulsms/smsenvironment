@@ -162,13 +162,16 @@ class RolesPermissionsTest extends TestCase
         $this->actingAs($admin)->get(route('email-deliveries.index'))->assertOk();
     }
 
-    public function test_admin_can_delete_draft_but_not_issued_document(): void
+    public function test_admin_cannot_delete_any_document_draft_or_issued(): void
     {
+        // Business rule: only Super Admin may delete. Admin cannot delete even a
+        // draft they could otherwise edit — so they can't remove offers from
+        // management reporting.
         $admin = User::factory()->admin()->create();
 
         $draft = $this->quotation();
-        $this->actingAs($admin)->delete(route('quotations.destroy', $draft))->assertRedirect();
-        $this->assertSoftDeleted('quotations', ['id' => $draft->id]);
+        $this->actingAs($admin)->delete(route('quotations.destroy', $draft))->assertForbidden();
+        $this->assertNotSoftDeleted('quotations', ['id' => $draft->id]);
 
         $issued = $this->quotation();
         $this->markEmailed($issued);

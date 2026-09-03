@@ -120,7 +120,7 @@ class QuotationController extends Controller
 
     public function show(Quotation $quotation): View
     {
-        $quotation->load('client', 'bankAccount', 'items.service', 'creator', 'emailDeliveries.sender', 'invoices');
+        $quotation->load('client', 'bankAccount', 'items.service', 'creator', 'emailDeliveries.sender', 'invoices', 'histories.changedBy');
 
         return view('quotations.show', compact('quotation'));
     }

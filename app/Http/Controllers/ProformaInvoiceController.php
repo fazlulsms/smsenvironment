@@ -121,7 +121,7 @@ class ProformaInvoiceController extends Controller
 
     public function show(ProformaInvoice $proformaInvoice): View
     {
-        $proformaInvoice->load('client', 'bankAccount', 'items.service', 'creator', 'emailDeliveries.sender', 'payments.recorder');
+        $proformaInvoice->load('client', 'bankAccount', 'items.service', 'creator', 'emailDeliveries.sender', 'payments.recorder', 'histories.changedBy');
 
         return view('proforma_invoices.show', ['invoice' => $proformaInvoice]);
     }

@@ -2,17 +2,26 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\RecordsHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EmailAccount extends Model
 {
+    use RecordsHistory;
+
     protected $fillable = [
         'business_entity_id', 'label', 'mailer_type', 'host', 'port', 'username',
         'password', 'encryption', 'from_name', 'from_address', 'reply_to', 'active', 'is_default',
     ];
 
     protected $hidden = ['password'];
+
+    /** Never write the SMTP password into the audit trail — note it only. */
+    public function historySecret(): array
+    {
+        return ['password'];
+    }
 
     protected function casts(): array
     {

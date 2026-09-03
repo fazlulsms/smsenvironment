@@ -130,7 +130,17 @@ class AssessmentScheduleController extends Controller
             'note' => $data['note'] ?? null,
             'reminder_enabled' => $request->boolean('reminder_enabled'),
         ]);
+
+        // Assessor team is a pivot relation — attribute-diff history won't see it,
+        // so record the old team → new team explicitly when it actually changes.
+        $oldTeam = $schedule->assessors()->orderBy('name')->pluck('name')->all();
         $schedule->assessors()->sync($data['assessors'] ?? []);
+        $newTeam = $schedule->assessors()->orderBy('name')->pluck('name')->all();
+        if ($oldTeam !== $newTeam) {
+            $schedule->recordHistoryEvent(
+                'updated', ['assessors' => $oldTeam], ['assessors' => $newTeam], ['assessors']
+            );
+        }
 
         return redirect()->route('schedules.show', $schedule)->with('status', 'Schedule updated.');
     }

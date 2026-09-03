@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBusinessEntity;
+use App\Models\Concerns\RecordsHistory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,7 @@ use Illuminate\Support\Carbon;
 class AssessmentSchedule extends Model
 {
     use BelongsToBusinessEntity;
+    use RecordsHistory;
 
     public const STATUS_PLANNED = 'planned';
 

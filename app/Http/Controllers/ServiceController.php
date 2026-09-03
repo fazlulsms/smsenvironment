@@ -8,6 +8,7 @@ use App\Support\ServiceCatalogue;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class ServiceController extends Controller
@@ -105,6 +106,9 @@ class ServiceController extends Controller
 
     public function destroy(Service $service): RedirectResponse
     {
+        // Deletion is Super Admin only, even though managing services (create/edit)
+        // is open to Admin. This is the independent server-side check.
+        Gate::authorize('delete-records');
         $service->delete();
 
         return redirect()->route('services.index')->with('status', 'Service deleted.');

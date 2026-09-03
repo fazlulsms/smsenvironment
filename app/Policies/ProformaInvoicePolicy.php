@@ -43,8 +43,9 @@ class ProformaInvoicePolicy
 
     public function delete(User $user, ProformaInvoice $invoice): bool
     {
-        // Super Admin passes via Gate::before (may delete drafts or issued docs).
-        // Admin may delete only drafts (never-emailed). Staff never.
-        return $user->hasAdminAccess() && ! $invoice->wasEmailed();
+        // Deletion is Super Admin only (they pass via Gate::before). Admin and
+        // Staff can never delete a commercial document — not even a draft they
+        // created — so they cannot quietly remove offers from reporting.
+        return false;
     }
 }

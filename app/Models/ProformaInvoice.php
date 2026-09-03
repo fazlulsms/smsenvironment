@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToBusinessEntity;
 use App\Models\Concerns\HasCommercialStatus;
+use App\Models\Concerns\RecordsHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,6 +14,7 @@ class ProformaInvoice extends Model
 {
     use BelongsToBusinessEntity;
     use HasCommercialStatus;
+    use RecordsHistory;
     use SoftDeletes;
 
     public const PRESENTATION_CONSOLIDATED = 'consolidated';
@@ -66,6 +68,16 @@ class ProformaInvoice extends Model
         'lost_note',
         'status_updated_at',
     ];
+
+    /** Derived snapshot/verification columns are regenerated on save — not history. */
+    public function historyExcluded(): array
+    {
+        return [
+            'client_snapshot', 'bank_snapshot', 'settings_snapshot', 'standards_snapshot',
+            'verification_payload_version', 'verification_id', 'verification_signature',
+            'entity_code', 'created_by',
+        ];
+    }
 
     protected function casts(): array
     {

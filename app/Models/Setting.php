@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBusinessEntity;
+use App\Models\Concerns\RecordsHistory;
 use App\Support\CurrentEntity;
 use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
 {
     use BelongsToBusinessEntity;
+    use RecordsHistory;
 
     protected $fillable = [
         'business_entity_id',

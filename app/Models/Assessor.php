@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\RecordsHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  */
 class Assessor extends Model
 {
+    use RecordsHistory;
+
     protected $fillable = ['name', 'email', 'phone', 'designation', 'is_active', 'note', 'user_id'];
 
     protected function casts(): array

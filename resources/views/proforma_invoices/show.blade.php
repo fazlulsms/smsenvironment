@@ -141,4 +141,5 @@
 
 @include('documents.preview', ['document' => $invoice, 'type' => 'invoice'])
 @include('document_emails.history', ['deliveries' => $invoice->emailDeliveries])
+@include('partials.change_history', ['histories' => $invoice->histories])
 @endsection

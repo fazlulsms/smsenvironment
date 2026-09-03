@@ -185,6 +185,8 @@ Route::middleware(['auth', 'active'])->prefix('office')->group(function () {
     // Assessor master — Admin/Super Admin only.
     Route::middleware('can:manage-assessors')->group(function () {
         Route::patch('assessors/{assessor}/active', [AssessorController::class, 'toggleActive'])->name('assessors.active');
-        Route::resource('assessors', AssessorController::class)->except(['show']);
+        // Assessors are retired via activate/deactivate (toggleActive), never
+        // deleted — preserving their assessment history. No destroy route.
+        Route::resource('assessors', AssessorController::class)->except(['show', 'destroy']);
     });
 });
