@@ -7,6 +7,7 @@ use App\Models\Assessor;
 use App\Models\Client;
 use App\Models\DocumentEmailDelivery;
 use App\Models\ProformaInvoice;
+use App\Models\Quotation;
 use App\Services\ScheduleMailService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,16 +47,27 @@ class AssessmentScheduleController extends Controller
 
     public function create(Request $request): View
     {
-        $invoice = $request->filled('invoice')
-            ? ProformaInvoice::query()->with('items.service')->find($request->invoice)
-            : null;
-
-        return view('schedules.create', $this->formData(new AssessmentSchedule([
+        $schedule = new AssessmentSchedule([
             'scheduled_from' => Carbon::today()->toDateString(),
             'scheduled_to' => Carbon::today()->toDateString(),
             'assessment_days' => 1,
             'reminder_enabled' => true,
-        ]), $invoice));
+        ]);
+
+        // Prefill from a Won proforma invoice or a Won quotation.
+        if ($request->filled('invoice') && ($inv = ProformaInvoice::query()->with('items.service', 'client')->find($request->invoice))) {
+            $schedule->client_id = $inv->client_id;
+            $schedule->proforma_invoice_id = $inv->id;
+            $schedule->client_name = $inv->client?->company_name ?? ($inv->client_snapshot['company_name'] ?? null);
+            $schedule->service_name = $inv->items->first()?->service?->name ?? $inv->charge_for;
+            $schedule->site_name = $inv->site_name;
+        } elseif ($request->filled('quotation') && ($q = Quotation::query()->with('items.service', 'client')->find($request->quotation))) {
+            $schedule->client_id = $q->client_id;
+            $schedule->client_name = $q->client?->company_name ?? ($q->client_snapshot['company_name'] ?? null);
+            $schedule->service_name = $q->items->first()?->service?->name ?? $q->charge_title;
+        }
+
+        return view('schedules.create', $this->formData($schedule));
     }
 
     public function store(Request $request): RedirectResponse
@@ -97,7 +109,7 @@ class AssessmentScheduleController extends Controller
 
     public function edit(AssessmentSchedule $schedule): View
     {
-        return view('schedules.edit', $this->formData($schedule, $schedule->invoice));
+        return view('schedules.edit', $this->formData($schedule));
     }
 
     public function update(Request $request, AssessmentSchedule $schedule): RedirectResponse
@@ -170,17 +182,8 @@ class AssessmentScheduleController extends Controller
         return back()->with('status', 'Schedule email sent to the assessment team.');
     }
 
-    private function formData(AssessmentSchedule $schedule, ?ProformaInvoice $invoice): array
+    private function formData(AssessmentSchedule $schedule): array
     {
-        // Prefill from a Won invoice when arriving via "Schedule Assessment".
-        if ($invoice && ! $schedule->exists) {
-            $schedule->client_id = $invoice->client_id;
-            $schedule->proforma_invoice_id = $invoice->id;
-            $schedule->client_name = $invoice->client?->company_name ?? ($invoice->client_snapshot['company_name'] ?? null);
-            $schedule->service_name = $invoice->items->first()?->service?->name ?? $invoice->charge_for;
-            $schedule->site_name = $invoice->site_name;
-        }
-
         return [
             'schedule' => $schedule,
             'assessorsList' => Assessor::query()->where('is_active', true)

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBusinessEntity;
+use App\Models\Concerns\HasCommercialStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class ProformaInvoice extends Model
 {
     use BelongsToBusinessEntity;
+    use HasCommercialStatus;
     use SoftDeletes;
 
     public const PRESENTATION_CONSOLIDATED = 'consolidated';
@@ -25,27 +27,11 @@ class ProformaInvoice extends Model
         self::PRESENTATION_ITEMIZED => 'Itemized Charges',
     ];
 
-    public const STATUS_DRAFT = 'draft';
-
-    public const STATUS_SENT = 'sent';
-
-    public const STATUS_WON = 'won';
-
-    public const STATUS_LOST = 'lost';
-
-    public const COMMERCIAL_STATUSES = [
-        self::STATUS_DRAFT => 'Draft',
-        self::STATUS_SENT => 'Sent',
-        self::STATUS_WON => 'Won',
-        self::STATUS_LOST => 'Lost',
-    ];
-
-    public const LOST_REASONS = ['Price', 'Client Postponed', 'Client Cancelled', 'Competitor', 'No Response', 'Scope Changed', 'Other'];
-
     protected $fillable = [
         'business_entity_id',
         'entity_code',
         'client_id',
+        'quotation_id',
         'service_category_id',
         'bank_account_id',
         'created_by',
@@ -145,6 +131,12 @@ class ProformaInvoice extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    /** The accepted quotation this invoice was created from, if any. */
+    public function quotation(): BelongsTo
+    {
+        return $this->belongsTo(Quotation::class);
     }
 
     public function serviceCategory(): BelongsTo

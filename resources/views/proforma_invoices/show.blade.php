@@ -58,39 +58,14 @@
 @endphp
 
 <div class="row g-3 mb-3">
-    {{-- Commercial status --}}
+    {{-- Commercial status (shared with quotations) --}}
     <div class="col-lg-5">
-        <div class="card h-100"><div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="eyebrow">Commercial Status</span>
-                <span class="badge-soft {{ $statusMeta[1] }}">{{ $statusMeta[0] }}</span>
-            </div>
-            <form method="post" action="{{ route('proforma-invoices.status', $invoice) }}" class="d-flex gap-2 flex-wrap align-items-end">
-                @csrf @method('PATCH')
-                <div class="flex-grow-1">
-                    <label class="form-label small text-muted mb-1">Set status</label>
-                    <select class="form-select form-select-sm" name="commercial_status" onchange="this.form.querySelector('[data-lost]').hidden = this.value !== 'lost'">
-                        @foreach (\App\Models\ProformaInvoice::COMMERCIAL_STATUSES as $val => $label)
-                            <option value="{{ $val }}" @selected($invoice->commercial_status === $val)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <button class="btn btn-primary btn-sm" type="submit"><x-icon name="check" :size="15" /> Update</button>
-                <div class="w-100" data-lost @if($invoice->commercial_status !== 'lost') hidden @endif>
-                    <label class="form-label small text-muted mb-1 mt-2">Lost reason (optional)</label>
-                    <select class="form-select form-select-sm mb-2" name="lost_reason">
-                        <option value="">— none —</option>
-                        @foreach (\App\Models\ProformaInvoice::LOST_REASONS as $r)
-                            <option value="{{ $r }}" @selected($invoice->lost_reason === $r)>{{ $r }}</option>
-                        @endforeach
-                    </select>
-                    <input class="form-control form-control-sm" name="lost_note" value="{{ $invoice->lost_note }}" placeholder="Lost note (optional)">
-                </div>
-            </form>
-            @if ($invoice->commercial_status === 'won')
-                <a class="btn btn-outline-primary btn-sm mt-3" href="{{ route('schedules.create', ['invoice' => $invoice->id]) }}"><x-icon name="clock" :size="15" /> Schedule Assessment</a>
-            @endif
-        </div></div>
+        @include('documents.commercial_status_card', [
+            'document' => $invoice,
+            'statusRoute' => route('proforma-invoices.status', $invoice),
+            'markSentRoute' => route('proforma-invoices.mark-sent', $invoice),
+            'scheduleParam' => ['invoice' => $invoice->id],
+        ])
     </div>
 
     {{-- Receivables --}}

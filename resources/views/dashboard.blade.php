@@ -35,7 +35,7 @@
 {{-- Invoice KPIs --}}
 <div class="row g-3 mb-1">
     @foreach ([
-        ['Invoices Sent', $invoiceKpis['sent'], 'send', 'b-info'],
+        ['Commercial Offers Sent', $invoiceKpis['sent'], 'send', 'b-info'],
         ['Won', $invoiceKpis['won'], 'check', 'b-ok'],
         ['Lost', $invoiceKpis['lost'], 'x', 'b-danger'],
         ['Total Invoiced', $invoiceKpis['invoiced'], 'invoice', 'b-neutral'],
@@ -88,9 +88,9 @@
         <div class="card h-100"><div class="card-body">
             <span class="eyebrow">Service-wise (BDT-equiv.)</span>
             <div class="table-responsive mt-2">
-                <table class="table table-sm mb-0"><thead><tr><th>Service</th><th class="num">Inv</th><th class="num">Won</th><th class="num">Due</th></tr></thead><tbody>
+                <table class="table table-sm mb-0"><thead><tr><th>Service</th><th class="num">Offers</th><th class="num">Won</th><th class="num">Due</th></tr></thead><tbody>
                 @forelse ($serviceReport as $r)
-                    <tr><td class="cell-sub">{{ \Illuminate\Support\Str::limit($r['service'], 22) }}</td><td class="num">{{ $r['invoices'] }}</td><td class="num">{{ number_format($r['won_value']) }}</td><td class="num">{{ number_format($r['due']) }}</td></tr>
+                    <tr><td class="cell-sub">{{ \Illuminate\Support\Str::limit($r['service'], 22) }}</td><td class="num">{{ $r['offers'] }}</td><td class="num">{{ number_format($r['won_value']) }}</td><td class="num">{{ number_format($r['due']) }}</td></tr>
                 @empty
                     <tr><td colspan="4" class="cell-sub text-center py-3">No data for this period.</td></tr>
                 @endforelse

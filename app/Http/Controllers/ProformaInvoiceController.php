@@ -200,6 +200,16 @@ class ProformaInvoiceController extends Controller
         return back()->with('status', 'Invoice marked as '.ProformaInvoice::COMMERCIAL_STATUSES[$data['commercial_status']].'.');
     }
 
+    /** Mark as Sent for offline sending (WhatsApp, external email, printed PDF). */
+    public function markSent(ProformaInvoice $proformaInvoice): RedirectResponse
+    {
+        if ($proformaInvoice->commercial_status === ProformaInvoice::STATUS_DRAFT) {
+            $proformaInvoice->update(['commercial_status' => ProformaInvoice::STATUS_SENT, 'status_updated_at' => now()]);
+        }
+
+        return back()->with('status', 'Invoice marked as sent.');
+    }
+
     public function destroy(ProformaInvoice $proformaInvoice): RedirectResponse
     {
         $this->authorize('delete', $proformaInvoice);

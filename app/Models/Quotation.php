@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBusinessEntity;
+use App\Models\Concerns\HasCommercialStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Quotation extends Model
 {
     use BelongsToBusinessEntity;
+    use HasCommercialStatus;
     use SoftDeletes;
 
     protected $fillable = [
@@ -54,6 +56,10 @@ class Quotation extends Model
         'verification_signature',
         'total',
         'notes',
+        'commercial_status',
+        'lost_reason',
+        'lost_note',
+        'status_updated_at',
     ];
 
     protected function casts(): array
@@ -71,7 +77,25 @@ class Quotation extends Model
             'show_vat_separately' => 'boolean',
             'include_acceptance' => 'boolean',
             'total' => 'decimal:2',
+            'status_updated_at' => 'datetime',
         ];
+    }
+
+    /** Proforma invoices created from this quotation (linked commercial engagement). */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(ProformaInvoice::class);
+    }
+
+    /** Quotations are single-currency (platform base, BDT). */
+    public function payableCurrency(): string
+    {
+        return 'BDT';
+    }
+
+    public function baseTotal(): float
+    {
+        return (float) $this->total;
     }
 
     public function client(): BelongsTo

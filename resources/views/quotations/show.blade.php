@@ -36,6 +36,8 @@
         <div class="d-flex align-items-center gap-2 flex-wrap">
             <h1 class="h4 mb-0">{{ $quotation->number }}</h1>
             <x-email-status :deliveries="$quotation->emailDeliveries" />
+            @php $cm = ['draft'=>'b-neutral','sent'=>'b-info','won'=>'b-ok','lost'=>'b-danger'][$quotation->commercial_status] ?? 'b-neutral'; @endphp
+            <span class="badge-soft {{ $cm }}">{{ $quotation->commercialStatusLabel() }}</span>
         </div>
         <div class="text-secondary mt-1">{{ $quotation->date->format('d M Y') }} · {{ $quotation->client?->company_name ?? ($quotation->client_snapshot['company_name'] ?? '—') }}</div>
     </div>
@@ -43,6 +45,26 @@
         <div class="cell-sub">Total</div>
         <div class="money" style="font-size:20px"><span class="cur">{{ $currency }}</span>{{ number_format($quotation->total, 2) }}</div>
     </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-6">
+        @include('documents.commercial_status_card', [
+            'document' => $quotation,
+            'statusRoute' => route('quotations.status', $quotation),
+            'markSentRoute' => route('quotations.mark-sent', $quotation),
+            'scheduleParam' => ['quotation' => $quotation->id],
+        ])
+    </div>
+    <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+        <span class="eyebrow">Commercial Note</span>
+        <p class="cell-sub mt-2 mb-0">A quotation is a commercial offer. Payments and receivables are tracked on the Proforma Invoice, not the quotation.</p>
+        @if ($quotation->invoices->isNotEmpty())
+            <div class="mt-2"><span class="cell-sub">Linked invoice(s):</span>
+                @foreach ($quotation->invoices as $inv)<a class="badge-soft b-invoice ms-1" href="{{ route('proforma-invoices.show', $inv) }}">{{ $inv->number }}</a>@endforeach
+            </div>
+        @endif
+    </div></div></div>
 </div>
 
 @include('documents.preview', ['document' => $quotation, 'type' => 'quotation'])

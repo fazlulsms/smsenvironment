@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -119,9 +120,36 @@ class QuotationController extends Controller
 
     public function show(Quotation $quotation): View
     {
-        $quotation->load('client', 'bankAccount', 'items.service', 'creator', 'emailDeliveries.sender');
+        $quotation->load('client', 'bankAccount', 'items.service', 'creator', 'emailDeliveries.sender', 'invoices');
 
         return view('quotations.show', compact('quotation'));
+    }
+
+    public function updateStatus(Request $request, Quotation $quotation): RedirectResponse
+    {
+        $data = $request->validate([
+            'commercial_status' => ['required', Rule::in(array_keys(Quotation::COMMERCIAL_STATUSES))],
+            'lost_reason' => ['nullable', Rule::in(Quotation::LOST_REASONS)],
+            'lost_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $quotation->commercial_status = $data['commercial_status'];
+        $quotation->status_updated_at = now();
+        $quotation->lost_reason = $data['commercial_status'] === Quotation::STATUS_LOST ? ($data['lost_reason'] ?? null) : null;
+        $quotation->lost_note = $data['commercial_status'] === Quotation::STATUS_LOST ? ($data['lost_note'] ?? null) : null;
+        $quotation->save();
+
+        return back()->with('status', 'Quotation marked as '.Quotation::COMMERCIAL_STATUSES[$data['commercial_status']].'.');
+    }
+
+    /** Mark as Sent for offline sending (WhatsApp, external email, printed PDF). */
+    public function markSent(Quotation $quotation): RedirectResponse
+    {
+        if ($quotation->commercial_status === Quotation::STATUS_DRAFT) {
+            $quotation->update(['commercial_status' => Quotation::STATUS_SENT, 'status_updated_at' => now()]);
+        }
+
+        return back()->with('status', 'Quotation marked as sent.');
     }
 
     public function edit(Quotation $quotation): View

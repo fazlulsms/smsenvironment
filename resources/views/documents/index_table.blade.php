@@ -32,7 +32,11 @@
                 <tr>
                     <td>
                         <a class="row-title" href="{{ $showRoute($document) }}">{{ $document->number }}</a>
-                        <div class="cell-sub">by {{ $document->creator?->name ?? '—' }}</div>
+                        <div class="cell-sub">
+                            by {{ $document->creator?->name ?? '—' }}
+                            @php $cm = ['sent'=>'b-info','won'=>'b-ok','lost'=>'b-danger'][$document->commercial_status] ?? null; @endphp
+                            @if ($cm)<span class="badge-soft {{ $cm }}">{{ $document->commercialStatusLabel() }}</span>@endif
+                        </div>
                     </td>
                     <td>{{ $document->client?->company_name ?? ($document->client_snapshot['company_name'] ?? '—') }}</td>
                     <td class="cell-sub">{{ $serviceLabel($document) }}</td>

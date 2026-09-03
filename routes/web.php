@@ -145,6 +145,8 @@ Route::middleware(['auth', 'active'])->prefix('office')->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
     });
 
+    Route::patch('quotations/{quotation}/status', [QuotationController::class, 'updateStatus'])->name('quotations.status');
+    Route::post('quotations/{quotation}/mark-sent', [QuotationController::class, 'markSent'])->name('quotations.mark-sent');
     Route::post('quotations/{quotation}/duplicate', [QuotationController::class, 'duplicate'])->name('quotations.duplicate');
     Route::get('quotations/{quotation}/pdf', [QuotationController::class, 'pdf'])->name('quotations.pdf');
     Route::get('quotations/{quotation}/email', [DocumentEmailController::class, 'quotationCreate'])->name('quotations.email.create');
@@ -157,6 +159,7 @@ Route::middleware(['auth', 'active'])->prefix('office')->group(function () {
     Route::post('proforma-invoices/{proformaInvoice}/email', [DocumentEmailController::class, 'proformaSend'])->name('proforma-invoices.email.send');
     // Commercial status + receivables (payments) on an invoice.
     Route::patch('proforma-invoices/{proformaInvoice}/status', [ProformaInvoiceController::class, 'updateStatus'])->name('proforma-invoices.status');
+    Route::post('proforma-invoices/{proformaInvoice}/mark-sent', [ProformaInvoiceController::class, 'markSent'])->name('proforma-invoices.mark-sent');
     Route::post('proforma-invoices/{proformaInvoice}/payments', [InvoicePaymentController::class, 'store'])->name('proforma-invoices.payments.store');
     Route::delete('proforma-invoices/{proformaInvoice}/payments/{payment}', [InvoicePaymentController::class, 'destroy'])->name('proforma-invoices.payments.destroy');
     Route::resource('proforma-invoices', ProformaInvoiceController::class)->parameters(['proforma-invoices' => 'proformaInvoice']);
