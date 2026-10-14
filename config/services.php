@@ -38,9 +38,14 @@ return [
     'ai' => [
         'provider' => env('AI_PROVIDER'),
         'timeout' => env('AI_TIMEOUT', 20),
+        // Transient 429/5xx (model overload) are retried before falling back.
+        'retries' => env('AI_RETRIES', 2),
+        'retry_delay_ms' => env('AI_RETRY_DELAY_MS', 500),
         'gemini' => [
             'key' => env('GEMINI_API_KEY'),
-            'model' => env('GEMINI_MODEL', 'gemini-3.6-flash'),
+            // "gemini-flash-latest" always points at the current stable flash
+            // model, so the app does not break when a dated model is retired.
+            'model' => env('GEMINI_MODEL', 'gemini-flash-latest'),
             'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com'),
         ],
         'openai' => [

@@ -21,11 +21,16 @@ class ClientInformationExtractor
         'country',
     ];
 
+    // Deterministic fields the local parser may fill when the AI left them blank.
+    // Semantic fields (company, contact_person, designation, parent, address) are
+    // NOT supplemented — a deliberate AI null there is respected.
     private const LOCAL_SUPPLEMENT_FIELDS = [
         'email',
         'phone',
         'website',
         'postal_code',
+        'country',
+        'city',
     ];
 
     private LocalClientInformationExtractor $localExtractor;
@@ -47,23 +52,21 @@ class ClientInformationExtractor
     public function extractWithMetadata(string $text): array
     {
         $local = $this->sanitize($this->localExtract($text));
+        $aiAttempted = false;
 
         foreach ($this->providers as $provider) {
             if (! $provider->isConfigured()) {
                 continue;
             }
 
+            $aiAttempted = true;
+
             try {
                 $ai = $this->sanitize($provider->extract($text));
                 $merged = $this->mergeAiWithLocal($ai, $local);
 
                 if ($this->hasMeaningfulData($merged)) {
-                    return [
-                        'data' => $merged,
-                        'source' => 'ai',
-                        'provider' => $provider->name(),
-                        'message' => 'Information detected. Please review before saving.',
-                    ];
+                    return $this->result($merged, 'ai', $provider->name());
                 }
             } catch (\Throwable) {
                 continue;
@@ -71,19 +74,54 @@ class ClientInformationExtractor
         }
 
         if ($this->hasMeaningfulData($local)) {
-            return [
-                'data' => $local,
-                'source' => 'local',
-                'provider' => null,
-                'message' => 'Some information was detected locally. Please review before saving.',
-            ];
+            return $this->result($local, 'local', null, $aiAttempted);
+        }
+
+        return $this->result(self::blankData(), 'none', null, $aiAttempted);
+    }
+
+    /**
+     * Build the response with honest provenance + review metadata. The message
+     * never claims "AI detected" when only the local parser ran.
+     */
+    private function result(array $data, string $source, ?string $provider, bool $aiAttempted = false): array
+    {
+        $detected = array_values(array_filter(self::FIELDS, fn ($f) => filled($data[$f] ?? null)));
+        $missing = array_values(array_diff(self::FIELDS, $detected));
+        $warnings = [];
+
+        if ($source === 'none') {
+            $message = 'No details could be identified automatically. Please enter them manually.';
+        } elseif ($source === 'local') {
+            $message = count($detected).' field(s) detected by local extraction'
+                .($aiAttempted ? ' (AI was unavailable)' : '').'. Please review before saving.';
+            if ($aiAttempted) {
+                $warnings[] = 'AI extraction was unavailable, so details were detected locally. Please review carefully.';
+            }
+        } else {
+            $message = count($detected).' field(s) detected. Please review before saving.';
+        }
+
+        // Field-level review hints.
+        if ($source !== 'none') {
+            if (blank($data['company_name'] ?? null)) {
+                $warnings[] = filled($data['parent_company'] ?? null)
+                    ? 'Only a parent/group company was found — the specific company name needs your review.'
+                    : 'Company name was not found — please add it.';
+            }
+            if (blank($data['phone'] ?? null)) {
+                $warnings[] = 'Phone number was not detected.';
+            }
         }
 
         return [
-            'data' => self::blankData(),
-            'source' => 'none',
-            'provider' => null,
-            'message' => 'Information could not be detected automatically. Please enter the client details manually.',
+            'data' => $data,
+            'source' => $source,
+            'provider' => $provider,
+            'message' => $message,
+            'fields_detected' => $detected,
+            'fields_missing' => $missing,
+            'warnings' => $warnings,
         ];
     }
 

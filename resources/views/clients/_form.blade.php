@@ -7,11 +7,13 @@
         </div>
         <div class="fs-body">
             <textarea class="form-control" id="smartPasteText" rows="4"
-                placeholder="e.g.&#10;UNI Garments Limited&#10;80 Bayazid Bostami Rd, Chattogram 4210&#10;sohel@rdmapparels.com&#10;Mr. Sohel - Compliance Manager"></textarea>
+                placeholder="Paste client information from WhatsApp, email, a business card or any text format. AI will identify the available details automatically."></textarea>
             <div class="d-flex gap-2 align-items-center mt-2 flex-wrap">
                 <button class="btn btn-outline-primary" type="button" id="detectClient"><x-icon name="sparkles" :size="16" /> Detect Information</button>
                 <span class="badge-soft b-neutral d-none" id="smartPasteStatus"></span>
+                <span class="badge-soft b-neutral d-none" id="smartPasteSource"></span>
             </div>
+            <div class="d-none mt-2" id="smartPasteWarnings"></div>
             <div class="d-none mt-3" id="duplicateWarning">
                 <div class="alert alert-warning mb-0">
                     <strong>Possible existing client found.</strong>
@@ -92,6 +94,30 @@ function setStatus(text, kind) {
     status.className = 'badge-soft ' + (kind || 'b-neutral');
 }
 
+// Honest provenance badge — never say "AI" when only local parsing ran.
+function setSource(source, provider) {
+    const el = document.getElementById('smartPasteSource');
+    if (source === 'ai' && provider) {
+        el.textContent = 'Detected by AI (' + provider + ')';
+        el.className = 'badge-soft b-info';
+        el.classList.remove('d-none');
+    } else if (source === 'local') {
+        el.textContent = 'Detected locally (AI unavailable)';
+        el.className = 'badge-soft b-warn';
+        el.classList.remove('d-none');
+    } else {
+        el.classList.add('d-none');
+    }
+}
+
+function showWarnings(warnings) {
+    const box = document.getElementById('smartPasteWarnings');
+    if (! warnings || ! warnings.length) { box.classList.add('d-none'); box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="alert alert-warning mb-0 py-2 small">' +
+        warnings.map(w => '• ' + w.replace(/</g, '&lt;')).join('<br>') + '</div>';
+    box.classList.remove('d-none');
+}
+
 function showDuplicateWarning(duplicates) {
     const warning = document.getElementById('duplicateWarning');
     const list = document.getElementById('duplicateList');
@@ -126,12 +152,22 @@ document.getElementById('detectClient').addEventListener('click', async () => {
     try {
         const result = await postJson('{{ route('clients.smart-paste') }}', { raw_text: document.getElementById('smartPasteText').value });
         const populated = fillClient(result.data || {});
+        setSource(result.source, result.provider);
+        showWarnings(result.warnings || []);
         showDuplicateWarning(result.duplicates || []);
         setStatus(populated ? (result.message || 'Detected — please review') : 'Nothing detected — enter manually', populated ? 'b-ok' : 'b-warn');
     } catch (error) {
         const populated = error.json?.data ? fillClient(error.json.data) : 0;
+        setSource(error.json?.source, error.json?.provider);
+        showWarnings(error.json?.warnings || []);
         showDuplicateWarning(error.json?.duplicates || []);
-        setStatus(populated ? (error.json?.message || 'Detected locally — please review') : 'Could not detect — enter manually', populated ? 'b-warn' : 'b-danger');
+        if (error.status === 422) {
+            setStatus(error.json?.message || 'Could not detect — enter manually', 'b-warn');
+        } else if (error.status === 419 || error.status === 0 || error.status === undefined) {
+            setStatus('Network error — your pasted text is preserved. Please try again.', 'b-danger');
+        } else {
+            setStatus(error.json?.message || 'Something went wrong — enter manually', populated ? 'b-warn' : 'b-danger');
+        }
     } finally {
         button.classList.remove('is-loading');
         button.disabled = false;

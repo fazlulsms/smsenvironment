@@ -68,6 +68,9 @@ class ClientController extends Controller
             'data' => $client,
             'source' => $result['source'],
             'provider' => $result['provider'],
+            'fields_detected' => $result['fields_detected'] ?? [],
+            'fields_missing' => $result['fields_missing'] ?? [],
+            'warnings' => $result['warnings'] ?? [],
             'duplicates' => $this->possibleDuplicates($client),
         ], $status);
     }

@@ -103,7 +103,10 @@ class SmartPasteClientTest extends TestCase
                     'data' => $this->localExtract($text),
                     'source' => 'local',
                     'provider' => null,
-                    'message' => 'Some information was detected locally. Please review before saving.',
+                    'message' => '1 field(s) detected by local extraction. Please review before saving.',
+                    'fields_detected' => ['email'],
+                    'fields_missing' => [],
+                    'warnings' => [],
                 ];
             }
 
@@ -118,7 +121,7 @@ class SmartPasteClientTest extends TestCase
             ->assertOk()
             ->assertJsonPath('source', 'local')
             ->assertJsonPath('data.email', 'client@example.com')
-            ->assertJsonPath('message', 'Some information was detected locally. Please review before saving.');
+            ->assertJsonPath('message', '1 field(s) detected by local extraction. Please review before saving.');
     }
 
     public function test_no_detected_information_returns_manual_message_contract(): void
@@ -129,7 +132,7 @@ class SmartPasteClientTest extends TestCase
             ->postJson(route('clients.smart-paste'), ['raw_text' => 'hello there'])
             ->assertUnprocessable()
             ->assertJsonPath('source', 'none')
-            ->assertJsonPath('message', 'Information could not be detected automatically. Please enter the client details manually.');
+            ->assertJsonPath('message', 'No details could be identified automatically. Please enter them manually.');
     }
 
     public function test_add_client_smart_paste_endpoint_populates_ai_payload(): void

@@ -72,6 +72,44 @@ class ClientInformationExtractorTest extends TestCase
             && $request['generationConfig']['response_schema']['properties']['company_name']['nullable'] === true);
     }
 
+    public function test_gemini_retries_transient_overload_then_succeeds(): void
+    {
+        Config::set('services.ai.gemini.key', 'test-key');
+        Config::set('services.ai.gemini.model', 'gemini-test');
+        Config::set('services.ai.gemini.base_url', 'https://generativelanguage.googleapis.com');
+        Config::set('services.ai.retries', 2);
+
+        // First a 503 "overloaded", then a valid structured response.
+        Http::fakeSequence('generativelanguage.googleapis.com/*')
+            ->push(['error' => ['message' => 'overloaded']], 503)
+            ->push(['candidates' => [['content' => ['parts' => [[
+                'text' => json_encode(['company_name' => 'Retry Works Ltd.']),
+            ]]]]]], 200);
+
+        $data = (new GeminiClientInformationProvider)->extract('client text');
+
+        $this->assertSame('Retry Works Ltd.', $data['company_name']);
+        Http::assertSentCount(2);
+    }
+
+    public function test_gemini_gives_up_after_persistent_overload_and_local_takes_over(): void
+    {
+        Config::set('services.ai.gemini.key', 'test-key');
+        Config::set('services.ai.gemini.model', 'gemini-test');
+        Config::set('services.ai.gemini.base_url', 'https://generativelanguage.googleapis.com');
+        Config::set('services.ai.retries', 2);
+
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response(['error' => ['message' => 'overloaded']], 503)]);
+
+        $result = (new ClientInformationExtractor(providers: [new GeminiClientInformationProvider]))
+            ->extractWithMetadata('Mobile: 01712345678');
+
+        $this->assertSame('local', $result['source']);
+        $this->assertSame('01712345678', $result['data']['phone']);
+        $this->assertNotEmpty($result['warnings']);
+        Http::assertSentCount(3); // initial + 2 retries
+    }
+
     public function test_ai_is_primary_over_weak_local_semantics(): void
     {
         $extractor = new ClientInformationExtractor(providers: [
@@ -196,7 +234,7 @@ class ClientInformationExtractorTest extends TestCase
         $result = (new ClientInformationExtractor)->extractWithMetadata('hello there');
 
         $this->assertSame('none', $result['source']);
-        $this->assertSame('Information could not be detected automatically. Please enter the client details manually.', $result['message']);
+        $this->assertSame('No details could be identified automatically. Please enter them manually.', $result['message']);
     }
 }
 
